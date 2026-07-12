@@ -1,0 +1,100 @@
+/* PatternCache global styles. Tokens mirrored from theme/tokens.ts as CSS vars. */
+
+:root {
+  --bg: #16181d;
+  --panel: #1d2027;
+  --panel-border: #2c2f38;
+  --text: #f3f1ea;
+  --text-dim: #9b9da5;
+  --text-faint: #5c5f66;
+  --teal: #4fa3a1;
+  --amber: #d4a24c;
+  --blue: #5b9bd5;
+  --red: #c97064;
+  --green: #7fb069;
+
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14.5px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+code,
+kbd {
+  font-family: var(--mono);
+}
+
+/* §9 — visible focus states, teal, consistent everywhere. */
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* §3.3 / §9 — respect reduced motion globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Node fade-in for growing diagrams / trace boxes. §3.3 */
+@keyframes pc-node-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+::selection {
+  background: rgba(79, 163, 161, 0.35);
+}
+
+/* Thin, unobtrusive scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border) transparent;
+}
