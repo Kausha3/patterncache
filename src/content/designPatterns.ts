@@ -62,6 +62,51 @@ export const DESIGN_PATTERNS: DesignPatternEntry[] = [
       },
     ],
   },
+  {
+    id: "builder",
+    name: "Builder Pattern",
+    whenToUse:
+      "Reach for this when constructing an object requires several optional, order-independent steps rather than one constructor call demanding every field upfront — especially when some combinations of choices need to be validated together before the object can be considered valid at all.",
+    examples: [
+      {
+        refId: "pc-builder",
+        isDrill: true,
+        title: "PCBuilder accumulates components before producing an immutable PCBuild",
+        howItShowsUp:
+          "selectCpu()/selectMotherboard()/selectGpu()/selectPsu() each add one piece across separate calls, checking compatibility as choices come in, and only build() commits everything into a final, immutable PCBuild — named explicitly as this design's own Builder Pattern principle.",
+      },
+    ],
+  },
+  {
+    id: "observer",
+    name: "Observer Pattern",
+    whenToUse:
+      "Reach for this when one object's state change needs to reach a variable, possibly-changing set of other objects, and polling every one of them on some schedule would be wasteful or too slow. Give the subject a list of observers it actively notifies the moment its own state changes, instead of making every observer ask the subject 'has anything changed yet?' on repeat.",
+    examples: [
+      {
+        refId: "stock-price-alerts",
+        isDrill: true,
+        title: "Stock notifies every subscribed PriceAlert the instant its price changes",
+        howItShowsUp:
+          "Stock.updatePrice() loops over its own subscribers list and calls onPriceUpdate() on each PriceAlert directly — Stock never checks whether any alert's threshold was crossed, it just pushes the update and lets each alert decide for itself. That push-not-pull inversion, plus Stock never needing to know how many observers exist or what any of their thresholds are, is the whole pattern.",
+      },
+    ],
+  },
+  {
+    id: "composite",
+    name: "Composite Pattern",
+    whenToUse:
+      "Reach for this when you have a tree of 'things that hold other things of the same kind' — folders holding files or more folders, categories holding items or subcategories — and you want calling code to treat a single leaf and an entire nested branch through the exact same interface, without ever branching on which one it's actually holding.",
+    examples: [
+      {
+        refId: "file-system",
+        isDrill: true,
+        title: "File and Folder both answer to the same FileSystemNode contract",
+        howItShowsUp:
+          "Folder.getSize() sums child.getSize() across its children without checking whether any given child is a File (the base case) or another Folder (which recurses again) — the exact same method call works uniformly whether you're standing on a single file or the root of a thousand-file tree.",
+      },
+    ],
+  },
 ];
 
 export function listDesignPatterns(): DesignPatternEntry[] {

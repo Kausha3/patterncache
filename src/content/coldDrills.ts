@@ -970,7 +970,618 @@ const rideShareDispatch: ColdDrillPrompt = {
   },
 };
 
-const COLD_DRILLS: ColdDrillPrompt[] = [pizzaOrdering, libraryManagement, atm, restaurantReservation, rideShareDispatch];
+const pcBuilder: ColdDrillPrompt = {
+  id: "pc-builder",
+  title: "Design a Custom PC Builder",
+  prompt:
+    "Design a custom PC / computer builder — a customer picks components (CPU, GPU, RAM, storage, PSU) step by step and the system validates compatibility before final purchase.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Do we need to validate compatibility incrementally as each component is picked, or only at final build() time?",
+        why: "Decides whether selectCpu()/selectMotherboard() themselves need validation logic, or whether all checking can be deferred to one place in build() — a real structural choice about where the invariant lives.",
+      },
+      {
+        question: "Is this a single build session per customer, or do we need to support saving a partial build and resuming later?",
+        why: "Resuming later means PCBuilder itself needs to be persisted with an id and reloaded — a stateless one-shot session needs no such persistence layer at all.",
+      },
+      {
+        question: "Do we need to support pre-built bundles/presets, or is every build fully custom component-by-component?",
+        why: "Presets would need a separate PresetConfiguration entity that pre-fills a PCBuilder — without that scope, PCBuilder only ever starts empty.",
+      },
+      {
+        question: "Is pricing/total cost in scope, or just compatibility validation?",
+        why: "Pricing-in-scope means every component needs a price field and PCBuild needs a calculateTotalPrice() — same scoping question as whether Payment is in scope in the Parking Lot lesson.",
+      },
+    ],
+    entities: [
+      {
+        id: "pcbuilder",
+        name: "PCBuilder",
+        isEntity: true,
+        why: "The in-progress, mutable accumulation of the customer's choices — exists only during the build session, and is nothing but selection methods plus the validation that guards them.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "selectedCpu", type: "CPU" },
+          { name: "selectedMotherboard", type: "Motherboard" },
+          { name: "selectedGpu", type: "GPU" },
+          { name: "selectedPsu", type: "PSU" },
+          { name: "ramGb", type: "int" },
+          { name: "storageGb", type: "int" },
+        ],
+      },
+      {
+        id: "cpu",
+        name: "CPU",
+        isEntity: true,
+        why: "Has a socket type that must physically match the motherboard, and a power draw that feeds directly into the PSU wattage check — real compatibility-relevant data, not just a label.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "socketType", type: "SocketType" },
+          { name: "tdpWatts", type: "int" },
+        ],
+      },
+      {
+        id: "motherboard",
+        name: "Motherboard",
+        isEntity: true,
+        why: "Has its own socket type that either matches or rejects whatever CPU is chosen — the other half of the socket-compatibility check.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "socketType", type: "SocketType" },
+          { name: "maxRamSlots", type: "int" },
+        ],
+      },
+      {
+        id: "gpu",
+        name: "GPU",
+        isEntity: true,
+        why: "Contributes its own power draw to the total wattage budget the PSU has to cover — same reason CPU carries a tdpWatts field.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "tdpWatts", type: "int" },
+        ],
+      },
+      {
+        id: "psu",
+        name: "PSU",
+        isEntity: true,
+        why: "Has a wattage rating that must cover the CPU+GPU's combined draw — the class the whole power-budget check is actually about.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "wattageRating", type: "int" },
+        ],
+      },
+      {
+        id: "pcbuild",
+        name: "PCBuild",
+        isEntity: true,
+        why: "The finished, immutable spec produced only once build() succeeds — a completely different lifecycle from PCBuilder, which is why it's a separate class instead of PCBuilder just marking itself 'done'.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "cpu", type: "CPU" },
+          { name: "motherboard", type: "Motherboard" },
+          { name: "gpu", type: "GPU" },
+          { name: "psu", type: "PSU" },
+          { name: "ramGb", type: "int" },
+          { name: "storageGb", type: "int" },
+          { name: "totalPowerDrawWatts", type: "int" },
+        ],
+      },
+      { id: "user", name: "Customer", isEntity: false, why: "Whoever operates the builder is an external actor calling into the system, not a class inside the builder's own domain model." },
+      { id: "cart", name: "ShoppingCart", isEntity: false, why: "A separate checkout/payment concern once build() succeeds — nobody asked for purchasing flow, only compatibility validation." },
+      {
+        id: "checker",
+        name: "CompatibilityChecker",
+        isEntity: false,
+        why: "Tempting to model as its own class, but the compatibility checks only ever need data PCBuilder already holds about its own selections — pulling that logic into a separate class would just move a method sideways with no new state or reuse to justify it.",
+      },
+    ],
+    methods: [
+      { id: "m1", signature: "selectCpu(cpu): void", ownerId: "pcbuilder", justification: "Recording the chosen CPU is PCBuilder's own accumulation step — the same incremental-state-gathering role every selectX() method plays." },
+      {
+        id: "m2",
+        signature: "selectMotherboard(motherboard): void",
+        ownerId: "pcbuilder",
+        justification: "PCBuilder is the only place that knows about every choice made so far, so it's positioned to catch a socket mismatch the instant an incompatible motherboard is introduced, rather than silently accepting it and failing later at build().",
+        codeExercise: {
+          language: "java",
+          starter: "void selectMotherboard(Motherboard motherboard) {\n    // your code here\n}",
+          reference:
+            "void selectMotherboard(Motherboard motherboard) {\n    if (selectedCpu != null && selectedCpu.getSocketType() != motherboard.getSocketType()) {\n        throw new IllegalStateException(\"Motherboard socket does not match already-selected CPU socket\");\n    }\n    this.selectedMotherboard = motherboard;\n}",
+          checklist: [
+            "Checks against an already-selected CPU's socket type, not just accepting any motherboard",
+            "Fails loudly (exception) on a socket mismatch instead of silently accepting an incompatible pair",
+            "Still allows selecting a motherboard first, before any CPU is chosen (selectedCpu can be null)",
+            "Bonus (L5+, not required here): if a CPU is selected AFTER an incompatible motherboard, selectCpu() needs the same reverse check — this exercise only covers one direction",
+          ],
+        },
+      },
+      { id: "m3", signature: "selectGpu(gpu): void", ownerId: "pcbuilder", justification: "Same accumulation role as selectCpu() — GPU has no socket constraint to check here, only a power draw that matters later at build()." },
+      { id: "m4", signature: "selectPsu(psu): void", ownerId: "pcbuilder", justification: "Same accumulation role as the other selectX() methods — the wattage check is deferred to build(), once every draw-contributing component is known." },
+      { id: "m5", signature: "selectRam(ramGb): void", ownerId: "pcbuilder", justification: "RAM has no compatibility rule modeled in this scope, so this is a plain field assignment — the same reasoning that kept RAM as an int instead of its own class." },
+      { id: "m6", signature: "selectStorage(storageGb): void", ownerId: "pcbuilder", justification: "Same reasoning as selectRam() — no compatibility constraint modeled, so nothing beyond recording the choice belongs here." },
+      { id: "m7", signature: "checkCompatibility(): boolean", ownerId: "pcbuilder", justification: "A pure query over PCBuilder's own already-selected components (socket match, wattage budget) — kept separate from build() so the customer's UI can show a live compatibility signal before they even try to finalize." },
+      {
+        id: "m8",
+        signature: "build(): PCBuild",
+        ownerId: "pcbuilder",
+        justification: "build() is the one moment PCBuilder commits its accumulated, mutable choices into a final, immutable PCBuild — the defining Builder-pattern moment: construct only when explicitly asked, never before.",
+        codeExercise: {
+          language: "java",
+          starter: "PCBuild build() {\n    // your code here\n}",
+          reference:
+            "PCBuild build() {\n    if (selectedCpu == null || selectedMotherboard == null || selectedGpu == null || selectedPsu == null) {\n        throw new IllegalStateException(\"Cannot build - required components are missing\");\n    }\n    int totalDraw = selectedCpu.getTdpWatts() + selectedGpu.getTdpWatts();\n    if (selectedPsu.getWattageRating() < totalDraw) {\n        throw new IllegalStateException(\"Selected PSU cannot supply enough wattage for this build\");\n    }\n    return new PCBuild(selectedCpu, selectedMotherboard, selectedGpu, selectedPsu, ramGb, storageGb, totalDraw);\n}",
+          checklist: [
+            "Rejects build() if any required component (CPU, motherboard, GPU, PSU) hasn't been selected yet",
+            "Sums CPU + GPU wattage draw and checks it against the selected PSU's rating before allowing the build",
+            "Fails loudly (exception) rather than returning a partially-valid PCBuild",
+            "Bonus (L5+, not required here): a real build might budget wattage headroom (e.g. require the PSU rated 20% above draw) rather than an exact threshold — this exercise uses an exact comparison",
+          ],
+        },
+      },
+      { id: "m9", signature: "reset(): void", ownerId: "pcbuilder", justification: "Clearing every selection back to unset is PCBuilder's own responsibility, the same way every other mutation to its accumulated state goes through PCBuilder itself, not an outside caller reaching in." },
+    ],
+    relationships: [
+      "PCBuilder accumulates one CPU, one Motherboard, one GPU, and one PSU",
+      "PCBuilder.build() produces one PCBuild",
+      "PCBuild references the same CPU, Motherboard, GPU, and PSU the builder had selected",
+    ],
+    edgeCases: [
+      {
+        scenario: "The customer tries to call build() before selecting a CPU.",
+        handling: "build() must check every required component is non-null before doing anything else — same 'fail before you commit' shape as ParkingLot rejecting entry before a Ticket is ever issued.",
+      },
+      {
+        scenario: "The customer selects a CPU on one socket type, then picks a motherboard with a different socket.",
+        handling: "selectMotherboard() must check socket compatibility against whatever CPU is already selected and reject immediately, rather than letting an invalid pair sit unnoticed until build() finally checks.",
+      },
+      {
+        scenario: "The customer picks a low-wattage PSU after already selecting a power-hungry CPU and GPU.",
+        handling: "build() computes total draw from CPU+GPU and compares it against the selected PSU's rating — catching this at build() time rather than producing a PCBuild that would never actually power on.",
+      },
+      {
+        scenario: "The customer changes their CPU choice after already selecting a compatible motherboard.",
+        handling: "selectCpu() needs the same reverse compatibility check as selectMotherboard() — swapping in a new CPU with a different socket should reject the change (or invalidate the motherboard choice), not silently leave an incompatible pair in place.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "PCBuilder is a separate class from PCBuild, the final product it returns.",
+        reasoning: "Splits the in-progress, mutable accumulation of choices from the finished, immutable spec — same shape as this app's Session/ATM split. PCBuild never needs setters once built; PCBuilder is nothing but setters and validation.",
+      },
+      {
+        decision: "Compatibility validation lives inside PCBuilder itself instead of a separate CompatibilityChecker class.",
+        reasoning: "The checks only ever need data PCBuilder already holds about its own selections — extracting a separate validator class would just move a method sideways with no new state or reuse to justify it.",
+      },
+      {
+        decision: "RAM and storage are plain int fields (ramGb, storageGb) instead of their own RAMModule/StorageDevice classes.",
+        reasoning: "Nothing in this system's compatibility rules depends on RAM or storage specifics (no slot-count or speed-matching modeled) — giving them full class treatment would add ceremony with no behavior attached to it.",
+      },
+    ],
+    principles: [
+      {
+        name: "Builder Pattern",
+        explanation: "PCBuilder accumulates optional component choices across separate method calls (selectCpu(), selectGpu(), ...) and only produces the final, immutable PCBuild when build() is explicitly called — construction happens step by step instead of one large constructor demanding every component upfront.",
+      },
+      { name: "Single Responsibility Principle", explanation: "PCBuilder only accumulates and validates selections; PCBuild only holds the finished spec — neither reaches into the other's job." },
+      { name: "Encapsulation", explanation: "selectedCpu, selectedMotherboard, and the rest only change through their own selectX() methods, which are also the only places compatibility gets checked — nothing bypasses them to set a component directly." },
+      { name: "Fail fast", explanation: "Catching a socket mismatch the moment an incompatible motherboard is selected, rather than waiting until build(), gives the customer immediate feedback instead of a late, confusing rejection after several more steps." },
+    ],
+  },
+};
+
+const stockAlerts: ColdDrillPrompt = {
+  id: "stock-price-alerts",
+  title: "Design a Stock Price Alert System",
+  prompt: "Design a stock price alert system — users subscribe to a stock and get notified when it crosses a price threshold.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Is this for a single stock, or does one user track many stocks with many alerts each?",
+        why: "Decides whether Stock needs its own subscriber list at all, or whether a much simpler single-alert-per-user model would do — pins down that PriceAlert must be its own class, not a field on User.",
+      },
+      {
+        question: "Do alerts fire once and deactivate, or keep firing every time the price crosses the threshold again?",
+        why: "Directly decides whether PriceAlert needs a status/lifecycle field at all, or whether onPriceUpdate() can just check-and-notify with no state to track.",
+      },
+      {
+        question: "Is notification delivery (email/SMS/push) in scope, or just detecting that a threshold was crossed?",
+        why: "Decides whether NotificationService exists as a class in the model at all, or whether 'notify' is out of scope entirely — same scoping question every other lesson's payment/delivery clarify-Q asks.",
+      },
+      {
+        question: "Does price data arrive as a real-time push feed, or does the system have to poll an external source?",
+        why: "Changes who calls updatePrice() and how often, though it doesn't change the class model itself — worth asking but not worth over-modeling around.",
+      },
+    ],
+    entities: [
+      {
+        id: "stock",
+        name: "Stock",
+        isEntity: true,
+        why: "The subject being observed — owns its own current price and the list of alerts watching it; nothing else should be able to reach in and fire someone else's alert.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "symbol", type: "string" },
+          { name: "currentPrice", type: "Money" },
+          { name: "subscribers", type: "List<PriceAlert>" },
+        ],
+      },
+      {
+        id: "pricealert",
+        name: "PriceAlert",
+        isEntity: true,
+        why: "The observer — reacts to a price update by checking its own threshold and direction; Stock doesn't need to know what any given alert's condition even is.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "stock", type: "Stock" },
+          { name: "userId", type: "string" },
+          { name: "threshold", type: "Money" },
+          { name: "direction", type: "AlertDirection" },
+          { name: "status", type: "AlertStatus" },
+          { name: "triggeredAt", type: "DateTime" },
+        ],
+      },
+      {
+        id: "user",
+        name: "User",
+        isEntity: true,
+        why: "The person the notification actually reaches — a real participant even though little of the interesting logic lives on it.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "contactInfo", type: "string" },
+        ],
+      },
+      {
+        id: "notificationservice",
+        name: "NotificationService",
+        isEntity: true,
+        why: "Delivering the actual notification (email/SMS/push) is a distinct concern from deciding an alert fired — Stock and PriceAlert shouldn't need to know how a message actually reaches a user.",
+        properties: [{ name: "id", type: "string" }],
+      },
+      { id: "exchange", name: "StockExchange", isEntity: false, why: "An external data feed providing price ticks, not a class this system owns or models itself." },
+      { id: "watchlist", name: "Watchlist", isEntity: false, why: "Just a UI-level grouping of a user's own PriceAlerts already modeled — giving it its own class adds no new responsibility." },
+      { id: "pricehistory", name: "PriceHistory", isEntity: false, why: "Nobody asked for historical charting — inventing this scope adds complexity beyond what the prompt requested." },
+    ],
+    methods: [
+      {
+        id: "m1",
+        signature: "updatePrice(newPrice): void",
+        ownerId: "stock",
+        justification: "Stock is the only class that knows when its own price actually changes, so it's the one responsible for telling every subscribed PriceAlert — the subject notifies, it doesn't wait to be asked. That push, not a poll, is the core of Observer.",
+        codeExercise: {
+          language: "java",
+          starter: "void updatePrice(Money newPrice) {\n    // your code here\n}",
+          reference:
+            "void updatePrice(Money newPrice) {\n    Money previousPrice = this.currentPrice;\n    this.currentPrice = newPrice;\n    for (PriceAlert alert : subscribers) {\n        alert.onPriceUpdate(previousPrice, newPrice);\n    }\n}",
+          checklist: [
+            "Updates currentPrice so the new price is actually recorded, not just passed through",
+            "Notifies every subscriber, not just the first one",
+            "Passes both the previous and new price to each alert — a single new price alone can't tell an alert whether it just crossed the threshold or was already past it",
+            "Bonus (L5+, not required here): notes that a subscriber unsubscribing itself from inside onPriceUpdate() would mutate the list mid-iteration",
+          ],
+        },
+      },
+      {
+        id: "m2",
+        signature: "subscribe(alert): void",
+        ownerId: "stock",
+        justification: "Stock owns its own subscriber list; only it should be able to add to it, so no alert can silently self-register against a stock it was never granted access to.",
+      },
+      {
+        id: "m3",
+        signature: "unsubscribe(alert): void",
+        ownerId: "stock",
+        justification: "Mirrors subscribe() — the class that owns the list is the only one that should remove from it.",
+      },
+      {
+        id: "m4",
+        signature: "onPriceUpdate(previousPrice, newPrice): void",
+        ownerId: "pricealert",
+        justification: "Each alert's own trigger condition (its threshold and direction) is private to that alert — Stock shouldn't need to know every alert's condition just to notify it, it calls this and lets the alert decide for itself.",
+        codeExercise: {
+          language: "java",
+          starter: "void onPriceUpdate(Money previousPrice, Money newPrice) {\n    // your code here\n}",
+          reference:
+            "void onPriceUpdate(Money previousPrice, Money newPrice) {\n    if (status != AlertStatus.ACTIVE) {\n        return;\n    }\n    boolean crossedAbove = direction == AlertDirection.ABOVE\n        && previousPrice.isLessThan(threshold)\n        && newPrice.isGreaterThanOrEqual(threshold);\n    boolean crossedBelow = direction == AlertDirection.BELOW\n        && previousPrice.isGreaterThan(threshold)\n        && newPrice.isLessThanOrEqual(threshold);\n    if (crossedAbove || crossedBelow) {\n        this.status = AlertStatus.TRIGGERED;\n        this.triggeredAt = DateTime.now();\n    }\n}",
+          checklist: [
+            "Ignores the update entirely if the alert isn't ACTIVE — an already-triggered or cancelled alert doesn't re-fire",
+            "Checks direction (ABOVE vs BELOW) against its own threshold, not just whether the price changed",
+            "Detects an actual crossing (was on one side, now on the other) rather than just 'is the new price past the threshold' — otherwise a price that starts already past the threshold would wrongly fire immediately",
+            "Bonus (L5+, not required here): doesn't yet call NotificationService — that hand-off happens outside this method",
+          ],
+        },
+      },
+      {
+        id: "m5",
+        signature: "resetAlert(): void",
+        ownerId: "pricealert",
+        justification: "Re-arming a triggered alert is a transition on this alert's own status field — only PriceAlert should be the one to move itself back to ACTIVE.",
+      },
+      {
+        id: "m6",
+        signature: "send(user, message): boolean",
+        ownerId: "notificationservice",
+        justification: "Delivering a message is a distinct concern with its own failure modes (a bounced email, a down SMS provider) — bundling it into PriceAlert would mean delivery failures corrupt trigger-detection logic.",
+      },
+      {
+        id: "m7",
+        signature: "getContactInfo(): string",
+        ownerId: "user",
+        justification: "Contact info is data User itself holds — a plain accessor belongs on the object whose field it's reading.",
+      },
+    ],
+    relationships: ["Stock has many PriceAlerts (subscribers)", "PriceAlert references one Stock and one User (by userId)", "PriceAlert notifies via NotificationService when triggered"],
+    edgeCases: [
+      {
+        scenario: "The same stock crosses its threshold twice in one day (price dips below then rises above again).",
+        handling: "PriceAlert.status distinguishes ACTIVE from TRIGGERED — once triggered it won't fire again until explicitly reset, so a single alert doesn't spam the user every time the price oscillates around the threshold.",
+      },
+      {
+        scenario: "A user has multiple alerts on the same stock at different thresholds.",
+        handling: "Stock.subscribers is a list, not a single reference — updatePrice() notifies every subscriber independently, since one alert triggering has no bearing on whether another alert's own threshold was crossed.",
+      },
+      {
+        scenario: "Notification delivery fails (the user's email bounces or the SMS provider is down).",
+        handling: "PriceAlert shouldn't flip to TRIGGERED only after a successful send without a plan for the failure case — delivery failure needs to be tracked separately from the trigger condition, or a genuinely crossed threshold can silently be lost forever.",
+      },
+      {
+        scenario: "The stock price update itself arrives out of order or duplicated (the same tick delivered twice).",
+        handling: "updatePrice() compares against the last known price rather than treating every incoming tick as a fresh crossing — otherwise a duplicated tick could double-fire an alert that already triggered once.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "PriceAlert is a real class per (stock, user, threshold) triple instead of Stock holding a flat list of raw threshold numbers.",
+        reasoning: "A raw list of numbers can't track direction, per-alert status, or which user owns which threshold — PriceAlert needs its own identity so the same stock can have many independent alerts with independent lifecycles.",
+      },
+      {
+        decision: "NotificationService is separate from PriceAlert instead of PriceAlert calling an email/SMS API directly.",
+        reasoning: "Delivery mechanics (which channel, retry policy, provider APIs) change independently of trigger-detection logic — collapsing them means every new notification channel requires touching PriceAlert itself.",
+      },
+      {
+        decision: "Stock pushes updates to subscribers (Observer) instead of PriceAlert polling Stock's price on some interval.",
+        reasoning: "Polling means every alert checks price on its own schedule, which either wastes work checking when nothing changed or misses fast moves checking too infrequently — pushing means an alert reacts the instant the price actually changes.",
+      },
+    ],
+    principles: [
+      {
+        name: "Observer Pattern",
+        explanation: "Stock (the subject) holds a list of PriceAlert (observers) and calls onPriceUpdate() on each one whenever its own price changes — Stock never asks 'has any alert triggered', it just tells every subscriber and lets each one decide for itself. That inversion — push, not pull — is what makes this Observer rather than a plain method call.",
+      },
+      {
+        name: "Single Responsibility Principle",
+        explanation: "Stock only tracks price and its subscriber list; PriceAlert only tracks one condition and its own status; NotificationService only knows how to deliver a message — none of them do each other's job.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "PriceAlert.status only changes inside onPriceUpdate()/resetAlert() — no external caller reaches in and flips ACTIVE/TRIGGERED directly.",
+      },
+      {
+        name: "Separation of Concerns",
+        explanation: "Detecting that a threshold was crossed (PriceAlert) is kept apart from actually delivering a message (NotificationService) — a delivery failure is a completely different failure mode than a wrong trigger condition.",
+      },
+    ],
+  },
+};
+
+const fileSystem: ColdDrillPrompt = {
+  id: "file-system",
+  title: "Design a File System (folders containing files or other folders)",
+  prompt: "Design a file system — folders can contain files or other folders.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Can a folder contain other folders, or just files (a flat directory vs. a real nested tree)?",
+        why: "Decides whether Folder needs a heterogeneous children list at all (of FileSystemNode) or just a flat List<File> — pins down whether Composite is even the right shape here.",
+      },
+      {
+        question: "Do we need to support operations like copy/move, or just size and listing?",
+        why: "Move is specifically where the circular-reference guard matters — scoping this out means addChild()'s cycle check becomes optional rather than core.",
+      },
+      {
+        question: "Is this in-memory only, or does it need to persist to real disk storage?",
+        why: "A premature-leaning question, but worth asking — real persistence would introduce I/O failure edge cases this model doesn't need to handle if it stays in-memory.",
+      },
+      {
+        question: "Do duplicate names need to be rejected within the same folder, or can two entries share a name?",
+        why: "Directly decides whether addChild() needs a uniqueness check, and whether findChild(name) can ever be ambiguous.",
+      },
+    ],
+    entities: [
+      {
+        id: "filesystemnode",
+        name: "FileSystemNode",
+        isEntity: true,
+        why: "The shared abstraction both File and Folder implement — letting any operation (getSize(), getPath()) work on either one without the caller needing to check which it's holding is the entire point of modeling this as one shared type instead of two unrelated classes.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "parent", type: "Folder" },
+        ],
+      },
+      {
+        id: "file",
+        name: "File",
+        isEntity: true,
+        why: "A leaf node — has an actual byte size and no children of its own.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "sizeBytes", type: "long" },
+        ],
+      },
+      {
+        id: "folder",
+        name: "Folder",
+        isEntity: true,
+        why: "A composite node — holds a list of FileSystemNode, which could themselves be Files or more Folders, which is exactly what makes the tree arbitrarily nestable.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "children", type: "List<FileSystemNode>" },
+        ],
+      },
+      {
+        id: "filesystem",
+        name: "FileSystem",
+        isEntity: true,
+        why: "The overall system — owns the root Folder and is the entry point for path-based lookups.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "root", type: "Folder" },
+        ],
+      },
+      { id: "path", name: "Path", isEntity: false, why: "A string representation used to locate a node, not a class with its own behavior beyond parsing — Folder can resolve one without Path needing independent identity." },
+      { id: "disk", name: "StorageDevice", isEntity: false, why: "The physical or virtual storage medium underneath, out of scope for the logical file-system model being asked about." },
+      { id: "permission", name: "Permission", isEntity: false, why: "Nobody asked about access control — inventing permission scope adds complexity beyond what the prompt requested." },
+    ],
+    methods: [
+      {
+        id: "m1",
+        signature: "getSize(): long",
+        ownerId: "file",
+        justification: "File is the leaf case — its size is just the byte count it already stores, no children to sum. This is the base case of the shared getSize() contract every FileSystemNode must honor.",
+      },
+      {
+        id: "m2",
+        signature: "getSize(): long",
+        ownerId: "folder",
+        justification: "Folder is the composite case — summing every child's own getSize() without checking whether each child is a File or another Folder is exactly what makes the tree arbitrarily deep without Folder needing special-case code per level.",
+        codeExercise: {
+          language: "java",
+          starter: "long getSize() {\n    // your code here\n}",
+          reference: "long getSize() {\n    long total = 0;\n    for (FileSystemNode child : children) {\n        total += child.getSize();\n    }\n    return total;\n}",
+          checklist: [
+            "Sums every child's own getSize(), not just direct files",
+            "Calls child.getSize() polymorphically — never checks 'if child is a File' vs 'if child is a Folder' first",
+            "Handles an empty folder by returning 0, not null or an exception",
+            "Bonus (L5+, not required here): notes that a very deep tree risks stack depth on pure recursion — an iterative traversal with an explicit stack is the production alternative",
+          ],
+        },
+      },
+      {
+        id: "m3",
+        signature: "addChild(node): void",
+        ownerId: "folder",
+        justification: "Folder owns its own children list; only Folder should be able to add to it, and it's the one place a circular-reference check (a folder can't contain an ancestor of itself) can actually be enforced.",
+        codeExercise: {
+          language: "java",
+          starter: "void addChild(FileSystemNode node) {\n    // your code here\n}",
+          reference:
+            "void addChild(FileSystemNode node) {\n    if (isAncestorOf(node, this)) {\n        throw new IllegalArgumentException(\"Cannot add an ancestor as a child — would create a cycle\");\n    }\n    node.setParent(this);\n    children.add(node);\n}\n\n// Walks up from 'folder' through parent references, checking whether it ever reaches 'candidateAncestor'\nprivate boolean isAncestorOf(FileSystemNode candidateAncestor, FileSystemNode folder) {\n    FileSystemNode current = folder;\n    while (current != null) {\n        if (current == candidateAncestor) {\n            return true;\n        }\n        current = current.getParent();\n    }\n    return false;\n}",
+          checklist: [
+            "Checks whether the node being added is an ancestor of this folder before adding it — not just whether it equals this folder directly",
+            "Sets the child's parent reference, not just adding it to the list — otherwise getPath() would break for that node",
+            "Throws or otherwise signals failure instead of silently creating a cycle",
+            "Bonus (L5+, not required here): notes this check alone doesn't cover a folder being moved to a new location concurrently from elsewhere",
+          ],
+        },
+      },
+      {
+        id: "m4",
+        signature: "removeChild(node): void",
+        ownerId: "folder",
+        justification: "Mirrors addChild() — Folder is the only class that should mutate its own children list.",
+      },
+      {
+        id: "m5",
+        signature: "rename(newName): void",
+        ownerId: "filesystemnode",
+        justification: "Renaming just changes the shared 'name' field every node has — File and Folder don't need their own version of this, so it lives once on FileSystemNode instead of being duplicated on both.",
+      },
+      {
+        id: "m6",
+        signature: "getPath(): String",
+        ownerId: "filesystemnode",
+        justification: "Building a full path means walking up through 'parent' references — every node (File or Folder) has a parent, so this is shared logic too, not something each subtype reimplements separately.",
+      },
+      {
+        id: "m7",
+        signature: "findChild(name): FileSystemNode",
+        ownerId: "folder",
+        justification: "Looking up a child by name only makes sense on something that HAS children — File doesn't have any, so this lives only on Folder, not on the shared FileSystemNode base.",
+      },
+      {
+        id: "m8",
+        signature: "getRoot(): Folder",
+        ownerId: "filesystem",
+        justification: "FileSystem is the one class that owns the top-level root reference — everything else navigates down from there, not up to some global.",
+      },
+    ],
+    relationships: [
+      "FileSystem owns one root Folder",
+      "Folder has many FileSystemNodes (children) — each child may itself be a File or another Folder",
+      "FileSystemNode references one parent Folder (nullable for the root)",
+    ],
+    edgeCases: [
+      {
+        scenario: "Computing the total size of a folder that's nested 10 levels deep.",
+        handling: "getSize() being defined recursively on both File (base case) and Folder (sum of children) means depth is handled automatically by the recursion itself — no special-casing for how deep the tree goes.",
+      },
+      {
+        scenario: "Two files or folders with the same name are added to the same parent folder.",
+        handling: "addChild() should reject a duplicate name within the same Folder, or the model needs to explicitly decide same-name siblings are allowed — silently permitting it makes getPath()/findChild() ambiguous about which node a name actually refers to.",
+      },
+      {
+        scenario: "Someone tries to add a folder inside one of its own descendants (making it contain itself).",
+        handling: "addChild() walks up the candidate parent's own ancestor chain checking against the node being added — if the node being added is found among its own future ancestors, the operation is rejected, otherwise getSize()/getPath() would recurse forever.",
+      },
+      {
+        scenario: "Deleting a folder that still has files inside it.",
+        handling: "removeChild() operating on the parent's list doesn't by itself decide whether non-empty folders can be deleted — that's a real product decision (recursive delete vs. reject-if-not-empty) worth naming out loud rather than assuming either way.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "File and Folder both implement a shared FileSystemNode abstraction instead of Folder having two separate lists (List<File> and List<Folder>).",
+        reasoning: "Two separate lists means every operation that walks the tree (getSize, getPath, listing contents) needs to handle files and folders as two different cases everywhere it's touched — one shared type means the same code path handles both, which is the entire reason Composite exists as a pattern.",
+      },
+      {
+        decision: "getSize() is declared once on FileSystemNode but implemented separately on File and Folder, instead of one shared implementation that type-checks internally.",
+        reasoning: "A single shared implementation with an 'if this is a File do X else do Y' check just relocates the type-branching problem instead of removing it — letting each subtype own its own version means adding a new node type later doesn't require touching existing code.",
+      },
+      {
+        decision: "addChild() enforces the circular-reference guard, rather than trusting callers to never construct a cycle.",
+        reasoning: "A tree that's supposed to always be acyclic needs the invariant enforced at the one point the structure actually changes — Folder is that point, so it's the only place this check can live reliably.",
+      },
+    ],
+    principles: [
+      {
+        name: "Composite Pattern",
+        explanation: "FileSystemNode is the shared abstraction that both File (a leaf) and Folder (a composite holding more FileSystemNodes) conform to — any code calling getSize() or getPath() never needs to know or check which one it's actually holding. That uniform treatment of leaves and composites through one interface is what Composite means.",
+      },
+      {
+        name: "Single Responsibility Principle",
+        explanation: "File only knows its own byte size; Folder only knows how to aggregate its own children — neither one reaches into the other's job.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "Folder.addChild()/removeChild() are the only ways its children list changes — nothing else reaches in and mutates the list directly, which is exactly where the circular-reference guard gets enforced.",
+      },
+      {
+        name: "Recursion mirrors structure",
+        explanation: "getSize() and getPath() are both written recursively because the data itself (a tree) is recursive — computing either with a flat loop over 'all nodes' would require flattening the tree first, which is strictly more work than trusting the recursive structure.",
+      },
+    ],
+  },
+};
+
+const COLD_DRILLS: ColdDrillPrompt[] = [
+  pizzaOrdering,
+  libraryManagement,
+  atm,
+  restaurantReservation,
+  rideShareDispatch,
+  pcBuilder,
+  stockAlerts,
+  fileSystem,
+];
 
 export function listColdDrills(): ColdDrillPrompt[] {
   return COLD_DRILLS;
