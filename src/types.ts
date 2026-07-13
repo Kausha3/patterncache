@@ -260,10 +260,20 @@ export interface DrillEdgeCase {
   handling: string;
 }
 
+/** A clarifying question worth asking before designing — plain reveal, same
+ * reasoning as DrillEdgeCase. Real interviews clarify before naming classes;
+ * the drill's own free-form "questions you'd ask" list gets compared against
+ * this, same self-comparison philosophy as everything else in the drill. */
+export interface DrillClarifyingQuestion {
+  question: string;
+  why: string;
+}
+
 /** The known-good answer a learner's free-form attempt gets compared against.
  * Reuses EntityCandidate/MethodCandidate so the same <ClassCard/> rendering
  * from <ClassModeler/> works here unchanged. */
 export interface ColdDrillReference {
+  clarifyingQuestions: DrillClarifyingQuestion[];
   entities: EntityCandidate[];
   methods: MethodCandidate[];
   relationships: string[];

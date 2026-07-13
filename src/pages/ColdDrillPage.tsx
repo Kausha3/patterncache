@@ -31,6 +31,8 @@ export function ColdDrillPage() {
   const drill = id ? getColdDrill(id) : undefined;
 
   const counter = useRef(0);
+  const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
+  const [newClarifyingQuestion, setNewClarifyingQuestion] = useState("");
   const [entities, setEntities] = useState<DraftEntity[]>([]);
   const [edgeCases, setEdgeCases] = useState<string[]>([]);
   const [newEntityName, setNewEntityName] = useState("");
@@ -69,6 +71,14 @@ export function ColdDrillPage() {
   };
   const removeEdgeCase = (i: number) => setEdgeCases((ecs) => ecs.filter((_, x) => x !== i));
 
+  const addClarifyingQuestion = () => {
+    const text = newClarifyingQuestion.trim();
+    if (!text) return;
+    setClarifyingQuestions((qs) => [...qs, text]);
+    setNewClarifyingQuestion("");
+  };
+  const removeClarifyingQuestion = (i: number) => setClarifyingQuestions((qs) => qs.filter((_, x) => x !== i));
+
   const referenceEntities = drill.reference.entities.filter((e) => e.isEntity);
 
   return (
@@ -87,6 +97,24 @@ export function ColdDrillPage() {
 
       {!revealed ? (
         <div style={{ display: "grid", gap: 20 }}>
+          <Panel style={{ display: "grid", gap: 10 }}>
+            <Eyebrow tone={color.blue}>Clarifying questions you'd ask first</Eyebrow>
+            {clarifyingQuestions.map((q, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontSize: 13, color: color.text }}>{q}</span>
+                <button onClick={() => removeClarifyingQuestion(i)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", flexShrink: 0 }} aria-label="Remove">
+                  <Icon name="close" size={12} color={color.textFaint} />
+                </button>
+              </div>
+            ))}
+            <TextAddRow
+              placeholder="question, e.g. is payment in scope or just the order itself?"
+              value={newClarifyingQuestion}
+              onChange={setNewClarifyingQuestion}
+              onAdd={addClarifyingQuestion}
+            />
+          </Panel>
+
           <Panel style={{ display: "grid", gap: 14 }}>
             <Eyebrow tone={color.violet}>Your classes — name one, then add its fields and methods</Eyebrow>
             <TextAddRow placeholder="class name, e.g. Order" value={newEntityName} onChange={setNewEntityName} onAdd={addEntity} big />
@@ -130,6 +158,17 @@ export function ColdDrillPage() {
         <div style={{ display: "grid", gap: 22 }}>
           <div style={{ display: "grid", gap: 12 }}>
             <Eyebrow>Your attempt</Eyebrow>
+            {clarifyingQuestions.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 13, color: color.textFaint, fontStyle: "italic" }}>No clarifying questions.</p>
+            ) : (
+              <div style={{ display: "grid", gap: 4 }}>
+                {clarifyingQuestions.map((q, i) => (
+                  <p key={i} style={{ margin: 0, fontSize: 13, color: color.textDim }}>
+                    · {q}
+                  </p>
+                ))}
+              </div>
+            )}
             {entities.length === 0 ? (
               <p style={{ margin: 0, fontSize: 13, color: color.textFaint, fontStyle: "italic" }}>No classes.</p>
             ) : (
@@ -154,6 +193,17 @@ export function ColdDrillPage() {
 
           <div style={{ display: "grid", gap: 14 }}>
             <Eyebrow tone={color.violet}>Reference design</Eyebrow>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <Eyebrow tone={color.blue}>Clarifying questions worth asking</Eyebrow>
+              {drill.reference.clarifyingQuestions.map((q, i) => (
+                <div key={i} style={{ display: "grid", gap: 3 }}>
+                  <span style={{ fontSize: 13, color: color.text, fontWeight: 600 }}>{q.question}</span>
+                  <span style={{ fontSize: 12.5, color: color.textDim, lineHeight: 1.55 }}>{q.why}</span>
+                </div>
+              ))}
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
               {referenceEntities.map((e) => (
                 <ClassCard key={e.id} entity={e} properties={e.properties ?? []} methods={drill.reference.methods.filter((m) => m.ownerId === e.id)} />

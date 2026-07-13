@@ -47,7 +47,7 @@ export function ClassModeler({ design, prompt, onComplete }: { design: ClassMode
   const [practiceOrder] = useState(() => shuffle(design.methods.map((m) => m.id)));
   const [practiceIdx, setPracticeIdx] = useState(0);
   const [placedIds, setPlacedIds] = useState<Set<string>>(new Set());
-  const [pickedClass, setPickedClass] = useState<string | null>(null);
+  const [typedClass, setTypedClass] = useState("");
   const [pickedReason, setPickedReason] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
 
@@ -90,10 +90,10 @@ export function ClassModeler({ design, prompt, onComplete }: { design: ClassMode
           order={practiceOrder}
           idx={practiceIdx}
           placedIds={placedIds}
-          pickedClass={pickedClass}
+          typedClass={typedClass}
           pickedReason={pickedReason}
           revealed={revealed}
-          onPickClass={setPickedClass}
+          onTypeClass={setTypedClass}
           onPickReason={setPickedReason}
           onReveal={() => {
             setRevealed(true);
@@ -102,7 +102,7 @@ export function ClassModeler({ design, prompt, onComplete }: { design: ClassMode
           onNext={() => {
             if (practiceIdx < practiceOrder.length - 1) {
               setPracticeIdx((i) => i + 1);
-              setPickedClass(null);
+              setTypedClass("");
               setPickedReason(null);
               setRevealed(false);
             } else {
@@ -290,16 +290,20 @@ const REASON_TAGS = [
   { id: "guess", label: "Not sure — best guess" },
 ];
 
+function normalizeClassName(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, "");
+}
+
 function PracticePhase({
   entities,
   allMethods,
   order,
   idx,
   placedIds,
-  pickedClass,
+  typedClass,
   pickedReason,
   revealed,
-  onPickClass,
+  onTypeClass,
   onPickReason,
   onReveal,
   onNext,
@@ -309,18 +313,18 @@ function PracticePhase({
   order: string[];
   idx: number;
   placedIds: Set<string>;
-  pickedClass: string | null;
+  typedClass: string;
   pickedReason: string | null;
   revealed: boolean;
-  onPickClass: (id: string) => void;
+  onTypeClass: (text: string) => void;
   onPickReason: (id: string) => void;
   onReveal: () => void;
   onNext: () => void;
 }) {
   const method = allMethods.find((m) => m.id === order[idx])!;
   const owner = entities.find((e) => e.id === method.ownerId)!;
-  const isCorrect = pickedClass === method.ownerId;
-  const canReveal = !!pickedClass && !!pickedReason;
+  const isCorrect = normalizeClassName(typedClass) === normalizeClassName(owner.name);
+  const canReveal = typedClass.trim().length > 0 && !!pickedReason;
   const isLast = idx === order.length - 1;
 
   return (
@@ -348,37 +352,31 @@ function PracticePhase({
         <InlineSignature signature={method.signature} />
 
         <div style={{ display: "grid", gap: 8 }}>
-          <Eyebrow>Where does this belong?</Eyebrow>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {entities.map((e) => {
-              const isPicked = pickedClass === e.id;
-              const showResult = revealed;
-              const isRightAnswer = showResult && e.id === method.ownerId;
-              const isWrongPick = showResult && isPicked && !isRightAnswer;
-              const tone = isRightAnswer ? color.green : isWrongPick ? color.red : isPicked ? color.violet : color.panelBorder;
-              return (
-                <button
-                  key={e.id}
-                  onClick={() => !revealed && onPickClass(e.id)}
-                  disabled={revealed}
-                  aria-pressed={isPicked}
-                  style={{
-                    fontFamily: font.mono,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    padding: "8px 13px",
-                    borderRadius: radius.md,
-                    border: `1.5px solid ${tone}`,
-                    background: isRightAnswer ? "rgba(130,184,114,0.12)" : isWrongPick ? "rgba(208,123,110,0.1)" : isPicked ? "rgba(154,130,212,0.14)" : "rgba(255,255,255,0.02)",
-                    color: color.text,
-                    transition: `all ${motion.fast}`,
-                  }}
-                >
-                  {e.name}
-                </button>
-              );
-            })}
-          </div>
+          <Eyebrow>Where does this belong? Name the class — no list to pick from.</Eyebrow>
+          <input
+            value={typedClass}
+            onChange={(e) => !revealed && onTypeClass(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canReveal && !revealed) {
+                e.preventDefault();
+                onReveal();
+              }
+            }}
+            disabled={revealed}
+            placeholder="type the class name, e.g. ParkingSpot"
+            style={{
+              fontFamily: font.mono,
+              fontSize: 14,
+              fontWeight: 600,
+              padding: "10px 13px",
+              borderRadius: radius.md,
+              border: `1.5px solid ${revealed ? (isCorrect ? color.green : color.red) : color.panelBorder}`,
+              background: revealed ? (isCorrect ? "rgba(130,184,114,0.1)" : "rgba(208,123,110,0.08)") : "rgba(255,255,255,0.02)",
+              color: color.text,
+              outline: "none",
+              transition: `all ${motion.fast}`,
+            }}
+          />
         </div>
 
         <div style={{ display: "grid", gap: 8 }}>
@@ -433,7 +431,7 @@ function PracticePhase({
               <Icon name={isCorrect ? "check" : "close"} size={16} color={isCorrect ? color.green : color.red} />
               <div style={{ display: "grid", gap: 4 }}>
                 <span style={{ fontSize: 13, color: color.text, fontWeight: 600 }}>
-                  {isCorrect ? "Right — it belongs on " : "Not quite — it belongs on "}
+                  {isCorrect ? "Right — it belongs on " : `You wrote "${typedClass.trim()}" — it actually belongs on `}
                   {owner.name}
                 </span>
                 <span style={{ fontSize: 13, color: color.textDim, lineHeight: 1.55 }}>
