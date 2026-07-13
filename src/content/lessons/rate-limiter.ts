@@ -71,6 +71,7 @@ export const rateLimiter: SDLesson = {
         answer: "Limit per API key, with different limits for different endpoint tiers.",
         why: "The limit key (user / IP / key) and granularity decide what you count and where the counters live — it's foundational.",
         establishes: "Per-API-key · per-endpoint limits",
+        lp: ["customer-obsession"],
       },
       {
         id: "scale",
@@ -79,6 +80,7 @@ export const rateLimiter: SDLesson = {
         answer: "Millions of requests/sec across a large fleet of servers, globally.",
         why: "Many servers is the whole challenge — an in-memory counter on one box is wrong the moment traffic spreads. Scale forces a shared counter.",
         establishes: "Millions req/s · distributed fleet",
+        lp: ["dive-deep"],
         branches: [
           { label: "Single server", approach: "A local in-memory counter is fine and instant — no shared store needed." },
           { label: "Distributed fleet (this)", approach: "Counters must be shared (Redis) so every server enforces one global limit; each request pays a lookup." },
@@ -91,6 +93,7 @@ export const rateLimiter: SDLesson = {
         answer: "Reject with a 429. Accurate, but a small amount of overshoot under load is acceptable.",
         why: "Hard-reject vs throttle changes behavior, and exact-vs-approximate is a real tradeoff — perfect accuracy needs atomic ops and costs latency.",
         establishes: "Hard 429 · slight overshoot OK",
+        lp: ["frugality"],
         branches: [
           { label: "Approximate OK (this)", approach: "Use fast, eventually-synced edge counters — cheaper, with a little overshoot at the margins." },
           { label: "Strictly exact", approach: "Every check-and-decrement must be atomic on one source of truth — correct, but a hot-path round-trip and a scaling bottleneck." },
@@ -103,6 +106,7 @@ export const rateLimiter: SDLesson = {
         answer: "Allow small controlled bursts — a caller shouldn't be blocked for a brief, reasonable spike.",
         why: "Burst tolerance picks your algorithm: token bucket allows controlled bursts; fixed window is bursty at edges; sliding window is smoothest.",
         establishes: "Controlled bursts → token bucket",
+        lp: ["invent-and-simplify"],
       },
       {
         id: "deploy-premature",

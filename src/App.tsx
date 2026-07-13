@@ -2,6 +2,8 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { HomePage } from "@/pages/HomePage";
 import { LessonPage } from "@/pages/LessonPage";
 import { ProgressPage } from "@/pages/ProgressPage";
+import { CompaniesPage } from "@/pages/CompaniesPage";
+import { CompanyPage } from "@/pages/CompanyPage";
 import { color, font } from "@/theme/tokens";
 
 /** Persistent 3-item top nav (§2) + routed pages. */
@@ -13,6 +15,8 @@ export function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/lesson/:id" element={<LessonPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/companies/:id" element={<CompanyPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
@@ -24,6 +28,7 @@ export function App() {
 function TopNav() {
   const items = [
     { to: "/", label: "Path", end: true },
+    { to: "/companies", label: "Companies", end: false },
     { to: "/progress", label: "Progress", end: false },
   ];
   return (

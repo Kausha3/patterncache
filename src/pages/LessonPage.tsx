@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getLesson, PATH, RECOMMENDED_FIRST } from "@/content";
+import { findQuestionTitle } from "@/content/companies";
 import { getAlgorithm } from "@/algorithms";
 import { isDSA } from "@/types";
 import type { Confidence, Lesson, Track } from "@/types";
@@ -19,8 +20,9 @@ export function LessonPage() {
   const { id = "" } = useParams();
   const lesson = getLesson(id);
   const node = (Object.keys(PATH) as Track[]).flatMap((t) => PATH[t]).find((n) => n.id === id);
+  const companyQuestionTitle = findQuestionTitle(id);
 
-  if (!lesson) return <ComingSoon title={node?.title ?? "This lesson"} />;
+  if (!lesson) return <ComingSoon title={node?.title ?? companyQuestionTitle ?? "This lesson"} fromCompany={!!companyQuestionTitle && !node} />;
   return <LessonShell key={lesson.id} lesson={lesson} />;
 }
 
@@ -28,7 +30,7 @@ export function LessonPage() {
 // Not-yet-built lesson — a real screen, never a dead end.
 // ---------------------------------------------------------------------------
 
-function ComingSoon({ title }: { title: string }) {
+function ComingSoon({ title, fromCompany }: { title: string; fromCompany?: boolean }) {
   const navigate = useNavigate();
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 580 }}>
@@ -42,7 +44,11 @@ function ComingSoon({ title }: { title: string }) {
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Button icon="play" onClick={() => navigate(`/lesson/${RECOMMENDED_FIRST}`)}>Start Sliding Window</Button>
-          <Button variant="ghost" onClick={() => navigate("/")}>See the full path</Button>
+          {fromCompany ? (
+            <Button variant="ghost" onClick={() => navigate("/companies")}>Back to Companies</Button>
+          ) : (
+            <Button variant="ghost" onClick={() => navigate("/")}>See the full path</Button>
+          )}
         </div>
       </Panel>
     </div>

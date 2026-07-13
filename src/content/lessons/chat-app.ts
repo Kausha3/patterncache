@@ -70,6 +70,7 @@ export const chatApp: SDLesson = {
         answer: "Support both 1:1 and group chats. Read receipts and typing indicators are in scope; media can be a follow-up.",
         why: "1:1 vs groups is the single biggest fork in a chat design — delivering to one person is a different problem than fanning out to a whole room.",
         establishes: "1:1 + group chat · receipts + typing",
+        lp: ["customer-obsession"],
         branches: [
           { label: "1:1 only", approach: "Delivery is simple — route each message to the one recipient's live connection. No fan-out service needed." },
           { label: "Small groups (this)", approach: "Fan out each message to every member's connection and inbox — manageable at a few hundred members." },
@@ -83,6 +84,7 @@ export const chatApp: SDLesson = {
         answer: "Assume ~50M daily users, hundreds of thousands of messages/sec at peak, and groups up to a few hundred people.",
         why: "Message rate and max group size decide whether simple fan-out survives or you need queues, sharding, and backpressure.",
         establishes: "50M DAU · 100k+ msg/s · groups ≤ few hundred",
+        lp: ["dive-deep"],
       },
       {
         id: "delivery",
@@ -91,6 +93,7 @@ export const chatApp: SDLesson = {
         answer: "Messages must not be lost — at-least-once — and must appear in the same order within a conversation.",
         why: "Delivery and ordering guarantees drive whether you need a durable queue and per-conversation sequencing. They shape the whole pipeline.",
         establishes: "At-least-once · per-conversation ordering",
+        lp: ["ownership"],
         branches: [
           { label: "Best-effort, unordered", approach: "Simplest — push and forget. Fine for ephemeral presence pings, not for real chat history." },
           { label: "At-least-once + ordered (this)", approach: "Persist before you ack, and stamp a per-conversation sequence number so clients can order and de-duplicate." },
@@ -104,6 +107,7 @@ export const chatApp: SDLesson = {
         answer: "Yes — offline users get a push notification and see the message on return. Keep full history.",
         why: "Offline delivery forces a store-and-push path, not just live sockets; full history means durable, scalable storage from day one.",
         establishes: "Offline push · full history retained",
+        lp: ["ownership"],
       },
       {
         id: "transport-premature",

@@ -3,6 +3,7 @@ import type { InterviewSpec, ClarifyQuestion } from "@/types";
 import { color, font, radius, motion } from "@/theme/tokens";
 import { Panel, SectionHeader, Eyebrow } from "./ui";
 import { Icon } from "./Icon";
+import { LEADERSHIP_PRINCIPLES } from "@/content/leadershipPrinciples";
 
 /**
  * <ClarifyInterview /> — an interactive clarifying-questions simulator. You're
@@ -138,7 +139,7 @@ function Exchange({ q, branchSel, onBranch }: { q: ClarifyQuestion; branchSel?: 
         </Coach>
       ) : (
         q.why && (
-          <Coach tone={color.teal} icon="insight" label="Why this matters">
+          <Coach tone={color.teal} icon="insight" label="Why this matters" lp={q.lp}>
             {q.why}
           </Coach>
         )
@@ -174,12 +175,37 @@ function Exchange({ q, branchSel, onBranch }: { q: ClarifyQuestion; branchSel?: 
   );
 }
 
-function Coach({ tone, icon, label, children }: { tone: string; icon: "insight" | "target"; label: string; children: React.ReactNode }) {
+function Coach({ tone, icon, label, lp, children }: { tone: string; icon: "insight" | "target"; label: string; lp?: string[]; children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: `${tone}12`, border: `1px solid ${tone}44`, borderRadius: radius.md, padding: "11px 13px" }}>
       <span style={{ color: tone, marginTop: 1 }}><Icon name={icon} size={15} /></span>
-      <div style={{ display: "grid", gap: 2 }}>
-        <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: "0.8px", textTransform: "uppercase", color: tone }}>{label}</span>
+      <div style={{ display: "grid", gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: "0.8px", textTransform: "uppercase", color: tone }}>{label}</span>
+          {lp?.map((key) => {
+            const def = LEADERSHIP_PRINCIPLES[key];
+            if (!def) return null;
+            return (
+              <span
+                key={key}
+                title={def.plain}
+                style={{
+                  fontFamily: font.mono,
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  color: color.amber,
+                  background: "rgba(217,169,78,0.14)",
+                  border: `1px solid ${color.amber}55`,
+                  borderRadius: radius.pill,
+                  padding: "2px 8px",
+                  cursor: "help",
+                }}
+              >
+                {def.name}
+              </span>
+            );
+          })}
+        </div>
         <span style={{ color: color.text, fontSize: 13.5, lineHeight: 1.55 }}>{children}</span>
       </div>
     </div>

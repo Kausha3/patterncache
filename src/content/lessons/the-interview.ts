@@ -22,6 +22,7 @@ export const theInterview: SDLesson = {
         answer: "Keep it to the essentials: create a short link and redirect to the original. Basic click analytics is a nice-to-have, not core.",
         why: "Scope first — it decides everything downstream. Designing features they never asked for is the most common way to waste the interview.",
         establishes: "Scope: shorten + redirect",
+        lp: ["customer-obsession"],
       },
       {
         id: "scale",
@@ -30,6 +31,7 @@ export const theInterview: SDLesson = {
         answer: "Assume ~100M new URLs per month, and reads outnumber writes by about 100 to 1.",
         why: "Scale turns a vague problem into numbers. It's the difference between 'one database is fine' and 'we need caching, replicas, and capacity math'.",
         establishes: "~100M writes/mo · 100:1 read-heavy",
+        lp: ["dive-deep"],
         branches: [
           { label: "1k / day (tiny)", approach: "A single database handles this comfortably. No cache, no sharding — and saying 'I wouldn't over-engineer this' is itself a strong signal." },
           { label: "100M / month (this)", approach: "Read-heavy at real scale → cache the hot links, add read replicas to spread reads, and size storage for 5 years of writes." },
@@ -43,6 +45,7 @@ export const theInterview: SDLesson = {
         answer: "Assume links live about 5 years, and codes should be as short as is reasonable.",
         why: "Retention drives your storage estimate; code length drives your key space — together they tell you whether a simple counter or a bigger base-62 space is enough.",
         establishes: "5-year retention · short base-62 codes",
+        lp: ["frugality"],
       },
       {
         id: "consistency",
@@ -51,6 +54,7 @@ export const theInterview: SDLesson = {
         answer: "Redirects must be fast. A new link being usable a second later is perfectly fine.",
         why: "Latency and consistency needs decide your caching and replication strategy. 'Eventual is fine' is a green light to cache aggressively.",
         establishes: "Low-latency redirects · eventual consistency OK",
+        lp: ["bias-for-action"],
         branches: [
           { label: "Eventual OK (this)", approach: "You can cache aggressively and read from replicas freely — stale-by-a-second is acceptable, so reads get cheap and fast." },
           { label: "Strong consistency", approach: "You'd read from the primary (or invalidate caches on every write) — correct, but slower and more expensive. Rarely worth it for a shortener, but you should know the tradeoff." },

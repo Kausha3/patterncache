@@ -70,6 +70,7 @@ export const feed: SDLesson = {
         answer: "Start with a reverse-chronological feed of text and images. Ranking can come later.",
         why: "Ranked vs chronological changes the read path a lot — ranking adds a scoring step and usually more precomputation. Pin it early.",
         establishes: "Reverse-chron · text + images",
+        lp: ["customer-obsession"],
         branches: [
           { label: "Chronological (this)", approach: "Merge followees' recent posts by time — no scoring step, a simpler read path." },
           { label: "Ranked / ML", approach: "Add a ranking service that scores candidate posts per user — more compute, a candidate-generation step, and usually precomputed." },
@@ -82,6 +83,7 @@ export const feed: SDLesson = {
         answer: "Hundreds of millions of users, and yes — some accounts have tens of millions of followers.",
         why: "Follower distribution is THE feed question. A handful of mega-accounts break naive fan-out-on-write and force a hybrid.",
         establishes: "100Ms of users · celebrity accounts exist",
+        lp: ["dive-deep"],
         branches: [
           { label: "Everyone ~hundreds of followers", approach: "Fan-out-on-write works cleanly — precompute each follower's timeline the moment someone posts." },
           { label: "Celebrities with millions (this)", approach: "Fan-out-on-write explodes for them → go hybrid: precompute for normal users, merge celebrity posts in at read time." },
@@ -94,6 +96,7 @@ export const feed: SDLesson = {
         answer: "A few seconds of delay is fine; it doesn't have to be real-time to the millisecond.",
         why: "Freshness tolerance decides how aggressively you can precompute and cache. Loose freshness unlocks fan-out-on-write and heavy caching.",
         establishes: "Eventual freshness OK (seconds)",
+        lp: ["bias-for-action"],
       },
       {
         id: "ratio",
@@ -102,6 +105,7 @@ export const feed: SDLesson = {
         answer: "Massively read-heavy — people scroll far more than they post.",
         why: "The read:write ratio decides whether you pay at write time (fan-out) or read time. Heavy reads justify precomputing feeds.",
         establishes: "Very read-heavy → precompute reads",
+        lp: ["frugality"],
       },
       {
         id: "cache-premature",

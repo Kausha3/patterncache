@@ -112,6 +112,8 @@ export interface ClarifyQuestion {
   establishes?: string; // requirement it pins down (a chip in the Requirements panel)
   branches?: ClarifyBranch[]; // "how the answer changes your approach" explorer
   redirect?: string; // for premature/off-track asks — gentle coaching, no requirement
+  /** Leadership Principle key(s) this ask/answer demonstrates (into LEADERSHIP_PRINCIPLES). Amazon-specific. */
+  lp?: string[];
 }
 
 export interface InterviewSpec {
@@ -157,6 +159,45 @@ export interface NodeDef {
   what: string;
   /** Rough visual grouping, used only for layout tinting. */
   kind: "client" | "edge" | "compute" | "data" | "async";
+}
+
+// ---------------------------------------------------------------------------
+// Companies (interview-prep lens) — company-wise question research
+// ---------------------------------------------------------------------------
+
+export type QuestionBucket = "hld" | "lld";
+export type SdeLevel = "L4" | "L5" | "L6";
+
+/**
+ * Qualitative signal strength, NOT a hard frequency count — no source we
+ * researched publishes real numbers. Deliberately named to avoid implying
+ * false precision; see docs/AMAZON.md §0 for the honesty rationale.
+ */
+export type FrequencySignal = "very-high" | "high" | "medium" | "emerging";
+
+export interface CompanyQuestion {
+  /** Matches a real Lesson id if built; otherwise a stable slug for a coming-soon tile. */
+  lessonId: string;
+  title: string; // shown even before the lesson exists
+  blurb: string;
+  bucket: QuestionBucket;
+  frequency: FrequencySignal;
+  /** One honest sentence citing the kind of signal behind the frequency tier. */
+  signalNote: string;
+  levels: SdeLevel[];
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  blurb: string;
+  status: "available" | "coming-soon";
+  /** "How this company interviews" bullets — loop structure, what's evaluated. */
+  loopNotes?: string[];
+  /** Leadership-Principle-style keys most emphasized (company-specific; empty if N/A). */
+  valuesFocus?: string[];
+  hld: CompanyQuestion[];
+  lld: CompanyQuestion[];
 }
 
 // ---------------------------------------------------------------------------
