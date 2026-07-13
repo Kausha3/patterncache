@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getColdDrill } from "@/content/coldDrills";
 import { color, font, radius } from "@/theme/tokens";
@@ -6,6 +6,8 @@ import { Panel, Button, Eyebrow, Divider, PromptBanner } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { ClassCard } from "@/components/ClassModeler";
 import { RelationshipDiagram } from "@/components/CodeBlock";
+
+const CodeExerciseBlock = lazy(() => import("@/components/CodeExerciseBlock"));
 
 /**
  * The Cold Design Drill workspace — no Watch phase, no chip-picking, no
@@ -209,6 +211,22 @@ export function ColdDrillPage() {
                 <ClassCard key={e.id} entity={e} properties={e.properties ?? []} methods={drill.reference.methods.filter((m) => m.ownerId === e.id)} />
               ))}
             </div>
+
+            {drill.reference.methods.some((m) => m.codeExercise) && (
+              <div style={{ display: "grid", gap: 16 }}>
+                <Eyebrow tone={color.teal}>Now write the real logic</Eyebrow>
+                {drill.reference.methods
+                  .filter((m) => m.codeExercise)
+                  .map((m) => (
+                    <div key={m.id} style={{ display: "grid", gap: 8 }}>
+                      <span style={{ fontFamily: font.mono, fontSize: 13, fontWeight: 700, color: color.text }}>{m.signature}</span>
+                      <Suspense fallback={<p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>Loading editor…</p>}>
+                        <CodeExerciseBlock exercise={m.codeExercise!} />
+                      </Suspense>
+                    </div>
+                  ))}
+              </div>
+            )}
 
             <div style={{ display: "grid", gap: 8 }}>
               <Eyebrow>Relationships</Eyebrow>

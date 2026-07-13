@@ -6,6 +6,7 @@ import { CompaniesPage } from "@/pages/CompaniesPage";
 import { CompanyPage } from "@/pages/CompanyPage";
 import { ColdDrillsPage } from "@/pages/ColdDrillsPage";
 import { ColdDrillPage } from "@/pages/ColdDrillPage";
+import { PatternsPage } from "@/pages/PatternsPage";
 import { color, font } from "@/theme/tokens";
 
 /** Persistent 3-item top nav (§2) + routed pages. */
@@ -21,6 +22,7 @@ export function App() {
           <Route path="/companies/:id" element={<CompanyPage />} />
           <Route path="/drill" element={<ColdDrillsPage />} />
           <Route path="/drill/:id" element={<ColdDrillPage />} />
+          <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
@@ -34,6 +36,7 @@ function TopNav() {
     { to: "/", label: "Path", end: true },
     { to: "/companies", label: "Companies", end: false },
     { to: "/drill", label: "Drill", end: false },
+    { to: "/patterns", label: "Patterns", end: false },
     { to: "/progress", label: "Progress", end: false },
   ];
   return (

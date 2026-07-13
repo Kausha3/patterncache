@@ -141,7 +141,7 @@ export const parkingLot: LLDLesson = {
           language: "java",
           starter: "ParkingSpot findAvailableSpot(Vehicle vehicle) {\n    // your code here\n}",
           reference:
-            "// Size ordered smallest to largest: MOTORCYCLE, COMPACT, LARGE\nParkingSpot findAvailableSpot(Vehicle vehicle) {\n    for (Level level : levels) {\n        for (ParkingSpot spot : level.getSpots()) {\n            boolean bigEnough = spot.getSize().ordinal() >= vehicle.getSize().ordinal();\n            if (!spot.isOccupied() && bigEnough) {\n                return spot;\n            }\n        }\n    }\n    return null;\n}",
+            "ParkingSpot findAvailableSpot(Vehicle vehicle) {\n    for (Level level : levels) {\n        for (ParkingSpot spot : level.getSpots()) {\n            if (!spot.isOccupied() && spot.getSize().canFit(vehicle.getSize())) {\n                return spot;\n            }\n        }\n    }\n    return null;\n}",
           checklist: [
             "Checks every level, not just the first one with any free spot",
             "Skips spots where isOccupied is already true",

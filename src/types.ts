@@ -292,6 +292,30 @@ export interface ColdDrillPrompt {
 
 export type Lesson = DSALesson | SDLesson | LLDLesson;
 
+// ---------------------------------------------------------------------------
+// Design patterns reference — cross-cutting, not per-lesson. Only patterns
+// that genuinely show up in an existing LLD lesson or Cold Drill design get
+// an entry here; nothing is force-fit just to pad the list.
+// ---------------------------------------------------------------------------
+
+export interface DesignPatternExample {
+  /** Id of the LLDLesson or ColdDrillPrompt this example lives in. */
+  refId: string;
+  /** true if refId points to a Cold Drill prompt id rather than an LLDLesson id. */
+  isDrill?: boolean;
+  title: string;
+  /** Concrete — names the actual class/method in that design, not a generic description. */
+  howItShowsUp: string;
+}
+
+export interface DesignPatternEntry {
+  id: string;
+  name: string;
+  /** Plain-English recognition cue: what problem shape makes you reach for this pattern. */
+  whenToUse: string;
+  examples: DesignPatternExample[];
+}
+
 export function isDSA(lesson: Lesson): lesson is DSALesson {
   return lesson.track === "dsa";
 }

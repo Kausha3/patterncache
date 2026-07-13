@@ -609,7 +609,368 @@ const atm: ColdDrillPrompt = {
   },
 };
 
-const COLD_DRILLS: ColdDrillPrompt[] = [pizzaOrdering, libraryManagement, atm];
+const restaurantReservation: ColdDrillPrompt = {
+  id: "restaurant-reservation",
+  title: "Design a Restaurant Reservation System",
+  prompt: "Design a restaurant reservation system.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Are reservations tied to a specific time slot, or is this walk-in/waitlist only?",
+        why: "Decides whether Reservation exists as a class at all — waitlist-only drops the whole timed-booking flow and its no-show handling.",
+      },
+      {
+        question: "Do we need to match party size to table capacity, or can any party sit at any table?",
+        why: "Decides whether findAvailableTable() needs a capacity filter at all — without size matching, seating is just 'any free table,' the same simplification Parking Lot's clarify Q makes for a single spot type.",
+      },
+      {
+        question: "Single restaurant, or a reservation platform spanning many restaurants?",
+        why: "A platform-wide system needs Restaurant to be a real entity every Table/Reservation references; a single-location system can drop Restaurant as a class entirely and just have a flat list of Tables.",
+      },
+      {
+        question: "Do repeat no-shows need to be tracked and penalized, or is that out of scope?",
+        why: "Decides whether Customer needs its own identity and a noShowCount field at all — without this, contact info could just be inline strings on each Reservation.",
+      },
+    ],
+    entities: [
+      {
+        id: "restaurant",
+        name: "Restaurant",
+        isEntity: true,
+        why: "The top-level system — owns every Table and searches across all of them, the same aggregate-root role ParkingLot plays over Levels.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "tables", type: "List<Table>" },
+          { name: "waitlist", type: "List<WaitlistEntry>" },
+        ],
+      },
+      {
+        id: "table",
+        name: "Table",
+        isEntity: true,
+        why: "A physical table — has a seating capacity, a live occupied/free state, and its own list of upcoming timed reservations.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "capacity", type: "int" },
+          { name: "status", type: "TableStatus" },
+          { name: "reservations", type: "List<Reservation>" },
+        ],
+      },
+      {
+        id: "reservation",
+        name: "Reservation",
+        isEntity: true,
+        why: "A scheduled booking for a future time — links a Customer to a Table with a party size and a status, the same 'proof of the transaction' role Parking Lot's Ticket plays.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "customer", type: "Customer" },
+          { name: "table", type: "Table" },
+          { name: "partySize", type: "int" },
+          { name: "reservationTime", type: "DateTime" },
+          { name: "status", type: "ReservationStatus" },
+        ],
+      },
+      {
+        id: "waitlistentry",
+        name: "WaitlistEntry",
+        isEntity: true,
+        why: "A live queue position for a walk-in party right now, not a scheduled promise for later — a genuinely different lifecycle from Reservation, which is exactly why it needs its own class.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "customer", type: "Customer" },
+          { name: "partySize", type: "int" },
+          { name: "joinedAt", type: "DateTime" },
+          { name: "status", type: "WaitlistStatus" },
+        ],
+      },
+      {
+        id: "customer",
+        name: "Customer",
+        isEntity: true,
+        why: "A real participant with an identity that persists across many separate bookings — needed the moment repeat no-shows have to be tracked and penalized.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "phoneNumber", type: "string" },
+          { name: "noShowCount", type: "int" },
+        ],
+      },
+      { id: "host", name: "Host", isEntity: false, why: "The staff member seating guests — an external actor who calls into the system, not a class inside its own domain model." },
+      { id: "menu", name: "Menu", isEntity: false, why: "The food menu is a separate ordering/POS concern, not part of a reservation system's own domain model." },
+      { id: "receipt", name: "Receipt", isEntity: false, why: "A byproduct of a completed visit — a message, not a class with its own responsibilities." },
+    ],
+    methods: [
+      {
+        id: "m1",
+        signature: "findAvailableTable(partySize, time): Table",
+        ownerId: "restaurant",
+        justification: "Restaurant is the only class that can see across every Table it owns, so it's the one that searches for a size-matched, time-free candidate — no single Table can compare itself against its siblings.",
+        codeExercise: {
+          language: "java",
+          starter: "Table findAvailableTable(int partySize, LocalDateTime time) {\n    // your code here\n}",
+          reference:
+            "Table findAvailableTable(int partySize, LocalDateTime time) {\n    for (Table table : tables) {\n        if (table.getCapacity() >= partySize && table.isAvailableAt(time)) {\n            return table;\n        }\n    }\n    return null;\n}",
+          checklist: [
+            "Checks every table, not just the first one with any capacity",
+            "Accepts any table capacity ≥ party size, not just an exact match — same 'size ≥ need' rule as Parking Lot's spot matching",
+            "Delegates the time-conflict check to Table.isAvailableAt() rather than re-implementing overlap logic itself",
+            "Returns null (not an exception) when nothing fits, so the caller can offer the waitlist instead",
+          ],
+        },
+      },
+      { id: "m2", signature: "isFullyBooked(time): boolean", ownerId: "restaurant", justification: "Derived by asking every Table's own availability at that time — the same aggregate-check shape as ParkingLot.isFull(), computed from data Restaurant already owns via its tables." },
+      {
+        id: "m3",
+        signature: "seatParty(): void",
+        ownerId: "table",
+        justification: "status lives on Table, so Table is the only class that can flip it safely — same invariant-protection shape as ParkingSpot.assignVehicle() guarding isOccupied.",
+        codeExercise: {
+          language: "java",
+          starter: "void seatParty() {\n    // your code here\n}",
+          reference:
+            "void seatParty() {\n    if (status != TableStatus.FREE) {\n        throw new IllegalStateException(\"Table \" + id + \" is not free\");\n    }\n    this.status = TableStatus.OCCUPIED;\n}",
+          checklist: [
+            "Checks status is FREE before seating anyone — doesn't silently double-seat an occupied table",
+            "Fails loudly (exception, or a boolean/Result return) instead of quietly doing nothing",
+            "Sets status to OCCUPIED only after the check passes",
+            "Bonus (L5+, not required here): two hosts seating the last free table at the same instant needs this check-then-act to be atomic, not just correct in isolation",
+          ],
+        },
+      },
+      { id: "m4", signature: "clearTable(): void", ownerId: "table", justification: "Same invariant as seatParty() in reverse — the class that owns status is the only one allowed to clear it back to FREE." },
+      { id: "m5", signature: "isAvailableAt(time): boolean", ownerId: "table", justification: "Table owns its own list of upcoming reservations, so it's the class positioned to check whether a given time collides with one of them — no other class should reach into that list to do the check itself." },
+      { id: "m6", signature: "create(customer, table, partySize, time): Reservation", ownerId: "reservation", justification: "Creating a Reservation is its own constructor-style responsibility — it's the class that knows what fields a valid booking needs, the same shape as Parking Lot's Ticket.issue()." },
+      { id: "m7", signature: "cancel(): void", ownerId: "reservation", justification: "Cancelling is a transition on Reservation's own lifecycle status — Reservation is what tracks booked vs. cancelled, so it enforces that transition itself." },
+      { id: "m8", signature: "markNoShow(): void", ownerId: "reservation", justification: "Reservation is what knows it passed its reservationTime with nobody seated, so it's the class that triggers the no-show transition — and from there notifies Customer to increment its own count." },
+      { id: "m9", signature: "notifyReady(): void", ownerId: "waitlistentry", justification: "WaitlistEntry is what tracks its own queue position (joinedAt), so it's the class that should decide whether it's next in line when a table frees up — not whichever host happens to look at the list first." },
+      { id: "m10", signature: "incrementNoShowCount(): void", ownerId: "customer", justification: "noShowCount lives on Customer, so Customer is the only class that should be allowed to flip it — same invariant-protection shape as any other owned-state mutation in this app." },
+    ],
+    relationships: [
+      "Restaurant has many Tables and a Waitlist of WaitlistEntries",
+      "Table has many Reservations",
+      "Reservation references one Customer and one Table",
+      "WaitlistEntry references one Customer",
+    ],
+    edgeCases: [
+      {
+        scenario: "A party with a reservation arrives 45 minutes late.",
+        handling: "Reservation needs a grace-period check — markNoShow() should only fire after some threshold past reservationTime, not the instant the clock passes it, and the table should only free back into the pool once that threshold passes, not immediately at the reservation time.",
+      },
+      {
+        scenario: "A walk-in party of 4 arrives right as a table for 6 becomes free, but a reservation for that same table starts in 20 minutes.",
+        handling: "findAvailableTable() must check isAvailableAt() against ALL of a table's upcoming reservations for the estimated dining duration, not just whether it's free this exact second — seating a walk-in into a slot that collides with a booking coming up shortly is the actual bug here.",
+      },
+      {
+        scenario: "A no-show happens for the third time from the same customer.",
+        handling: "Customer.noShowCount persists across all of that customer's reservations, independent of which Table or visit was involved — a policy like 'no-show 3 times, can't book online anymore' needs this count to live on Customer, not on any individual Reservation.",
+      },
+      {
+        scenario: "Two walk-in parties are next in line on the waitlist when a table frees up, and both are the same size.",
+        handling: "notifyReady() must be driven by waitlist queue order (joinedAt), not by whichever host happens to glance at the list first — same FIFO-queue shape as any other ordered queue in this app.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "Reservation and WaitlistEntry are two separate classes instead of one Booking class with a nullable reservationTime.",
+        reasoning: "A timed reservation and a walk-in waitlist entry have genuinely different lifecycles — one is scheduled and can be no-showed, the other is a live queue position that resolves in minutes — collapsing them into one class with an optional time field would mean half its fields are always null depending on which kind it is.",
+      },
+      {
+        decision: "Table tracks its own live status (FREE/OCCUPIED) separately from its list of future timed Reservations.",
+        reasoning: "A table can be physically empty right now while still having a reservation booked for later tonight — conflating 'is anyone sitting here right now' with 'is this slot booked' would make it impossible to seat a walk-in into a table that's free at this moment but reserved for later.",
+      },
+      {
+        decision: "Customer is its own class instead of a name/phone pair duplicated onto every Reservation and WaitlistEntry.",
+        reasoning: "noShowCount needs to persist and accumulate across many separate bookings for the same person — copying contact info onto each booking with no shared identity would make it impossible to answer 'has this person no-showed before.'",
+      },
+    ],
+    principles: [
+      { name: "Single Responsibility Principle", explanation: "Table only tracks its own live status and its own reservation list; Restaurant only searches across tables it owns — neither reaches into the other's bookkeeping." },
+      { name: "Encapsulation", explanation: "Table.seatParty() and clearTable() are the only way its status changes — nothing else flips FREE/OCCUPIED directly, so two hosts can't accidentally double-seat the same table." },
+      { name: "Separation of Concerns", explanation: "Reservation (a scheduled promise) and WaitlistEntry (a live queue position) stay separate even though both eventually seat someone — they fail and resolve in completely different ways." },
+      { name: "Single source of truth", explanation: "noShowCount lives on Customer because it's read and written across many different Reservations — putting it anywhere else would mean copying and reconciling a count across records instead of owning it in one place." },
+    ],
+  },
+};
+
+const rideShareDispatch: ColdDrillPrompt = {
+  id: "ride-share-dispatch",
+  title: "Design a Ride-Sharing Dispatch System",
+  prompt: "Design a ride-sharing dispatch system — matching riders to nearby drivers.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Do we need to match on vehicle type/capacity, or is any available driver a valid match?",
+        why: "Decides whether Driver needs a vehicleType field and findNearestDriver() needs a filter at all — without it, matching is purely distance-based.",
+      },
+      {
+        question: "Is this on-demand only, or do scheduled/advance rides need to be supported too?",
+        why: "Scheduled rides would need MatchRequest to carry a future requestedTime and a separate matching pass that runs ahead of time — a real structural fork from immediate on-demand matching.",
+      },
+      {
+        question: "Single fixed-fare model, or dynamic/surge pricing?",
+        why: "Decides whether Trip.fare is a simple flat calculation or needs its own pricing-strategy class — same scoping shape as whether Payment needs to be a real class in Parking Lot.",
+      },
+      {
+        question: "Is driver rating/history in scope, or just the matching mechanics?",
+        why: "Rating-in-scope would mean Driver needs a rating field and possibly its own Rating class tied to completed Trips — without it, Driver stays a much thinner class.",
+      },
+    ],
+    entities: [
+      {
+        id: "rider",
+        name: "Rider",
+        isEntity: true,
+        why: "The person requesting a ride — has an identity that outlives any single trip, the same recurring-actor role Driver plays on the other side of the match.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+        ],
+      },
+      {
+        id: "driver",
+        name: "Driver",
+        isEntity: true,
+        why: "A real actor with live location and availability state that changes constantly and gets searched across by every match attempt.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "currentLocation", type: "Location" },
+          { name: "isAvailable", type: "boolean" },
+          { name: "vehicleType", type: "VehicleType" },
+          { name: "lastLocationUpdate", type: "DateTime" },
+        ],
+      },
+      {
+        id: "matchrequest",
+        name: "MatchRequest",
+        isEntity: true,
+        why: "A rider's pending ask for a driver — exists from the moment it's submitted until it's matched, cancelled, or expires, which a Trip record alone can't represent since most requests never even find a driver.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "rider", type: "Rider" },
+          { name: "pickupLocation", type: "Location" },
+          { name: "dropoffLocation", type: "Location" },
+          { name: "status", type: "MatchStatus" },
+        ],
+      },
+      {
+        id: "trip",
+        name: "Trip",
+        isEntity: true,
+        why: "The actual ride once a driver is assigned — separate from the request that led to it, since a trip has its own lifecycle (in progress, completed, cancelled) that a still-searching request doesn't.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "matchRequest", type: "MatchRequest" },
+          { name: "driver", type: "Driver" },
+          { name: "status", type: "TripStatus" },
+          { name: "fare", type: "Money" },
+        ],
+      },
+      {
+        id: "dispatchservice",
+        name: "DispatchService",
+        isEntity: true,
+        why: "The class that actually performs the search — needs visibility across every Driver at once, which no single Rider or Driver has, the same coordinator role ParkingLot plays searching across Levels.",
+        properties: [{ name: "id", type: "string" }],
+      },
+      { id: "vehicle", name: "Vehicle", isEntity: false, why: "Just a category tag (e.g. sedan vs. XL) used for matching, with no independent behavior of its own — modeling it as a full class would treat a value like an actor." },
+      { id: "locationindex", name: "LocationIndex", isEntity: false, why: "A geospatial indexing/implementation detail for making nearest-driver lookups fast, not a class in the core domain model itself." },
+      { id: "payment", name: "Payment", isEntity: false, why: "Nobody asked for payment processing — inventing fare-charging scope adds complexity the prompt never requested." },
+    ],
+    methods: [
+      {
+        id: "m1",
+        signature: "findNearestDriver(riderLocation): Driver",
+        ownerId: "dispatchservice",
+        justification: "DispatchService is the only class that can see across every Driver's current location and availability at once — no single Driver should decide for itself whether it's the best match for a given request.",
+        codeExercise: {
+          language: "java",
+          starter: "Driver findNearestDriver(Location riderLocation) {\n    // your code here\n}",
+          reference:
+            "Driver findNearestDriver(Location riderLocation) {\n    Driver nearest = null;\n    double bestDistance = Double.MAX_VALUE;\n    for (Driver driver : drivers) {\n        if (!driver.isAvailable()) {\n            continue;\n        }\n        double distance = driver.getCurrentLocation().distanceTo(riderLocation);\n        if (distance < bestDistance) {\n            nearest = driver;\n            bestDistance = distance;\n        }\n    }\n    return nearest;\n}",
+          checklist: [
+            "Skips drivers where isAvailable() is false, not just the first one checked",
+            "Compares every available driver's distance, not just the first candidate found",
+            "Tracks the actual minimum distance seen so far, not just whether a driver is 'close enough'",
+            "Returns null (not an exception) when no driver is available, so the caller can queue the request instead",
+          ],
+        },
+      },
+      { id: "m2", signature: "matchRequest(request): void", ownerId: "dispatchservice", justification: "Orchestrating a search plus creating the resulting Trip is DispatchService's job — it composes findNearestDriver() with Trip.create(), the same coordinator role ParkingLot plays delegating to findAvailableSpot() and Ticket.issue()." },
+      { id: "m3", signature: "create(rider, pickup, dropoff): MatchRequest", ownerId: "matchrequest", justification: "Creating a MatchRequest is its own constructor-style responsibility — it's the class that knows what fields a valid request needs, the same shape as Parking Lot's Ticket.issue()." },
+      { id: "m4", signature: "expire(): void", ownerId: "matchrequest", justification: "Expiring is a transition on MatchRequest's own lifecycle status — it's what tracks pending vs. expired, so it enforces that transition itself." },
+      { id: "m5", signature: "cancel(): void", ownerId: "matchrequest", justification: "Same invariant-owner reasoning as expire() — only MatchRequest should be allowed to move its own status to cancelled." },
+      { id: "m6", signature: "setAvailable(available): void", ownerId: "driver", justification: "isAvailable lives on Driver, so Driver is the only class that should flip it — same invariant-protection shape as ParkingSpot's isOccupied." },
+      { id: "m7", signature: "updateLocation(location): void", ownerId: "driver", justification: "currentLocation is Driver's own field — only Driver should be the one updating its own position, not DispatchService reaching in to overwrite it." },
+      { id: "m8", signature: "create(matchRequest, driver): Trip", ownerId: "trip", justification: "Building a Trip record once a match succeeds is Trip's own constructor-style responsibility, the same shape as Parking Lot's Ticket.issue()." },
+      { id: "m9", signature: "completeTrip(): void", ownerId: "trip", justification: "Completing is a transition on Trip's own lifecycle — Trip is what tracks in-progress vs. completed, so it enforces that transition and is what should free the driver back to available." },
+      {
+        id: "m10",
+        signature: "cancelTrip(reason): void",
+        ownerId: "trip",
+        justification: "Cancelling is Trip's own lifecycle transition — and since Trip is the class that knows which Driver it's holding onto, it's positioned to release that driver back to the pool as part of the same operation.",
+        codeExercise: {
+          language: "java",
+          starter: "void cancelTrip(String reason) {\n    // your code here\n}",
+          reference:
+            "void cancelTrip(String reason) {\n    if (status == TripStatus.COMPLETED) {\n        throw new IllegalStateException(\"Cannot cancel a completed trip\");\n    }\n    this.status = TripStatus.CANCELLED;\n    driver.setAvailable(true);\n}",
+          checklist: [
+            "Rejects cancelling a trip that's already COMPLETED — can't undo a finished trip",
+            "Frees the driver back to available so they can be matched again, not left stuck 'busy' forever",
+            "Sets status to CANCELLED only after the completed-check passes",
+            "Bonus (L5+, not required here): if the trip was already in progress, cancellation might need a partial-fare/cancellation-fee policy — out of scope for this exercise but worth naming out loud in an interview",
+          ],
+        },
+      },
+    ],
+    relationships: [
+      "Rider has many MatchRequests",
+      "MatchRequest references one Rider",
+      "Trip references one MatchRequest and one Driver",
+      "DispatchService searches across all Drivers",
+    ],
+    edgeCases: [
+      {
+        scenario: "A driver accepts a match but cancels before picking up the rider.",
+        handling: "cancelTrip() must free the driver back to available AND leave the original MatchRequest re-matchable — the rider shouldn't have to submit a brand new request from scratch just because the first driver backed out.",
+      },
+      {
+        scenario: "Two riders' requests both get matched to the same driver at nearly the same instant.",
+        handling: "findNearestDriver() plus assignment has to be atomic — the same check-then-act race as ParkingSpot.assignVehicle(); whichever match commits first should flip the driver unavailable before the second match attempt even runs.",
+      },
+      {
+        scenario: "No driver is available anywhere near the rider's location.",
+        handling: "findNearestDriver() returning null shouldn't leave the rider hanging — MatchRequest needs an explicit way to stay PENDING and retry, or transition to EXPIRED after some timeout, rather than the request just silently failing once.",
+      },
+      {
+        scenario: "A driver's GPS location hasn't updated in several minutes when a match is attempted.",
+        handling: "Driver's lastLocationUpdate needs to factor into matching — sending a rider to a driver's last-known position from several minutes ago could send them somewhere the driver isn't anymore, so stale locations should be deprioritized or excluded.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "MatchRequest and Trip are separate classes instead of one Trip class that starts in a PENDING/unmatched state.",
+        reasoning: "A request that never gets matched (no drivers available, rider cancels before match) never has a driver, pickup confirmation, or fare — collapsing it into Trip would mean most of Trip's fields are null until a match actually happens; keeping them separate mirrors Parking Lot's Ticket/Payment split.",
+      },
+      {
+        decision: "DispatchService is a separate stateless-ish coordinator instead of Rider or Driver owning the matching logic themselves.",
+        reasoning: "Matching needs visibility across every Driver at once to find the nearest one — no single Rider or Driver has that view, so the search has to live on a class that can see the whole pool, the same shape as ParkingLot searching across every Level.",
+      },
+      {
+        decision: "Driver stores vehicleType as a plain field instead of a separate Vehicle class.",
+        reasoning: "A vehicle here is just a category tag used for matching (e.g. requesting an XL), with no independent behavior of its own — giving it full class treatment would be modeling a value as if it were an actor.",
+      },
+    ],
+    principles: [
+      { name: "Single Responsibility Principle", explanation: "DispatchService only searches and matches; Trip only tracks the lifecycle of an assigned ride — neither reaches into the other's job." },
+      { name: "Encapsulation", explanation: "Driver.setAvailable() is the only way its availability flag changes — nothing else flips it directly, so two matches can't both claim the same driver." },
+      { name: "Separation of Concerns", explanation: "MatchRequest (the search for a driver) and Trip (the ride once matched) are kept apart because they fail and resolve in completely different ways — a request can expire with no trip ever created." },
+      { name: "Idempotent state transitions", explanation: "Trip.cancelTrip() explicitly rejects cancelling an already-COMPLETED trip — transitions are guarded so calling a method twice, or out of order, can't corrupt the record." },
+    ],
+  },
+};
+
+const COLD_DRILLS: ColdDrillPrompt[] = [pizzaOrdering, libraryManagement, atm, restaurantReservation, rideShareDispatch];
 
 export function listColdDrills(): ColdDrillPrompt[] {
   return COLD_DRILLS;
