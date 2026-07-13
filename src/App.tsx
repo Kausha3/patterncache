@@ -32,24 +32,32 @@ function TopNav() {
         position: "sticky",
         top: 0,
         zIndex: 10,
-        background: "rgba(22,24,29,0.82)",
-        backdropFilter: "blur(10px)",
-        borderBottom: `1px solid ${color.panelBorder}`,
+        background: "rgba(20,21,25,0.78)",
+        backdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${color.hairline}`,
       }}
     >
       <div
         style={{
           maxWidth: 1040,
           margin: "0 auto",
-          padding: "12px 20px",
+          padding: "13px 20px",
           display: "flex",
           alignItems: "center",
           gap: 20,
         }}
       >
-        <NavLink to="/" style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <span style={{ width: 18, height: 18, borderRadius: 5, background: color.teal, display: "inline-block" }} />
-          <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 15, letterSpacing: "-0.2px" }}>
+        <NavLink to="/" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 6,
+              background: `linear-gradient(135deg, ${color.teal}, ${color.blue})`,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 15, letterSpacing: "-0.3px" }}>
             PatternCache
           </span>
         </NavLink>

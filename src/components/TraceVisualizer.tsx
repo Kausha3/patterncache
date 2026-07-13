@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { TraceStep } from "@/types";
-import { color, font } from "@/theme/tokens";
-import { Eyebrow, Panel, Button } from "./ui";
+import { color, font, radius, motion } from "@/theme/tokens";
+import { Panel, Button, SectionHeader } from "./ui";
 
 /**
- * <TraceVisualizer /> — §4.1. Generic step player. It knows nothing about the
- * algorithm: it takes a steps[] array and a renderStep(step) function (both
- * resolved from the ALGORITHMS registry) and provides Reset / Back / Forward /
- * Play-Pause. Every DSA lesson reuses this exact shell.
+ * <TraceVisualizer /> — generic step player. Shows the algorithm-specific
+ * visualization *and* the pseudocode, with the executing line highlighted in
+ * lockstep, so learners connect the state change to the exact line of logic.
  */
 export function TraceVisualizer({
   steps,
   renderStep,
+  pseudocode,
   goal,
   onComplete,
 }: {
   steps: TraceStep[];
   renderStep: (step: TraceStep) => ReactNode;
+  pseudocode: string[];
   goal: string;
   onComplete?: () => void;
 }) {
@@ -29,31 +30,19 @@ export function TraceVisualizer({
   const atEnd = i >= last;
   const step = steps[i];
 
-  const go = useCallback(
-    (next: number) => setI(Math.max(0, Math.min(last, next))),
-    [last],
-  );
+  const go = useCallback((next: number) => setI(Math.max(0, Math.min(last, next))), [last]);
 
-  // Autoplay
   useEffect(() => {
     if (!playing) return;
-    if (atEnd) {
-      setPlaying(false);
-      return;
-    }
-    const t = setTimeout(() => setI((x) => Math.min(last, x + 1)), 900);
+    if (atEnd) { setPlaying(false); return; }
+    const t = setTimeout(() => setI((x) => Math.min(last, x + 1)), 850);
     return () => clearTimeout(t);
   }, [playing, atEnd, i, last]);
 
-  // Fire completion once the learner has seen the whole trace.
   useEffect(() => {
-    if (atEnd && !reachedEnd.current) {
-      reachedEnd.current = true;
-      onComplete?.();
-    }
+    if (atEnd && !reachedEnd.current) { reachedEnd.current = true; onComplete?.(); }
   }, [atEnd, onComplete]);
 
-  // Keyboard: ← → to step, space to play/pause. §9
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowRight") { e.preventDefault(); setPlaying(false); go(i + 1); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); setPlaying(false); go(i - 1); }
@@ -64,89 +53,134 @@ export function TraceVisualizer({
     <div
       tabIndex={0}
       onKeyDown={onKey}
-      aria-label="Algorithm trace. Use left and right arrow keys to step, space to play."
+      aria-label="Algorithm trace. Left/right arrows step, space plays."
       style={{ display: "grid", gap: 14, outline: "none" }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-        <Eyebrow tone={color.teal}>Watch it run</Eyebrow>
-        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.textDim }}>{goal}</span>
-      </div>
+      <SectionHeader eyebrow="Watch it run" tone={color.teal} meta={goal} />
 
-      <Panel style={{ display: "grid", gap: 16 }}>
-        {/* Visual snapshot — algorithm-specific renderer */}
-        <div>{renderStep(step)}</div>
+      <Panel style={{ display: "grid", gap: 18 }}>
+        {/* Visualization + synced pseudocode */}
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+          <div style={{ flex: "1 1 300px", minWidth: 0 }}>{renderStep(step)}</div>
+          <Pseudocode lines={pseudocode} active={step.line} />
+        </div>
 
-        {/* Explanation — the "why" */}
+        {/* Explanation — the "why" for this step */}
         <div
           style={{
-            minHeight: 52,
+            minHeight: 54,
             background: "rgba(255,255,255,0.02)",
-            border: `1px solid ${color.panelBorder}`,
-            borderRadius: 10,
-            padding: "12px 14px",
+            border: `1px solid ${color.hairline}`,
+            borderRadius: radius.md,
+            padding: "13px 15px",
             display: "flex",
-            gap: 10,
+            gap: 11,
             alignItems: "flex-start",
           }}
         >
-          {step.tag && (
-            <span
-              style={{
-                fontFamily: font.mono,
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                color: step.milestone ? color.amber : color.teal,
-                border: `1px solid ${step.milestone ? color.amber : color.teal}`,
-                borderRadius: 999,
-                padding: "2px 8px",
-                whiteSpace: "nowrap",
-                marginTop: 1,
-              }}
-            >
-              {step.tag}
-            </span>
-          )}
+          {step.tag && <StepTag tag={step.tag} milestone={step.milestone} />}
           <p style={{ margin: 0, color: color.text }}>{step.explanation}</p>
         </div>
 
         {/* Controls */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <Button variant="ghost" onClick={() => { setPlaying(false); setI(0); }} disabled={i === 0} aria-label="Reset to start">
-            ⟲ Reset
+          <Button variant="subtle" icon="reset" onClick={() => { setPlaying(false); setI(0); }} disabled={i === 0}>
+            Reset
           </Button>
-          <Button variant="ghost" onClick={() => { setPlaying(false); go(i - 1); }} disabled={i === 0} aria-label="Step back">
-            ← Back
-          </Button>
+          <Button variant="ghost" icon="stepBack" onClick={() => { setPlaying(false); go(i - 1); }} disabled={i === 0} aria-label="Step back" />
           <Button
             variant="primary"
+            icon={playing ? "pause" : "play"}
             onClick={() => { if (atEnd) { setI(0); setPlaying(true); } else setPlaying((p) => !p); }}
-            aria-label={playing ? "Pause" : "Play"}
           >
-            {playing ? "❚❚ Pause" : atEnd ? "↻ Replay" : "▶ Play"}
+            {playing ? "Pause" : atEnd ? "Replay" : "Play"}
           </Button>
-          <Button variant="ghost" onClick={() => { setPlaying(false); go(i + 1); }} disabled={atEnd} aria-label="Step forward">
-            Forward →
-          </Button>
+          <Button variant="ghost" iconRight="stepForward" onClick={() => { setPlaying(false); go(i + 1); }} disabled={atEnd} aria-label="Step forward" />
           <div style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 12, color: color.textDim }}>
-            step {i + 1} / {steps.length}
+            step {String(i + 1).padStart(2, "0")} / {steps.length}
           </div>
         </div>
 
-        {/* Progress rail */}
-        <div style={{ height: 4, background: "rgba(255,255,255,0.05)", borderRadius: 999 }}>
-          <div
-            style={{
-              width: `${((i + 1) / steps.length) * 100}%`,
-              height: "100%",
-              background: color.teal,
-              borderRadius: 999,
-              transition: "width 220ms cubic-bezier(0.4,0,0.2,1)",
-            }}
-          />
+        <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: radius.pill }}>
+          <div style={{ width: `${((i + 1) / steps.length) * 100}%`, height: "100%", background: color.teal, borderRadius: radius.pill, transition: `width ${motion.step}` }} />
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function StepTag({ tag, milestone }: { tag: string; milestone?: boolean }) {
+  const tone = milestone ? color.amber : color.teal;
+  return (
+    <span
+      style={{
+        fontFamily: font.mono,
+        fontSize: 9.5,
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "0.8px",
+        color: tone,
+        background: milestone ? "rgba(217,169,78,0.1)" : "rgba(91,176,173,0.1)",
+        border: `1px solid ${tone}`,
+        borderRadius: radius.sm,
+        padding: "3px 7px",
+        whiteSpace: "nowrap",
+        marginTop: 1,
+      }}
+    >
+      {tag}
+    </span>
+  );
+}
+
+function Pseudocode({ lines, active }: { lines: string[]; active?: number }) {
+  return (
+    <div
+      role="img"
+      aria-label="Pseudocode with the current line highlighted"
+      style={{
+        flex: "1 1 320px",
+        minWidth: 280,
+        background: "#15171C",
+        border: `1px solid ${color.hairline}`,
+        borderRadius: radius.md,
+        padding: "12px 4px",
+        overflowX: "auto",
+      }}
+    >
+      {lines.map((ln, idx) => {
+        const on = idx === active;
+        return (
+          <div
+            key={idx}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "30px 1fr",
+              alignItems: "baseline",
+              padding: "2px 12px 2px 0",
+              borderLeft: `2px solid ${on ? color.teal : "transparent"}`,
+              background: on ? "rgba(91,176,173,0.09)" : "transparent",
+              transition: `background ${motion.step}, border-color ${motion.step}`,
+            }}
+          >
+            <span style={{ fontFamily: font.mono, fontSize: 11, color: on ? color.teal : color.textFaint, textAlign: "right", paddingRight: 10, userSelect: "none" }}>
+              {idx + 1}
+            </span>
+            <code
+              style={{
+                fontFamily: font.mono,
+                fontSize: 12.5,
+                lineHeight: 1.5,
+                whiteSpace: "pre",
+                color: on ? color.text : color.textDim,
+                fontWeight: on ? 600 : 400,
+              }}
+            >
+              {ln}
+            </code>
+          </div>
+        );
+      })}
     </div>
   );
 }

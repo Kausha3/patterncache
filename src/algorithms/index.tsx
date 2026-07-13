@@ -7,6 +7,7 @@ import {
   applySWSandbox,
   scoreSWSandbox,
   renderSWSandbox,
+  SW_PSEUDOCODE,
 } from "./slidingWindow";
 
 /**
@@ -30,6 +31,8 @@ export interface AlgorithmDef {
   key: AlgorithmKey;
   run(input: string): TraceStep[];
   renderStep(step: TraceStep): ReactNode;
+  /** Pseudocode shown beside the trace; TraceStep.line points at the row. */
+  pseudocode: string[];
   sandbox: SandboxEngine;
 }
 
@@ -38,6 +41,7 @@ export const ALGORITHMS: Partial<Record<AlgorithmKey, AlgorithmDef>> = {
     key: "sliding-window",
     run: runSlidingWindow as (input: string) => TraceStep[],
     renderStep: renderSlidingWindowStep as (step: TraceStep) => ReactNode,
+    pseudocode: SW_PSEUDOCODE,
     sandbox: {
       actions: [
         { id: "expand", label: "Expand →", key: "ArrowRight" },

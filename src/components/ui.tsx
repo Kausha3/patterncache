@@ -1,33 +1,22 @@
 import type { CSSProperties, ReactNode, ButtonHTMLAttributes } from "react";
-import { color, font, radius } from "@/theme/tokens";
+import { color, font, radius, elevation, eyebrowStyle, motion } from "@/theme/tokens";
+import { Icon, type IconName } from "./Icon";
 
-/** Small, shared building blocks so every lesson has the same visual grammar. */
+/** Shared building blocks — one visual grammar across every lesson. */
 
-export function Eyebrow({ children, tone = color.textDim }: { children: ReactNode; tone?: string }) {
-  return (
-    <div
-      style={{
-        fontFamily: font.mono,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "1.5px",
-        textTransform: "uppercase",
-        color: tone,
-      }}
-    >
-      {children}
-    </div>
-  );
+export function Eyebrow({ children, tone = color.textDim, style }: { children: ReactNode; tone?: string; style?: CSSProperties }) {
+  return <div style={{ ...eyebrowStyle, color: tone, ...style }}>{children}</div>;
 }
 
-export function Panel({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+export function Panel({ children, style, raised }: { children: ReactNode; style?: CSSProperties; raised?: boolean }) {
   return (
     <div
       style={{
         background: color.panel,
         border: `1px solid ${color.panelBorder}`,
         borderRadius: radius.lg,
-        padding: 20,
+        padding: 22,
+        boxShadow: raised ? elevation.raised : elevation.card,
         ...style,
       }}
     >
@@ -36,51 +25,72 @@ export function Panel({ children, style }: { children: ReactNode; style?: CSSPro
   );
 }
 
-type BtnVariant = "primary" | "ghost" | "danger" | "chip";
+/** Consistent labelled section header: eyebrow on the left, meta on the right. */
+export function SectionHeader({ eyebrow, tone, meta }: { eyebrow: string; tone?: string; meta?: ReactNode }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <Eyebrow tone={tone}>{eyebrow}</Eyebrow>
+      {meta && <span style={{ fontFamily: font.mono, fontSize: 12, color: color.textFaint }}>{meta}</span>}
+    </div>
+  );
+}
+
+export function Divider({ style }: { style?: CSSProperties }) {
+  return <div style={{ height: 1, background: color.hairline, ...style }} />;
+}
+
+type BtnVariant = "primary" | "ghost" | "subtle" | "danger";
 interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: BtnVariant;
   accent?: string;
+  icon?: IconName;
+  iconRight?: IconName;
 }
 
-export function Button({ variant = "primary", accent = color.teal, style, children, ...rest }: BtnProps) {
+export function Button({ variant = "primary", accent = color.teal, icon, iconRight, style, children, ...rest }: BtnProps) {
   const base: CSSProperties = {
     fontFamily: font.mono,
-    fontSize: 13,
-    fontWeight: 700,
-    padding: "10px 16px",
+    fontSize: 12.5,
+    fontWeight: 600,
+    letterSpacing: "0.2px",
+    padding: children ? "9px 14px" : "9px 10px",
     borderRadius: radius.md,
     border: "1px solid transparent",
-    transition: "all 160ms ease",
+    transition: `background ${motion.fast}, border-color ${motion.fast}, color ${motion.fast}, opacity ${motion.fast}`,
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
+    gap: 7,
+    lineHeight: 1,
+    whiteSpace: "nowrap",
   };
   const variants: Record<BtnVariant, CSSProperties> = {
-    primary: { background: accent, color: "#10221F", borderColor: accent },
-    ghost: { background: "transparent", color: color.text, borderColor: color.panelBorder },
+    primary: { background: accent, color: "#12211F", borderColor: accent },
+    ghost: { background: color.panel, color: color.text, borderColor: color.panelBorder },
+    subtle: { background: "transparent", color: color.textDim, borderColor: "transparent" },
     danger: { background: "transparent", color: color.red, borderColor: color.red },
-    chip: { background: "rgba(255,255,255,0.03)", color: color.textDim, borderColor: color.panelBorder, padding: "6px 12px" },
   };
+  const disabled = rest.disabled;
   return (
-    <button
-      style={{ ...base, ...variants[variant], ...(rest.disabled ? { opacity: 0.4, cursor: "not-allowed" } : {}), ...style }}
-      {...rest}
-    >
+    <button style={{ ...base, ...variants[variant], ...(disabled ? { opacity: 0.38, cursor: "not-allowed" } : {}), ...style }} {...rest}>
+      {icon && <Icon name={icon} size={15} />}
       {children}
+      {iconRight && <Icon name={iconRight} size={15} />}
     </button>
   );
 }
 
-export function InlineCode({ children }: { children: ReactNode }) {
+export function InlineCode({ children, tone = color.amber }: { children: ReactNode; tone?: string }) {
   return (
     <code
       style={{
         fontFamily: font.mono,
-        fontSize: 13,
-        background: "rgba(255,255,255,0.06)",
-        padding: "1px 6px",
+        fontSize: 12.5,
+        background: "rgba(255,255,255,0.05)",
+        border: `1px solid ${color.hairline}`,
+        padding: "1.5px 6px",
         borderRadius: 5,
-        color: color.amber,
+        color: tone,
+        whiteSpace: "nowrap",
       }}
     >
       {children}
@@ -88,25 +98,17 @@ export function InlineCode({ children }: { children: ReactNode }) {
   );
 }
 
-/** Animated metric bar for the system-design stage builder. `ratio` is 0..1. */
+/** Animated metric bar. `ratio` is 0..1. */
 export function MetricBar({ label, value, ratio, tone = color.blue }: { label: string; value: string; ratio: number; tone?: string }) {
   const pct = Math.max(0.02, Math.min(1, ratio)) * 100;
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontFamily: font.mono, fontSize: 11, letterSpacing: "0.5px", color: color.textDim }}>{label}</span>
-        <span style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, color: color.text }}>{value}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
+        <span style={{ ...eyebrowStyle, fontSize: 10, color: color.textDim }}>{label}</span>
+        <span style={{ fontFamily: font.mono, fontSize: 13, fontWeight: 700, color: color.text }}>{value}</span>
       </div>
-      <div style={{ height: 8, background: "rgba(255,255,255,0.05)", borderRadius: radius.pill, overflow: "hidden" }}>
-        <div
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            background: tone,
-            borderRadius: radius.pill,
-            transition: "width 400ms cubic-bezier(0.4,0,0.2,1)",
-          }}
-        />
+      <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: radius.pill, overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: tone, borderRadius: radius.pill, transition: `width 420ms ${motion.enter}` }} />
       </div>
     </div>
   );

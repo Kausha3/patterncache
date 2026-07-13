@@ -32,6 +32,8 @@ export interface TraceStep<S = unknown> {
   tag?: string;
   /** true when this step is where the running "best" answer improved. */
   milestone?: boolean;
+  /** Index (0-based) of the pseudocode line executing at this step. */
+  line?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,8 +68,11 @@ export interface DSALesson {
   estMinutes: number;
   concept: {
     bruteForce: string;
+    bruteForceComplexity: string; // e.g. "O(n²)"
     insight: string;
     complexity: string; // e.g. "O(n)"
+    /** The interview trigger: how to recognize this pattern in the wild. */
+    recognize: string;
   };
   trace: {
     input: string;

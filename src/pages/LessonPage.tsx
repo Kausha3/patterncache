@@ -9,8 +9,9 @@ import { ConceptCard } from "@/components/ConceptCard";
 import { TraceVisualizer } from "@/components/TraceVisualizer";
 import { SandboxPractice } from "@/components/SandboxPractice";
 import { StageBuilder } from "@/components/StageBuilder";
-import { Button, Eyebrow, Panel } from "@/components/ui";
-import { color, font, trackColor } from "@/theme/tokens";
+import { Button, Eyebrow, Panel, InlineCode } from "@/components/ui";
+import { Icon } from "@/components/Icon";
+import { color, font, radius, trackColor, motion } from "@/theme/tokens";
 
 export function LessonPage() {
   const { id = "" } = useParams();
@@ -22,23 +23,23 @@ export function LessonPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Not-yet-built lesson — a real screen, never a dead end (§1).
+// Not-yet-built lesson — a real screen, never a dead end.
 // ---------------------------------------------------------------------------
 
 function ComingSoon({ title }: { title: string }) {
   const navigate = useNavigate();
   return (
-    <div style={{ display: "grid", gap: 18, maxWidth: 560 }}>
+    <div style={{ display: "grid", gap: 18, maxWidth: 580 }}>
       <BackLink />
       <Panel style={{ display: "grid", gap: 14 }}>
         <Eyebrow tone={color.amber}>On the roadmap</Eyebrow>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>{title}</h1>
-        <p style={{ margin: 0, color: color.textDim }}>
-          This lesson isn't built yet — every lesson is hand-crafted so the reasoning actually holds up, and we ship
-          depth before breadth. In the meantime, here's one that's ready to run.
+        <h1 style={{ fontSize: 25, fontWeight: 700, letterSpacing: "-0.5px" }}>{title}</h1>
+        <p style={{ color: color.textDim }}>
+          This lesson isn't built yet — every lesson is hand-crafted so the reasoning holds up, and we ship depth before
+          breadth. In the meantime, here's one that's ready to run.
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Button onClick={() => navigate(`/lesson/${RECOMMENDED_FIRST}`)}>▶ Start Sliding Window</Button>
+          <Button icon="play" onClick={() => navigate(`/lesson/${RECOMMENDED_FIRST}`)}>Start Sliding Window</Button>
           <Button variant="ghost" onClick={() => navigate("/")}>See the full path</Button>
         </div>
       </Panel>
@@ -47,17 +48,12 @@ function ComingSoon({ title }: { title: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Lesson shell — same four/three-step shape every time (§2).
+// Lesson shell — same four/three-step shape every time.
 // ---------------------------------------------------------------------------
-
-interface StepDef {
-  key: string;
-  label: string;
-}
 
 function LessonShell({ lesson }: { lesson: Lesson }) {
   const { setStatus } = useProgress();
-  const steps: StepDef[] = isDSA(lesson)
+  const steps = isDSA(lesson)
     ? [
         { key: "concept", label: "Concept" },
         { key: "trace", label: "Watch it run" },
@@ -75,85 +71,77 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
   const cur = steps[stepIdx];
   const last = steps.length - 1;
 
-  // Entering a lesson marks it in-progress.
-  useEffect(() => {
-    setStatus(lesson.id, "in-progress");
-  }, [lesson.id, setStatus]);
-
+  useEffect(() => { setStatus(lesson.id, "in-progress"); }, [lesson.id, setStatus]);
   const markComplete = () => setStatus(lesson.id, "completed");
 
   return (
-    <div style={{ display: "grid", gap: 20 }}>
+    <div style={{ display: "grid", gap: 22 }}>
       <BackLink />
 
-      <header style={{ display: "grid", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <header style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <span
             style={{
               fontFamily: font.mono,
               fontSize: 10,
               fontWeight: 700,
-              letterSpacing: "0.5px",
+              letterSpacing: "0.8px",
               textTransform: "uppercase",
               color: accent,
-              border: `1px solid ${accent}`,
-              borderRadius: 999,
-              padding: "2px 9px",
+              border: `1px solid ${accent}66`,
+              background: `${accent}14`,
+              borderRadius: radius.sm,
+              padding: "3px 9px",
             }}
           >
             {lesson.track === "dsa" ? "DSA" : "System Design"}
           </span>
           <span style={{ fontFamily: font.mono, fontSize: 12, color: color.textFaint }}>~{lesson.estMinutes} min</span>
         </div>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: "-0.4px" }}>{lesson.title}</h1>
+        <h1 style={{ fontSize: 27, fontWeight: 700, letterSpacing: "-0.5px" }}>{lesson.title}</h1>
       </header>
 
       {/* Sub-nav — same shape every lesson, always clickable */}
-      <div role="tablist" style={{ display: "flex", gap: 6, flexWrap: "wrap", borderBottom: `1px solid ${color.panelBorder}`, paddingBottom: 2 }}>
-        {steps.map((s, i) => {
+      <div role="tablist" style={{ display: "flex", gap: 4, flexWrap: "wrap", borderBottom: `1px solid ${color.hairline}` }}>
+        {steps.map((st, i) => {
           const active = i === stepIdx;
           return (
             <button
-              key={s.key}
+              key={st.key}
               role="tab"
               aria-selected={active}
               onClick={() => setStepIdx(i)}
               style={{
                 fontFamily: font.mono,
-                fontSize: 13,
-                fontWeight: 700,
-                padding: "8px 14px",
+                fontSize: 12.5,
+                fontWeight: 600,
+                padding: "9px 13px",
                 background: "none",
                 border: "none",
                 borderBottom: `2px solid ${active ? accent : "transparent"}`,
                 color: active ? color.text : color.textDim,
-                marginBottom: -3,
+                marginBottom: -1,
+                transition: `color ${motion.fast}, border-color ${motion.fast}`,
               }}
             >
-              {i + 1}. {s.label}
+              <span style={{ color: active ? accent : color.textFaint, marginRight: 6 }}>{i + 1}</span>
+              {st.label}
             </button>
           );
         })}
       </div>
 
-      {/* Step content */}
-      <div>
-        <StepContent lesson={lesson} stepKey={cur.key} onStepComplete={markComplete} />
-      </div>
+      <div><StepContent lesson={lesson} stepKey={cur.key} onStepComplete={markComplete} /></div>
 
-      {/* Footer nav — no dead ends: every step has an obvious next action */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, borderTop: `1px solid ${color.panelBorder}`, paddingTop: 16 }}>
-        <Button variant="ghost" onClick={() => setStepIdx((x) => Math.max(0, x - 1))} disabled={stepIdx === 0}>
-          ← Back
-        </Button>
+      {/* Footer nav — every step has an obvious next action */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, borderTop: `1px solid ${color.hairline}`, paddingTop: 18 }}>
+        <Button variant="subtle" icon="arrowLeft" onClick={() => setStepIdx((x) => Math.max(0, x - 1))} disabled={stepIdx === 0}>Back</Button>
         {stepIdx < last ? (
-          <Button variant="primary" accent={accent} onClick={() => setStepIdx((x) => Math.min(last, x + 1))} style={{ marginLeft: "auto" }}>
-            Next: {steps[stepIdx + 1].label} →
+          <Button variant="primary" accent={accent} iconRight="arrowRight" onClick={() => setStepIdx((x) => Math.min(last, x + 1))} style={{ marginLeft: "auto" }}>
+            {steps[stepIdx + 1].label}
           </Button>
         ) : (
-          <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 12, color: color.textFaint }}>
-            end of lesson
-          </span>
+          <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 12, color: color.textFaint }}>end of lesson</span>
         )}
       </div>
     </div>
@@ -168,7 +156,7 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
         return <ConceptCard concept={lesson.concept} />;
       case "trace":
         if (!algo) return <MissingAlgo name={lesson.trace.algorithm} />;
-        return <TraceVisualizer steps={algo.run(lesson.trace.input)} renderStep={algo.renderStep} goal={lesson.trace.goal} />;
+        return <TraceVisualizer steps={algo.run(lesson.trace.input)} renderStep={algo.renderStep} pseudocode={algo.pseudocode} goal={lesson.trace.goal} />;
       case "practice":
         if (!algo) return <MissingAlgo name={lesson.trace.algorithm} />;
         return <SandboxPractice engine={algo.sandbox} input={lesson.practice.input} goal={lesson.practice.goal} onComplete={onStepComplete} />;
@@ -178,11 +166,7 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
   } else {
     switch (stepKey) {
       case "overview":
-        return (
-          <Panel>
-            <p style={{ margin: 0, color: color.text, lineHeight: 1.7 }}>{lesson.overview}</p>
-          </Panel>
-        );
+        return <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7 }}>{lesson.overview}</p></Panel>;
       case "stages":
         return <StageBuilder stages={lesson.stages} onComplete={onStepComplete} />;
       case "recap":
@@ -193,28 +177,25 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
 }
 
 function MissingAlgo({ name }: { name: string }) {
-  return (
-    <Panel>
-      <p style={{ margin: 0, color: color.textDim }}>
-        The <code style={{ fontFamily: font.mono, color: color.amber }}>{name}</code> engine isn't wired up yet.
-      </p>
-    </Panel>
-  );
+  return <Panel><p style={{ margin: 0, color: color.textDim }}>The <InlineCode>{name}</InlineCode> engine isn't wired up yet.</p></Panel>;
 }
 
 // ---------------------------------------------------------------------------
-// Recap + confidence check-in (§7)
+// Recap + confidence check-in
 // ---------------------------------------------------------------------------
 
 function Recap({ lesson }: { lesson: Lesson }) {
   const accent = trackColor[lesson.track];
   return (
     <div style={{ display: "grid", gap: 18 }}>
-      <Panel style={{ display: "grid", gap: 12 }}>
+      <Panel style={{ display: "grid", gap: 13 }}>
         <Eyebrow tone={accent}>What to carry into the interview</Eyebrow>
-        <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 10 }}>
+        <ul style={{ margin: 0, paddingLeft: 4, display: "grid", gap: 11, listStyle: "none" }}>
           {lesson.recap.map((r, i) => (
-            <li key={i} style={{ color: color.text, lineHeight: 1.6 }}>{r}</li>
+            <li key={i} style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 10, color: color.text, lineHeight: 1.6 }}>
+              <span style={{ color: accent, marginTop: 3 }}><Icon name="check" size={14} strokeWidth={2.2} /></span>
+              <span>{r}</span>
+            </li>
           ))}
         </ul>
       </Panel>
@@ -243,10 +224,8 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
   return (
     <Panel style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "grid", gap: 4 }}>
-        <Eyebrow tone={color.textDim}>How solid does this feel?</Eyebrow>
-        <span style={{ fontSize: 13, color: color.textFaint }}>
-          Self-assessment, not a grade. "Shaky" lessons resurface first on your Progress page.
-        </span>
+        <Eyebrow>How solid does this feel?</Eyebrow>
+        <span style={{ fontSize: 13, color: color.textFaint }}>Self-assessment, not a grade. “Shaky” lessons resurface first on your Progress page.</span>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {options.map((o) => {
@@ -259,13 +238,13 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
               style={{
                 fontFamily: font.mono,
                 fontSize: 13,
-                fontWeight: 700,
-                padding: "10px 18px",
-                borderRadius: 10,
-                background: active ? `${o.tone}22` : "transparent",
-                border: `1.5px solid ${active ? o.tone : color.panelBorder}`,
+                fontWeight: 600,
+                padding: "10px 20px",
+                borderRadius: radius.md,
+                background: active ? `${o.tone}1e` : "transparent",
+                border: `1px solid ${active ? o.tone : color.panelBorder}`,
                 color: active ? color.text : color.textDim,
-                transition: "all 160ms ease",
+                transition: `all ${motion.fast}`,
               }}
             >
               {o.label}
@@ -275,42 +254,23 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
       </div>
 
       {chosen && (
-        <div style={{ display: "grid", gap: 14, borderTop: `1px solid ${color.panelBorder}`, paddingTop: 14 }}>
-          <p style={{ margin: 0, color: color.green, fontFamily: font.mono, fontSize: 13 }}>
-            ✓ Saved. This lesson is now on your map.
-          </p>
+        <div style={{ display: "grid", gap: 14, borderTop: `1px solid ${color.hairline}`, paddingTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: color.green, fontFamily: font.mono, fontSize: 13 }}>
+            <Icon name="check" size={15} strokeWidth={2.2} /> Saved. This lesson is now on your map.
+          </div>
 
-          {/* Soft, honest, dismissible sync prompt — only after finishing (§6). */}
           {!dismissedSync && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                background: "rgba(255,255,255,0.03)",
-                border: `1px solid ${color.panelBorder}`,
-                borderRadius: 10,
-                padding: "10px 14px",
-              }}
-            >
-              <span style={{ fontSize: 13, color: color.textDim, flex: 1 }}>
-                Progress is saved on this device. Cross-device sync is coming later — no account needed to keep learning.
-              </span>
-              <button onClick={() => setDismissedSync(true)} style={{ background: "none", border: "none", color: color.textFaint, fontFamily: font.mono, fontSize: 12 }}>
-                dismiss
-              </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.02)", border: `1px solid ${color.hairline}`, borderRadius: radius.md, padding: "11px 14px" }}>
+              <span style={{ fontSize: 13, color: color.textDim, flex: 1 }}>Progress is saved on this device. Cross-device sync is coming later — no account needed to keep learning.</span>
+              <button onClick={() => setDismissedSync(true)} style={{ background: "none", border: "none", color: color.textFaint, fontFamily: font.mono, fontSize: 12 }}>dismiss</button>
             </div>
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {nextRec ? (
-              <Button accent={trackColor[lesson.track]} onClick={() => navigate(`/lesson/${nextRec}`)}>
-                Next lesson →
-              </Button>
+              <Button accent={trackColor[lesson.track]} iconRight="arrowRight" onClick={() => navigate(`/lesson/${nextRec}`)}>Next lesson</Button>
             ) : (
-              <Button accent={trackColor[lesson.track]} onClick={() => navigate("/progress")}>
-                See your progress →
-              </Button>
+              <Button accent={trackColor[lesson.track]} iconRight="arrowRight" onClick={() => navigate("/progress")}>See your progress</Button>
             )}
             <Button variant="ghost" onClick={() => navigate("/")}>Back to path</Button>
           </div>
@@ -325,9 +285,9 @@ function BackLink() {
   return (
     <button
       onClick={() => navigate("/")}
-      style={{ background: "none", border: "none", color: color.textDim, fontFamily: font.mono, fontSize: 12.5, padding: 0, width: "fit-content" }}
+      style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: color.textDim, fontFamily: font.mono, fontSize: 12.5, padding: 0, width: "fit-content" }}
     >
-      ← Path
+      <Icon name="arrowLeft" size={14} /> Path
     </button>
   );
 }
