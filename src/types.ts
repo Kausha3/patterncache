@@ -97,6 +97,30 @@ export interface SDStage {
   metrics: { capacity: number; latencyMs: number };
 }
 
+/** One alternative interviewer answer and how it would change your approach. */
+export interface ClarifyBranch {
+  label: string; // e.g. "1k/day (tiny)"
+  approach: string; // how the design changes if the answer were this
+}
+
+export interface ClarifyQuestion {
+  id: string;
+  ask: string; // what the candidate asks
+  category: "scope" | "scale" | "constraints" | "premature";
+  answer?: string; // interviewer's answer (omit for premature)
+  why?: string; // why asking this matters
+  establishes?: string; // requirement it pins down (a chip in the Requirements panel)
+  branches?: ClarifyBranch[]; // "how the answer changes your approach" explorer
+  redirect?: string; // for premature/off-track asks — gentle coaching, no requirement
+}
+
+export interface InterviewSpec {
+  prompt: string; // the deliberately-vague ask
+  opening: string; // interviewer's opening line
+  questions: ClarifyQuestion[];
+  summary: string; // shown once the core questions are asked
+}
+
 export interface SDLesson {
   id: string;
   track: "system-design";
@@ -104,13 +128,16 @@ export interface SDLesson {
   blurb: string;
   estMinutes: number;
   overview: string;
-  stages: SDStage[];
+  /** Architecture walk-through stages. Optional — some lessons are interview-only. */
+  stages?: SDStage[];
   recap: string[];
   relatedLessons: string[];
   /** Plain-English glossary keys (into GLOSSARY) relevant to this lesson. */
   terms?: string[];
   /** Override the Problem/Fix/Tradeoff row labels (e.g. for the primer). */
   stageLabels?: { problem: string; fix: string; tradeoff: string };
+  /** Interactive clarifying-questions simulator. Adds a "Clarify" step. */
+  interview?: InterviewSpec;
 }
 
 export type Lesson = DSALesson | SDLesson;

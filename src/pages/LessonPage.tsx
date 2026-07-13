@@ -9,6 +9,7 @@ import { ConceptCard } from "@/components/ConceptCard";
 import { TraceVisualizer } from "@/components/TraceVisualizer";
 import { SandboxPractice } from "@/components/SandboxPractice";
 import { StageBuilder } from "@/components/StageBuilder";
+import { ClarifyInterview } from "@/components/ClarifyInterview";
 import { Glossary } from "@/components/Glossary";
 import { Button, Eyebrow, Panel, InlineCode } from "@/components/ui";
 import { Icon } from "@/components/Icon";
@@ -63,7 +64,8 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
       ]
     : [
         { key: "overview", label: "Overview" },
-        { key: "stages", label: "Build it" },
+        ...(lesson.interview ? [{ key: "clarify", label: "Clarify" }] : []),
+        ...(lesson.stages?.length ? [{ key: "stages", label: "Build it" }] : []),
         { key: "recap", label: "Recap" },
       ];
 
@@ -173,8 +175,10 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
             <Glossary terms={lesson.terms} />
           </div>
         );
+      case "clarify":
+        return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={onStepComplete} /> : null;
       case "stages":
-        return <StageBuilder stages={lesson.stages} onComplete={onStepComplete} labels={lesson.stageLabels} />;
+        return lesson.stages?.length ? <StageBuilder stages={lesson.stages} onComplete={onStepComplete} labels={lesson.stageLabels} /> : null;
       case "recap":
         return <Recap lesson={lesson} />;
     }
