@@ -243,6 +243,43 @@ export interface LLDLesson {
   relatedLessons: string[];
 }
 
+// ---------------------------------------------------------------------------
+// Cold Design Drill — the transfer test. No Watch phase, no chip-picking, no
+// guided lesson: a bare prompt, a blank workspace, and a reference design
+// revealed only after the learner commits their own attempt. Deliberately
+// covers prompts with no full LLDLesson — the skill this tests is "can you
+// apply the heuristic to something you've never drilled," not "did you
+// memorize this specific answer."
+// ---------------------------------------------------------------------------
+
+/** A reference edge case for the drill — plain reveal, not an interactive
+ * multiple-choice quiz (that would just reintroduce recognition-over-recall
+ * for this one piece too). */
+export interface DrillEdgeCase {
+  scenario: string;
+  handling: string;
+}
+
+/** The known-good answer a learner's free-form attempt gets compared against.
+ * Reuses EntityCandidate/MethodCandidate so the same <ClassCard/> rendering
+ * from <ClassModeler/> works here unchanged. */
+export interface ColdDrillReference {
+  entities: EntityCandidate[];
+  methods: MethodCandidate[];
+  relationships: string[];
+  edgeCases: DrillEdgeCase[];
+  tradeoffs?: DesignTradeoff[];
+  principles?: DesignPrinciple[];
+}
+
+export interface ColdDrillPrompt {
+  id: string;
+  title: string;
+  /** The bare prompt, exactly as an interviewer would open with it — no scoping hints. */
+  prompt: string;
+  reference: ColdDrillReference;
+}
+
 export type Lesson = DSALesson | SDLesson | LLDLesson;
 
 export function isDSA(lesson: Lesson): lesson is DSALesson {

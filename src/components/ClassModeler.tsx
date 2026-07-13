@@ -148,7 +148,7 @@ function shuffle<T>(arr: T[]): T[] {
 // and the reasoning behind both.
 // ---------------------------------------------------------------------------
 
-function ClassCard({
+export function ClassCard({
   entity,
   properties,
   methods,
