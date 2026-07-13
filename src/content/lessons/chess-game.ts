@@ -23,6 +23,10 @@ export const chessGame: LLDLesson = {
         why: "This is the decision that most affects Move and Piece — special-rule handling is where most of the real complexity lives, far more than basic movement patterns.",
         establishes: "Castling, en passant, promotion in scope",
         lp: ["dive-deep"],
+        branches: [
+          { label: "Basic movement only", approach: "Move would just be a fromSquare/toSquare pair — no isCastling, isEnPassant, or promotionType fields — and Piece.getLegalMoves() would never need to reason about anything beyond each piece's raw movement pattern. A much thinner Move class, but it doesn't match how chess is actually played." },
+          { label: "Full special rules (this)", approach: "Move needs extra fields (isCastling, isEnPassant, promotionType) to represent moves that aren't just 'piece goes from A to B', and legality checks need access to move history to know if castling is still eligible — this is exactly why Move ends up richer than a plain coordinate pair." },
+        ],
       },
       {
         id: "ui",
@@ -41,6 +45,10 @@ export const chessGame: LLDLesson = {
         why: "This confirms Move needs to be tracked over time, not just evaluated and discarded — directly required by at least one rule.",
         establishes: "Move history tracked",
         lp: ["dive-deep"],
+        branches: [
+          { label: "No history — just current position", approach: "Game wouldn't own a moveHistory list at all, and castling eligibility would have to be tracked some other way, like a hasMoved flag baked directly onto Piece. Cheaper, but loses undo and any general move log." },
+          { label: "Full move history (this)", approach: "Game owns a moveHistory: List<Move>, which is what lets castling eligibility and en passant (which only applies to the immediately preceding move) be derived from history instead of ad hoc flags scattered across Piece and Board." },
+        ],
       },
       {
         id: "storage-premature",
@@ -52,11 +60,65 @@ export const chessGame: LLDLesson = {
   },
   design: {
     entities: [
-      { id: "board", name: "Board", isEntity: true, why: "The 8x8 grid — owns the current position and knows what occupies each square." },
-      { id: "piece", name: "Piece", isEntity: true, why: "A single chess piece — has a type, a color, and knows its own legal-move pattern." },
-      { id: "move", name: "Move", isEntity: true, why: "A single ply — a from-square, a to-square, and enough info to represent special cases like castling or en passant." },
-      { id: "player", name: "Player", isEntity: true, why: "One of the two participants — has a color and takes turns making moves." },
-      { id: "game", name: "Game", isEntity: true, why: "The top-level controller — owns the Board and both Players, enforces turn order, and detects check, checkmate, and stalemate." },
+      {
+        id: "board",
+        name: "Board",
+        isEntity: true,
+        why: "The 8x8 grid — owns the current position and knows what occupies each square.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "grid", type: "Map<String, Piece>" },
+        ],
+      },
+      {
+        id: "piece",
+        name: "Piece",
+        isEntity: true,
+        why: "A single chess piece — has a type, a color, and knows its own legal-move pattern.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "type", type: "PieceType" },
+          { name: "color", type: "Color" },
+          { name: "hasMoved", type: "boolean" },
+        ],
+      },
+      {
+        id: "move",
+        name: "Move",
+        isEntity: true,
+        why: "A single ply — a from-square, a to-square, and enough info to represent special cases like castling or en passant.",
+        properties: [
+          { name: "fromSquare", type: "String" },
+          { name: "toSquare", type: "String" },
+          { name: "movedPiece", type: "Piece" },
+          { name: "isCastling", type: "boolean" },
+          { name: "isEnPassant", type: "boolean" },
+          { name: "promotionType", type: "PieceType" },
+        ],
+      },
+      {
+        id: "player",
+        name: "Player",
+        isEntity: true,
+        why: "One of the two participants — has a color and takes turns making moves.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "color", type: "Color" },
+        ],
+      },
+      {
+        id: "game",
+        name: "Game",
+        isEntity: true,
+        why: "The top-level controller — owns the Board and both Players, enforces turn order, and detects check, checkmate, and stalemate.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "board", type: "Board" },
+          { name: "players", type: "List<Player>" },
+          { name: "currentTurn", type: "Color" },
+          { name: "moveHistory", type: "List<Move>" },
+        ],
+      },
       { id: "square", name: "Square", isEntity: false, why: "A coordinate, not a class with behavior of its own — Board can answer 'what's on square X' without Square needing independent identity." },
       { id: "clock", name: "Clock", isEntity: false, why: "A real tournament feature, but nobody asked for timing — adding it invents scope beyond what was requested." },
       { id: "chessset", name: "ChessSet", isEntity: false, why: "The physical pieces and board object, not the software domain model — irrelevant to this system." },
@@ -64,16 +126,90 @@ export const chessGame: LLDLesson = {
       { id: "notation", name: "Notation", isEntity: false, why: "A serialization format for describing moves (like PGN), not a class in the core rules and state model itself." },
     ],
     methods: [
-      { id: "m1", signature: "getPieceAt(square): Piece", ownerId: "board" },
-      { id: "m2", signature: "movePiece(move): void", ownerId: "board" },
-      { id: "m3", signature: "isSquareUnderAttack(square, color): boolean", ownerId: "board" },
-      { id: "m4", signature: "getLegalMoves(board): List<Move>", ownerId: "piece" },
-      { id: "m5", signature: "isCastling(): boolean", ownerId: "move" },
-      { id: "m6", signature: "makeMove(move): void", ownerId: "player" },
-      { id: "m7", signature: "isCheck(color): boolean", ownerId: "game" },
-      { id: "m8", signature: "isCheckmate(color): boolean", ownerId: "game" },
-      { id: "m9", signature: "switchTurn(): void", ownerId: "game" },
-      { id: "m10", signature: "isValidMove(move): boolean", ownerId: "game" },
+      {
+        id: "m1",
+        signature: "getPieceAt(square): Piece",
+        ownerId: "board",
+        justification: "Board is the only class holding the grid mapping squares to pieces, so it's the one that can answer 'what's here' — exposing the raw grid instead would let other classes bypass Board's control over position.",
+      },
+      {
+        id: "m2",
+        signature: "movePiece(move): void",
+        ownerId: "board",
+        justification: "Applying a move's effect on the grid (removing the piece from its old square, placing it on the new one, handling captures) mutates Board's own internal state — only Board should be allowed to change what's on a square.",
+      },
+      {
+        id: "m3",
+        signature: "isSquareUnderAttack(square, color): boolean",
+        ownerId: "board",
+        justification: "Answering 'is this square attacked' requires scanning every piece on the board and asking whether any of them could move there — that board-wide scan only makes sense on the class that holds the whole grid, not on any single Piece.",
+        codeExercise: {
+          language: "java",
+          starter: "boolean isSquareUnderAttack(String square, Color attackerColor) {\n    // your code here\n}",
+          reference:
+            "boolean isSquareUnderAttack(String square, Color attackerColor) {\n    for (Piece piece : grid.values()) {\n        if (piece.getColor() != attackerColor) {\n            continue;\n        }\n        boolean canReach = piece.getLegalMoves(this).stream()\n            .anyMatch(move -> move.getToSquare().equals(square));\n        if (canReach) {\n            return true;\n        }\n    }\n    return false;\n}",
+          checklist: [
+            "Checks every piece of the attacking color, not just the first one found",
+            "Skips pieces that don't belong to the attacking color instead of throwing",
+            "Returns true as soon as any piece can reach the square, without needlessly scanning the rest",
+            "Works even when the target square is empty — attack detection can't require a piece to already be standing there (needed for castling's 'king's path must not pass through check' rule)",
+          ],
+        },
+      },
+      {
+        id: "m4",
+        signature: "getLegalMoves(board): List<Move>",
+        ownerId: "piece",
+        justification: "Each piece type has its own movement pattern — how a Rook moves is different from a Bishop — so that pattern-specific logic belongs on Piece itself, even though it needs to read Board to know what's currently occupied.",
+      },
+      {
+        id: "m5",
+        signature: "isCastling(): boolean",
+        ownerId: "move",
+        justification: "Whether a given Move represents castling is a property of that specific move — Move already holds fromSquare/toSquare/movedPiece, so it's the class with the data to answer this without asking anyone else.",
+      },
+      {
+        id: "m6",
+        signature: "makeMove(move): void",
+        ownerId: "player",
+        justification: "Player is the actor that submits a move on their turn — makeMove() is the entry point that hands the move to Game for validation, keeping 'whose turn is it acting' separate from 'is this move actually legal.'",
+      },
+      {
+        id: "m7",
+        signature: "isCheck(color): boolean",
+        ownerId: "game",
+        justification: "Check depends on the whole board — is any enemy piece attacking my king's square right now — which only Game can evaluate since it owns Board and tracks whose turn it is; a single Piece can't answer this about itself.",
+        codeExercise: {
+          language: "java",
+          starter: "boolean isCheck(Color color) {\n    // your code here\n}",
+          reference:
+            "boolean isCheck(Color color) {\n    // findKingSquare is a small Board helper that scans the grid for this color's King\n    String kingSquare = board.findKingSquare(color);\n    if (kingSquare == null) {\n        return false;\n    }\n    Color attackerColor = (color == Color.WHITE) ? Color.BLACK : Color.WHITE;\n    return board.isSquareUnderAttack(kingSquare, attackerColor);\n}",
+          checklist: [
+            "Finds the actual king's square for the given color, not an assumed fixed starting square",
+            "Checks attacks from the OPPONENT's color, not the same color as the king being checked",
+            "Reuses isSquareUnderAttack() rather than re-scanning pieces itself — check is a special case of the same board-wide attack question",
+            "Handles a missing/not-found king square defensively instead of crashing on a null lookup",
+          ],
+        },
+      },
+      {
+        id: "m8",
+        signature: "isCheckmate(color): boolean",
+        ownerId: "game",
+        justification: "Checkmate combines isCheck() with 'no legal move escapes it' — both board-wide questions Game already owns, so building on Game's own isCheck() and isValidMove() keeps this logic in one place instead of scattered across Piece.",
+      },
+      {
+        id: "m9",
+        signature: "switchTurn(): void",
+        ownerId: "game",
+        justification: "Turn order is Game's own state (currentTurn) — Game is the only class that should flip whose turn it is, otherwise two different callers could disagree about who moves next.",
+      },
+      {
+        id: "m10",
+        signature: "isValidMove(move): boolean",
+        ownerId: "game",
+        justification: "Legality isn't just 'can this piece normally move this way' (that's Piece.getLegalMoves()) — it also requires simulating the move and checking it doesn't leave the mover's own king in check, which needs board-wide state only Game has access to.",
+      },
     ],
     edgeCases: [
       {
@@ -118,6 +254,38 @@ export const chessGame: LLDLesson = {
       "Board tracks which Piece occupies each square",
       "Piece generates candidate Moves; Game validates them against check and checkmate rules",
       "Player alternates turns, each producing one Move per turn",
+    ],
+    tradeoffs: [
+      {
+        decision: "Piece is a single class with a type field (PieceType enum) instead of a subclass per piece type (Pawn, Rook, Bishop, and so on).",
+        reasoning: "A subclass hierarchy reads nicely for six piece types, but getLegalMoves() is really just movement logic keyed by type — one Piece class with type-dispatched behavior avoids six near-identical classes and keeps Move/Board from needing to type-check against a Piece subclass hierarchy everywhere they touch a piece.",
+      },
+      {
+        decision: "Move records isCastling/isEnPassant/promotionType as explicit fields instead of Game re-deriving 'what kind of move was this' after the fact from a board-state diff.",
+        reasoning: "Costs a slightly heavier Move class, but recording intent at move-creation time means undo, move-history serialization, and rules like 'promotion happened on this move' never have to be re-inferred later — the move is self-describing the moment it's made.",
+      },
+      {
+        decision: "Legality (isValidMove) lives on Game, not on Piece or Move, even though a piece's raw movement pattern lives on Piece.",
+        reasoning: "Splits 'can this piece type normally move this way' (Piece.getLegalMoves(), local knowledge) from 'is this move actually legal right now' (Game.isValidMove(), needs the whole board plus whose king would end up in check) — collapsing them into one method on Piece would force every Piece to know about check detection, which is really a Game-level, board-wide concern.",
+      },
+    ],
+    principles: [
+      {
+        name: "Single Responsibility Principle",
+        explanation: "Piece only knows its own type's movement pattern; Board only knows what occupies each square; Game only knows whose turn it is and whether a king is in check — none of them reach into another's job to answer a question they don't own.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "Board.movePiece() is the only way the grid changes — no other class reaches in and mutates the position map directly, so the board can never end up holding two pieces on one square or a piece nobody actually moved there.",
+      },
+      {
+        name: "Separation of Concerns",
+        explanation: "'What can this piece normally do' (Piece.getLegalMoves()) is kept separate from 'is this specific move legal right now' (Game.isValidMove()) — the first is local pattern-matching, the second is a board-wide legality question, and conflating them is exactly the self-check bug the edge cases warn about.",
+      },
+      {
+        name: "Law of Demeter",
+        explanation: "Game.isValidMove() asks board.isSquareUnderAttack(...) rather than reaching into Board's internal grid to re-implement the scan itself — each class exposes the question other classes need answered, instead of exposing its raw internals for everyone else to pick through.",
+      },
     ],
   },
   recap: [

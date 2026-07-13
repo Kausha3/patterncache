@@ -23,6 +23,10 @@ export const discountCouponSystem: LLDLesson = {
         why: "This is the strategy-pattern decision — the discount calculation needs to be pluggable, not one fixed formula on Coupon itself.",
         establishes: "Percentage-off and fixed-amount-off, pluggable",
         lp: ["dive-deep"],
+        branches: [
+          { label: "One fixed formula only", approach: "DiscountRule wouldn't exist as its own class — Coupon would just have a single discountPercent field and a hardcoded formula. Simpler, but every new discount type (BOGO, tiered pricing) means editing Coupon itself." },
+          { label: "Pluggable percentage + fixed (this)", approach: "DiscountRule becomes its own class behind a single apply(cart) method — this is exactly why the Strategy-pattern split exists in the model at all." },
+        ],
       },
       {
         id: "stacking",
@@ -41,6 +45,10 @@ export const discountCouponSystem: LLDLesson = {
         why: "This is what the eligibility check and per-customer redemption tracking actually need to support.",
         establishes: "Min spend + category + per-customer limits",
         lp: ["customer-obsession"],
+        branches: [
+          { label: "No eligibility rules at all", approach: "EligibilityPolicy wouldn't exist as a class — CouponEngine would just call rule.apply(cart) directly with no gating step. One fewer class, but there's no way to express 'minimum $50 purchase' or 'one per customer.'" },
+          { label: "Min spend + category + per-customer limit (this)", approach: "EligibilityPolicy becomes a real class CouponEngine consults before applying anything — and it's exactly why Customer needs its own redemption history, since 'per-customer limit' is unenforceable without it." },
+        ],
       },
       {
         id: "storage-premature",
@@ -52,28 +60,159 @@ export const discountCouponSystem: LLDLesson = {
   },
   design: {
     entities: [
-      { id: "coupon", name: "Coupon", isEntity: true, why: "A single discount instrument — has a code, a discount rule, and a validity window." },
-      { id: "rule", name: "DiscountRule", isEntity: true, why: "The actual discount logic — percentage-off or fixed-amount-off — kept separate from Coupon's metadata so new discount types don't require changing Coupon." },
-      { id: "cart", name: "Cart", isEntity: true, why: "The set of items being purchased — coupons are evaluated against its contents and subtotal." },
-      { id: "eligibility", name: "EligibilityPolicy", isEntity: true, why: "Encapsulates whether a cart or customer qualifies for a coupon — minimum spend, category restriction, per-customer limits." },
-      { id: "engine", name: "CouponEngine", isEntity: true, why: "Applies eligible coupons to a cart and computes the final discounted total — the orchestrator, kept separate from any single coupon's own rule." },
-      { id: "customer", name: "Customer", isEntity: true, why: "Coupons are often scoped per customer (e.g. one redemption each) — tracking who's used what requires modeling the customer as a first-class participant." },
+      {
+        id: "coupon",
+        name: "Coupon",
+        isEntity: true,
+        why: "A single discount instrument — has a code, a discount rule, and a validity window.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "code", type: "string" },
+          { name: "rule", type: "DiscountRule" },
+          { name: "validUntil", type: "DateTime" },
+          { name: "combinable", type: "boolean" },
+        ],
+      },
+      {
+        id: "rule",
+        name: "DiscountRule",
+        isEntity: true,
+        why: "The actual discount logic — percentage-off or fixed-amount-off — kept separate from Coupon's metadata so new discount types don't require changing Coupon.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "type", type: "DiscountType" },
+          { name: "value", type: "double" },
+        ],
+      },
+      {
+        id: "cart",
+        name: "Cart",
+        isEntity: true,
+        why: "The set of items being purchased — coupons are evaluated against its contents and subtotal.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "items", type: "List<CartItem>" },
+        ],
+      },
+      {
+        id: "eligibility",
+        name: "EligibilityPolicy",
+        isEntity: true,
+        why: "Encapsulates whether a cart or customer qualifies for a coupon — minimum spend, category restriction, per-customer limits.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "minSpend", type: "Money" },
+          { name: "allowedCategories", type: "List<String>" },
+          { name: "perCustomerLimit", type: "int" },
+        ],
+      },
+      {
+        id: "engine",
+        name: "CouponEngine",
+        isEntity: true,
+        why: "Applies eligible coupons to a cart and computes the final discounted total — the orchestrator, kept separate from any single coupon's own rule. Holds no state of its own; it works entirely by calling into Coupon, EligibilityPolicy, and Customer.",
+        properties: [],
+      },
+      {
+        id: "customer",
+        name: "Customer",
+        isEntity: true,
+        why: "Coupons are often scoped per customer (e.g. one redemption each) — tracking who's used what requires modeling the customer as a first-class participant.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "redeemedCouponIds", type: "List<String>" },
+        ],
+      },
       { id: "price", name: "Price", isEntity: false, why: "An attribute of a cart line item, not its own class." },
       { id: "campaign", name: "AdCampaign", isEntity: false, why: "Belongs to the marketing system that creates coupon codes, not the system that redeems and applies them." },
       { id: "receipt", name: "Receipt", isEntity: false, why: "A byproduct of a completed purchase, not a class with coupon logic of its own." },
       { id: "notification", name: "Notification", isEntity: false, why: "A delivery mechanism for telling a customer about a coupon, not part of the discount-calculation domain itself." },
     ],
     methods: [
-      { id: "m1", signature: "isExpired(): boolean", ownerId: "coupon" },
-      { id: "m2", signature: "getCode(): string", ownerId: "coupon" },
-      { id: "m3", signature: "apply(cart): Money", ownerId: "rule" },
-      { id: "m4", signature: "getSubtotal(): Money", ownerId: "cart" },
-      { id: "m5", signature: "addItem(item): void", ownerId: "cart" },
-      { id: "m6", signature: "isEligible(cart, customer): boolean", ownerId: "eligibility" },
-      { id: "m7", signature: "applyCoupon(coupon, cart, customer): Money", ownerId: "engine" },
-      { id: "m8", signature: "applyBestCombination(coupons, cart): Money", ownerId: "engine" },
-      { id: "m9", signature: "hasRedeemed(coupon): boolean", ownerId: "customer" },
-      { id: "m10", signature: "recordRedemption(coupon): void", ownerId: "customer" },
+      {
+        id: "m1",
+        signature: "isExpired(): boolean",
+        ownerId: "coupon",
+        justification: "Expiry is derived purely from Coupon's own validUntil field — no other class needs to reach in to compute it, and checking it anywhere else would mean duplicating the date logic wherever it's needed.",
+      },
+      {
+        id: "m2",
+        signature: "getCode(): string",
+        ownerId: "coupon",
+        justification: "code is data Coupon itself holds — a plain accessor belongs on the object whose field it's reading, not wherever the code string happens to be needed next.",
+      },
+      {
+        id: "m3",
+        signature: "apply(cart): Money",
+        ownerId: "rule",
+        justification: "The actual percentage-off or fixed-amount-off math is DiscountRule's whole reason to exist — Coupon shouldn't know HOW to compute a discount, only that it HAS one, which is exactly what keeps a new discount type from ever touching Coupon.",
+        codeExercise: {
+          language: "java",
+          starter: "Money apply(Cart cart) {\n    // your code here\n}",
+          reference:
+            "Money apply(Cart cart) {\n    Money subtotal = cart.getSubtotal();\n    if (type == DiscountType.PERCENTAGE) {\n        return subtotal.multiply(value / 100.0);\n    }\n    if (type == DiscountType.FIXED_AMOUNT) {\n        return Money.min(subtotal, Money.of(value));\n    }\n    throw new IllegalStateException(\"Unknown discount type: \" + type);\n}",
+          checklist: [
+            "Handles both PERCENTAGE and FIXED_AMOUNT without assuming which one this rule is",
+            "A fixed-amount discount never exceeds the cart's own subtotal (no negative totals)",
+            "Doesn't silently return zero or null for an unrecognized discount type — fails loudly instead",
+            "Bonus (L5+, not required here): notes that currency rounding needs a defined rule, not raw floating-point math",
+          ],
+        },
+      },
+      {
+        id: "m4",
+        signature: "getSubtotal(): Money",
+        ownerId: "cart",
+        justification: "Subtotal is derived entirely from Cart's own item list — computing it elsewhere means exposing Cart's internal items to whichever class needs the number.",
+      },
+      {
+        id: "m5",
+        signature: "addItem(item): void",
+        ownerId: "cart",
+        justification: "Cart owns its own items list; nothing else should be able to reach in and mutate it directly, same invariant-protection shape as any class that owns a mutable collection.",
+      },
+      {
+        id: "m6",
+        signature: "isEligible(cart, customer): boolean",
+        ownerId: "eligibility",
+        justification: "Eligibility rules (min spend, category, per-customer limit) are EligibilityPolicy's entire responsibility — bundling this check into Coupon or CouponEngine would mean the rule logic lives in two different places depending on who's asking.",
+        codeExercise: {
+          language: "java",
+          starter: "boolean isEligible(Cart cart, Customer customer) {\n    // your code here\n}",
+          reference:
+            "boolean isEligible(Cart cart, Customer customer) {\n    if (cart.getSubtotal().isLessThan(minSpend)) {\n        return false;\n    }\n    if (!allowedCategories.isEmpty() && !cart.containsAnyCategory(allowedCategories)) {\n        return false;\n    }\n    return customer.getRedeemedCouponIds().size() < perCustomerLimit;\n}",
+          checklist: [
+            "Checks the cart's subtotal against minSpend BEFORE any discount is applied, not after",
+            "Skips the category check entirely when allowedCategories is empty, instead of rejecting everything",
+            "Compares the customer's redemption count against perCustomerLimit, not just checking if it's zero",
+            "Returns false rather than throwing when a rule isn't met — ineligibility isn't an error condition",
+          ],
+        },
+      },
+      {
+        id: "m7",
+        signature: "applyCoupon(coupon, cart, customer): Money",
+        ownerId: "engine",
+        justification: "Orchestrating 'check eligibility, then apply the rule, then record the redemption' across three different classes is exactly what CouponEngine exists to do — no single one of those three classes should be reaching into the other two itself.",
+      },
+      {
+        id: "m8",
+        signature: "applyBestCombination(coupons, cart): Money",
+        ownerId: "engine",
+        justification: "Choosing which combinable coupons to stack is a cross-cutting decision that spans multiple Coupon and DiscountRule instances at once — no single Coupon has enough context to decide this for itself.",
+      },
+      {
+        id: "m9",
+        signature: "hasRedeemed(coupon): boolean",
+        ownerId: "customer",
+        justification: "Redemption history is Customer's own state — Coupon shouldn't need to know who's redeemed it, since that would mean every Coupon tracking a growing list of every customer that's ever used it.",
+      },
+      {
+        id: "m10",
+        signature: "recordRedemption(coupon): void",
+        ownerId: "customer",
+        justification: "Same reasoning as hasRedeemed() — the class that owns the redemption history is the only one that should be allowed to add to it, so the 'no double-counting' invariant stays enforced in one place.",
+      },
     ],
     edgeCases: [
       {
@@ -118,6 +257,38 @@ export const discountCouponSystem: LLDLesson = {
       "EligibilityPolicy is checked before a Coupon can be applied",
       "Customer's redemption history constrains which Coupons they can still use",
       "DiscountRule is the pluggable piece — percentage-off and fixed-amount-off are different implementations behind the same interface",
+    ],
+    tradeoffs: [
+      {
+        decision: "DiscountRule is a separate class from Coupon instead of Coupon holding a discountType enum and a discountValue field directly.",
+        reasoning: "Costs one more class, but means a new discount type (e.g. buy-one-get-one) is a new DiscountRule implementation, not a new branch inside Coupon's own logic — exactly the Strategy-pattern trade-off the 'types' clarify question already flagged.",
+      },
+      {
+        decision: "EligibilityPolicy is its own class instead of eligibility checks living directly inside CouponEngine.applyCoupon().",
+        reasoning: "Costs a class most candidates skip, but keeps 'is this allowed' cleanly separate from 'do the application' — CouponEngine can add new orchestration steps without ever touching the rules that decide whether a coupon qualifies.",
+      },
+      {
+        decision: "Customer tracks its own redemption history instead of CouponEngine keeping one global redemption log.",
+        reasoning: "A global log would need to be searched by customer every time; putting redeemedCouponIds on Customer means the one check that actually matters — has THIS customer used THIS coupon — is a lookup on the object that already represents them.",
+      },
+    ],
+    principles: [
+      {
+        name: "Strategy Pattern",
+        explanation: "DiscountRule is the pluggable piece behind a single apply(cart) signature — percentage-off and fixed-amount-off are two implementations CouponEngine never has to distinguish between, which is exactly what lets a new discount type ship without touching Coupon or CouponEngine.",
+      },
+      {
+        name: "Single Responsibility Principle",
+        explanation: "EligibilityPolicy only decides whether a coupon can be used; DiscountRule only decides how much it's worth — CouponEngine.applyCoupon() calls both instead of encoding either decision itself.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "Customer.recordRedemption() is the only way redeemedCouponIds grows — nothing else appends to that list directly, so the 'one per customer' invariant can't be bypassed from outside Customer.",
+      },
+      {
+        name: "Separation of Concerns",
+        explanation: "Cart (what's being bought) and Coupon (what discount applies) stay separate even though CouponEngine constantly relates them — a cart doesn't need to know discount math, and a coupon doesn't need to know what's in someone's cart until it's evaluated.",
+      },
     ],
   },
   recap: [

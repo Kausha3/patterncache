@@ -23,6 +23,10 @@ export const amazonLocker: LLDLesson = {
         why: "Size compatibility is the core matching rule — and unlike a parking spot, a package fits in ANY locker at least its size, not just an exact one.",
         establishes: "Multiple locker sizes, size ≥ package",
         lp: ["customer-obsession"],
+        branches: [
+          { label: "One size fits all", approach: "Neither Locker nor Package needs a Size field at all — putPackage() just finds any free Locker. Fewer properties, but it doesn't match how real locker banks are actually laid out." },
+          { label: "Multiple sizes, ≥ match (this)", approach: "Both Locker and Package need a Size property, and putPackage() must filter candidates by size before assigning — this is exactly why Size shows up as a field on two different classes, not one." },
+        ],
       },
       {
         id: "network",
@@ -32,6 +36,10 @@ export const amazonLocker: LLDLesson = {
         why: "This decides whether LockerLocation is the top of your hierarchy or just one node in a larger network — scope it before modeling.",
         establishes: "Single locker location",
         lp: ["dive-deep"],
+        branches: [
+          { label: "Single location (this)", approach: "LockerLocation sits at the top of the hierarchy — it owns Lockers directly, and putPackage()/getPackage() are its own methods." },
+          { label: "Network of locations", approach: "A new LockerNetwork class would sit above LockerLocation, routing a delivery to the nearest site with capacity — LockerLocation itself barely changes, but a whole new routing responsibility appears one level up." },
+        ],
       },
       {
         id: "pickup",
@@ -52,11 +60,61 @@ export const amazonLocker: LLDLesson = {
   },
   design: {
     entities: [
-      { id: "location", name: "LockerLocation", isEntity: true, why: "The physical site — owns the bank of lockers and exposes the system's core putPackage / getPackage operations." },
-      { id: "locker", name: "Locker", isEntity: true, why: "A single compartment — has a size, an occupied state, and can assign, open, or release itself." },
-      { id: "package", name: "Package", isEntity: true, why: "The item being delivered — has a size that must fit the locker it's assigned to." },
-      { id: "code", name: "PickupCode", isEntity: true, why: "A one-time code tied to a package's locker — generated on delivery, validated on pickup." },
-      { id: "customer", name: "Customer", isEntity: true, why: "The recipient — identified by the package they're expecting; a real participant even with little behavior of its own." },
+      {
+        id: "location",
+        name: "LockerLocation",
+        isEntity: true,
+        why: "The physical site — owns the bank of lockers and exposes the system's core putPackage / getPackage operations.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "lockers", type: "List<Locker>" },
+        ],
+      },
+      {
+        id: "locker",
+        name: "Locker",
+        isEntity: true,
+        why: "A single compartment — has a size, an occupied state, and can assign, open, or release itself.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "size", type: "Size" },
+          { name: "isOccupied", type: "boolean" },
+          { name: "contents", type: "Package" },
+        ],
+      },
+      {
+        id: "package",
+        name: "Package",
+        isEntity: true,
+        why: "The item being delivered — has a size that must fit the locker it's assigned to.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "size", type: "Size" },
+          { name: "trackingId", type: "string" },
+        ],
+      },
+      {
+        id: "code",
+        name: "PickupCode",
+        isEntity: true,
+        why: "A one-time code tied to a package's locker — generated on delivery, validated on pickup.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "code", type: "string" },
+          { name: "locker", type: "Locker" },
+          { name: "expiresAt", type: "DateTime" },
+        ],
+      },
+      {
+        id: "customer",
+        name: "Customer",
+        isEntity: true,
+        why: "The recipient — identified by the package they're expecting; a real participant even with little behavior of its own.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+        ],
+      },
       { id: "color", name: "Color", isEntity: false, why: "An attribute of a locker's housing, not its own class." },
       { id: "agent", name: "DeliveryAgent", isEntity: false, why: "The courier placing the package — an external actor who calls into the system, not a class inside its own domain model." },
       { id: "truck", name: "DeliveryTruck", isEntity: false, why: "Belongs to the delivery-logistics system, not the locker system's own domain." },
@@ -64,15 +122,84 @@ export const amazonLocker: LLDLesson = {
       { id: "receipt", name: "Receipt", isEntity: false, why: "A byproduct of a successful putPackage() call — a message, not a class with its own responsibilities." },
     ],
     methods: [
-      { id: "m1", signature: "putPackage(package): PickupCode", ownerId: "location" },
-      { id: "m2", signature: "getPackage(code): Package", ownerId: "location" },
-      { id: "m3", signature: "getOccupancy(): int", ownerId: "location" },
-      { id: "m4", signature: "assignPackage(package): void", ownerId: "locker" },
-      { id: "m5", signature: "open(): void", ownerId: "locker" },
-      { id: "m6", signature: "release(): void", ownerId: "locker" },
-      { id: "m7", signature: "getSize(): Size", ownerId: "package" },
-      { id: "m8", signature: "generate(): string", ownerId: "code" },
-      { id: "m9", signature: "isValid(): boolean", ownerId: "code" },
+      {
+        id: "m1",
+        signature: "putPackage(package): PickupCode",
+        ownerId: "location",
+        justification: "LockerLocation is the only class that can see every Locker it owns, so it's the one that searches for an available match and hands back a PickupCode — same shape as findAvailableSpot() searching across Levels in the Parking Lot lesson.",
+        codeExercise: {
+          language: "java",
+          starter: "PickupCode putPackage(Package pkg) {\n    // your code here\n}",
+          reference:
+            "PickupCode putPackage(Package pkg) {\n    for (Locker locker : lockers) {\n        if (!locker.isOccupied() && locker.getSize().canFit(pkg.getSize())) {\n            locker.assignPackage(pkg);\n            return PickupCode.generateFor(locker);\n        }\n    }\n    throw new IllegalStateException(\"No locker available for this package size\");\n}",
+          checklist: [
+            "Searches every locker, not just the first occupied or wrong-size one",
+            "Skips lockers where isOccupied is already true",
+            "Accepts any locker size ≥ package size, not just an exact match — the mirror image of Parking Lot's exact-or-bigger vehicle rule",
+            "Fails loudly (exception, or a null/Optional signal) when nothing fits, instead of silently doing nothing",
+          ],
+        },
+      },
+      {
+        id: "m2",
+        signature: "getPackage(code): Package",
+        ownerId: "location",
+        justification: "Retrieving a package starts from a PickupCode, and LockerLocation is what maps a code back to the physical Locker it lives in — Locker itself shouldn't need to know how codes are generated or validated.",
+        codeExercise: {
+          language: "java",
+          starter: "Package getPackage(PickupCode code) {\n    // your code here\n}",
+          reference:
+            "Package getPackage(PickupCode code) {\n    if (!code.isValid()) {\n        throw new IllegalArgumentException(\"Code is invalid or expired\");\n    }\n    Locker locker = code.getLocker();\n    Package pkg = locker.getContents();\n    locker.release();\n    return pkg;\n}",
+          checklist: [
+            "Validates the code before doing anything else — rejects an expired or already-used code",
+            "Retrieves the package via the code's own associated locker, not by scanning every locker in the location",
+            "Releases the locker as part of pickup, so it becomes available again for a new delivery",
+            "Bonus (L5+, not required here): what happens if getPackage() is called twice with the same code — idempotency after the first successful pickup",
+          ],
+        },
+      },
+      {
+        id: "m3",
+        signature: "getOccupancy(): int",
+        ownerId: "location",
+        justification: "Occupancy is a property of the whole location, derived by asking every Locker's own state — no single Locker knows the aggregate count across the bank.",
+      },
+      {
+        id: "m4",
+        signature: "assignPackage(package): void",
+        ownerId: "locker",
+        justification: "isOccupied and contents live on Locker, so Locker is the only class that can safely flip them — same invariant-protection reasoning as ParkingSpot.assignVehicle() in the Parking Lot lesson.",
+      },
+      {
+        id: "m5",
+        signature: "open(): void",
+        ownerId: "locker",
+        justification: "Opening the physical door is Locker's own hardware-facing behavior — it's the object that represents the physical compartment, so it's the one that acts on it.",
+      },
+      {
+        id: "m6",
+        signature: "release(): void",
+        ownerId: "locker",
+        justification: "Clearing isOccupied and contents is the reverse of assignPackage() — the same class that owns the invariant is the only one allowed to clear it.",
+      },
+      {
+        id: "m7",
+        signature: "getSize(): Size",
+        ownerId: "package",
+        justification: "Size is data Package itself holds — a plain accessor, not a decision, so it belongs on the object whose field it's reading.",
+      },
+      {
+        id: "m8",
+        signature: "generate(): string",
+        ownerId: "code",
+        justification: "Generating the code string is PickupCode's own construction logic — it's the class that knows what a valid code actually looks like, not whichever caller happens to need one.",
+      },
+      {
+        id: "m9",
+        signature: "isValid(): boolean",
+        ownerId: "code",
+        justification: "Whether a code is still usable depends entirely on PickupCode's own expiresAt field — no other class should reach in and check that field directly.",
+      },
     ],
     edgeCases: [
       {
@@ -117,6 +244,38 @@ export const amazonLocker: LLDLesson = {
       "Locker holds at most one Package",
       "PickupCode is generated for one Package and tied to one Locker",
       "Customer is identified by the Package they're expecting, not stored as locker state",
+    ],
+    tradeoffs: [
+      {
+        decision: "LockerLocation owns the public putPackage()/getPackage() interface instead of Locker exposing them directly.",
+        reasoning: "Costs one more layer, but a courier or customer only ever wants 'a locker for this package' or 'my package back' — not to pick a specific Locker themselves. LockerLocation is the natural front door; Locker stays a pure resource.",
+      },
+      {
+        decision: "PickupCode is its own class instead of a plain string field on Package.",
+        reasoning: "A code has its own lifecycle — generated, validated, expired — independent of the package's own state. Modeling it separately means expiry logic lives in one place instead of scattered wherever a raw string gets checked.",
+      },
+      {
+        decision: "Locker size only needs to be ≥ package size, not an exact match — the opposite of Parking Lot's vehicle-to-spot rule.",
+        reasoning: "A package genuinely fits in any bigger locker with no downside, unlike a vehicle in an oversized spot; enforcing exact match here would reject valid deliveries for no real reason. Reading the domain instead of assuming the pattern is the whole point of this lesson.",
+      },
+    ],
+    principles: [
+      {
+        name: "Single Responsibility Principle",
+        explanation: "Locker only manages its own occupied/contents state; PickupCode only manages generation and validity — neither reaches into the other's job.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "Locker.assignPackage() and release() are the only ways to change isOccupied and contents — nothing else flips those fields directly.",
+      },
+      {
+        name: "Separation of Concerns",
+        explanation: "Package (what's being delivered) and PickupCode (how it gets retrieved) are separate even though tightly linked — a code can expire and be regenerated without touching the package record itself.",
+      },
+      {
+        name: "Value objects don't need identity",
+        explanation: "Color and Address are attributes some other class holds, not classes with their own behavior — giving every value full class treatment would model data as if it were an actor.",
+      },
     ],
   },
   recap: [

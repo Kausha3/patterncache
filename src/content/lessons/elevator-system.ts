@@ -23,6 +23,10 @@ export const elevatorSystem: LLDLesson = {
         why: "Single vs multiple elevators is the core fork — one elevator needs no dispatch logic at all; multiple need a Dispatcher deciding who serves what.",
         establishes: "Multiple elevators, needs dispatch",
         lp: ["dive-deep"],
+        branches: [
+          { label: "Single elevator only", approach: "Dispatcher wouldn't exist as a class at all — there's nothing to choose between, so a request goes straight into the one Elevator's own stops queue via addStop(). One fewer class, but it doesn't scale past a single car." },
+          { label: "Bank of multiple elevators (this)", approach: "Dispatcher becomes a real class — it's the only object that can see every Elevator's state at once, so assignElevator() and enqueueRequest() live there instead of on any single Elevator." },
+        ],
       },
       {
         id: "optimize",
@@ -41,6 +45,10 @@ export const elevatorSystem: LLDLesson = {
         why: "This decides whether 'nearest-floor safe stop' is even a requirement, or something you'd only mention as a bonus.",
         establishes: "Basic emergency handling in scope",
         lp: ["customer-obsession"],
+        branches: [
+          { label: "Normal operation only", approach: "Elevator wouldn't need an out-of-service state at all — no emergency-triggered stop, no separate handling path for a fire alarm mid-trip." },
+          { label: "Basic emergency handling (this)", approach: "Elevator needs to resolve to the nearest floor and flip to an out-of-service state when an emergency fires — this is exactly why isAvailable() has to mean more than just 'stops is empty', and why the emergency edge case exists in the model at all." },
+        ],
       },
       {
         id: "storage-premature",
@@ -52,11 +60,61 @@ export const elevatorSystem: LLDLesson = {
   },
   design: {
     entities: [
-      { id: "building", name: "Building", isEntity: true, why: "Owns the floors and the bank of elevators — the physical structure the system operates within." },
-      { id: "dispatcher", name: "Dispatcher", isEntity: true, why: "Decides which elevator should serve each incoming request — the scheduling brain, kept separate from the elevators themselves." },
-      { id: "elevator", name: "Elevator", isEntity: true, why: "A single car — tracks its current floor, direction, and the stops it still needs to make." },
-      { id: "request", name: "Request", isEntity: true, why: "One call for service — a hall call (floor + direction) from outside, or a car call (destination floor) from inside." },
-      { id: "floor", name: "Floor", isEntity: true, why: "A level the building serves — the origin of a hall call's up/down button." },
+      {
+        id: "building",
+        name: "Building",
+        isEntity: true,
+        why: "Owns the floors and the bank of elevators — the physical structure the system operates within.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "floors", type: "List<Floor>" },
+          { name: "elevators", type: "List<Elevator>" },
+        ],
+      },
+      {
+        id: "dispatcher",
+        name: "Dispatcher",
+        isEntity: true,
+        why: "Decides which elevator should serve each incoming request — the scheduling brain, kept separate from the elevators themselves.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "elevators", type: "List<Elevator>" },
+          { name: "pendingRequests", type: "List<Request>" },
+        ],
+      },
+      {
+        id: "elevator",
+        name: "Elevator",
+        isEntity: true,
+        why: "A single car — tracks its current floor, direction, and the stops it still needs to make.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "currentFloor", type: "int" },
+          { name: "direction", type: "Direction" },
+          { name: "stops", type: "List<Integer>" },
+        ],
+      },
+      {
+        id: "request",
+        name: "Request",
+        isEntity: true,
+        why: "One call for service — a hall call (floor + direction) from outside, or a car call (destination floor) from inside.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "floor", type: "int" },
+          { name: "direction", type: "Direction" },
+        ],
+      },
+      {
+        id: "floor",
+        name: "Floor",
+        isEntity: true,
+        why: "A level the building serves — the origin of a hall call's up/down button.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "floorNumber", type: "int" },
+        ],
+      },
       { id: "door", name: "Door", isEntity: false, why: "A component of Elevator with no independent identity — open/close become Elevator's own methods, not a separate class." },
       { id: "button", name: "Button", isEntity: false, why: "A physical UI element that triggers a Request — not a class with its own behavior in the domain model." },
       { id: "passenger", name: "Passenger", isEntity: false, why: "Nobody asked the system to track individual riders — inventing per-person state adds scope nobody requested." },
@@ -64,15 +122,84 @@ export const elevatorSystem: LLDLesson = {
       { id: "maintlog", name: "MaintenanceLog", isEntity: false, why: "A logging concern, not a core class this prompt is about — modeling it here is premature scope creep." },
     ],
     methods: [
-      { id: "m1", signature: "getElevators(): List<Elevator>", ownerId: "building" },
-      { id: "m2", signature: "assignElevator(request): Elevator", ownerId: "dispatcher" },
-      { id: "m3", signature: "enqueueRequest(request): void", ownerId: "dispatcher" },
-      { id: "m4", signature: "moveToNextStop(): void", ownerId: "elevator" },
-      { id: "m5", signature: "addStop(floor): void", ownerId: "elevator" },
-      { id: "m6", signature: "getCurrentFloor(): int", ownerId: "elevator" },
-      { id: "m7", signature: "isAvailable(): boolean", ownerId: "elevator" },
-      { id: "m8", signature: "getDirection(): Direction", ownerId: "request" },
-      { id: "m9", signature: "pressButton(direction): Request", ownerId: "floor" },
+      {
+        id: "m1",
+        signature: "getElevators(): List<Elevator>",
+        ownerId: "building",
+        justification: "Building holds the elevators list as its own field — exposing it read-only is a plain accessor tied to data only Building holds.",
+      },
+      {
+        id: "m2",
+        signature: "assignElevator(request): Elevator",
+        ownerId: "dispatcher",
+        justification: "Dispatcher is the only object that can see every Elevator's state at once, so picking the best one for a request is squarely its job — no single Elevator should decide for itself whether it's the right pick.",
+        codeExercise: {
+          language: "java",
+          starter: "Elevator assignElevator(Request request) {\n    // your code here\n}",
+          reference:
+            "Elevator assignElevator(Request request) {\n    Elevator best = null;\n    int bestDistance = Integer.MAX_VALUE;\n    for (Elevator elevator : elevators) {\n        if (!elevator.isAvailable()) {\n            continue;\n        }\n        int distance = Math.abs(elevator.getCurrentFloor() - request.getFloor());\n        if (distance < bestDistance) {\n            best = elevator;\n            bestDistance = distance;\n        }\n    }\n    return best;\n}",
+          checklist: [
+            "Skips elevators that aren't available — never assigns a request onto a car that's already busy with other stops",
+            "Picks the nearest available elevator by floor distance, not just the first one found",
+            "Returns null (or otherwise signals no match) instead of crashing when every elevator is unavailable — enqueueRequest() is what retries later, per the all-busy edge case",
+            "Bonus (L5+, not required here): factoring in each elevator's current direction, not just distance, for a smarter match",
+          ],
+        },
+      },
+      {
+        id: "m3",
+        signature: "enqueueRequest(request): void",
+        ownerId: "dispatcher",
+        justification: "pendingRequests lives on Dispatcher's own field — only Dispatcher should be the one appending to its own queue, same encapsulation reasoning as a ParkingLot owning its own list of levels.",
+      },
+      {
+        id: "m4",
+        signature: "moveToNextStop(): void",
+        ownerId: "elevator",
+        justification: "stops, direction, and currentFloor are Elevator's own fields — advancing to the next stop is a state transition only the class holding that state should perform.",
+        codeExercise: {
+          language: "java",
+          starter: "void moveToNextStop() {\n    // your code here\n}",
+          reference:
+            "void moveToNextStop() {\n    List<Integer> ahead = new ArrayList<>();\n    for (int floor : stops) {\n        boolean isAhead = direction == Direction.UP ? floor > currentFloor : floor < currentFloor;\n        if (isAhead) ahead.add(floor);\n    }\n    if (ahead.isEmpty() && !stops.isEmpty()) {\n        direction = direction == Direction.UP ? Direction.DOWN : Direction.UP;\n        moveToNextStop();\n        return;\n    }\n    if (!ahead.isEmpty()) {\n        int next = direction == Direction.UP ? Collections.min(ahead) : Collections.max(ahead);\n        currentFloor = next;\n        stops.remove(Integer.valueOf(next));\n    }\n}",
+          checklist: [
+            "Only considers stops that are ahead in the current direction of travel, not the whole queue indiscriminately",
+            "Reverses direction only once there are no more stops ahead in the current direction — finishes the sweep before turning around",
+            "Removes a stop from the queue once it's been served, so the elevator doesn't stop at the same floor twice",
+            "Handles an empty stops list without crashing — nothing to move toward",
+          ],
+        },
+      },
+      {
+        id: "m5",
+        signature: "addStop(floor): void",
+        ownerId: "elevator",
+        justification: "Adding to stops mutates Elevator's own queue — Dispatcher shouldn't reach in and mutate another object's internal list directly.",
+      },
+      {
+        id: "m6",
+        signature: "getCurrentFloor(): int",
+        ownerId: "elevator",
+        justification: "currentFloor is Elevator's own field — a plain accessor belongs on the object that holds the data, not wherever happens to need it.",
+      },
+      {
+        id: "m7",
+        signature: "isAvailable(): boolean",
+        ownerId: "elevator",
+        justification: "Availability is derived purely from Elevator's own stops list — Dispatcher would have to reach into Elevator's internals to compute this itself, which is exactly what encapsulation is meant to prevent.",
+      },
+      {
+        id: "m8",
+        signature: "getDirection(): Direction",
+        ownerId: "request",
+        justification: "direction is data Request itself holds — it's part of what makes 'floor 5 up' and 'floor 5 down' two different requests, so the accessor belongs on the class whose field it's reading.",
+      },
+      {
+        id: "m9",
+        signature: "pressButton(direction): Request",
+        ownerId: "floor",
+        justification: "Constructing a Request is triggered by a specific Floor's own hall button — Floor is the class that knows its own floor number, so it's the one that turns a button press into a well-formed Request rather than some other class needing to know Floor's internals.",
+      },
     ],
     edgeCases: [
       {
@@ -117,6 +244,38 @@ export const elevatorSystem: LLDLesson = {
       "Dispatcher assigns each Request to exactly one Elevator",
       "Elevator maintains a queue of Requests as its stops",
       "Floor issues a Request when a hall button is pressed",
+    ],
+    tradeoffs: [
+      {
+        decision: "Dispatcher is a separate class instead of each Elevator independently deciding whether to accept a request.",
+        reasoning: "Costs one more class, but a single Dispatcher can see every Elevator's state at once and pick the genuinely best one — if each Elevator decided independently, two could accept the same request, or none would, with no arbiter to break the tie.",
+      },
+      {
+        decision: "Request is its own class instead of Dispatcher tracking a raw (floor, direction) pair.",
+        reasoning: "Costs a class for what looks like two fields, but a hall call has its own identity and lifecycle — pending, assigned, served — that a raw pair can't represent, and 'floor 5 up' vs 'floor 5 down' needing to stay distinguishable is exactly why direction lives on Request.",
+      },
+      {
+        decision: "Elevator holds its own queue of stops instead of Dispatcher tracking each elevator's itinerary centrally.",
+        reasoning: "Centralizing every elevator's stops in Dispatcher would mean it duplicates state that's really about one elevator's own movement — keeping stops on Elevator means moveToNextStop() and addStop() can enforce the sweep-then-reverse rule locally, without Dispatcher micromanaging motion it doesn't need to know about.",
+      },
+    ],
+    principles: [
+      {
+        name: "Single Responsibility Principle",
+        explanation: "Dispatcher only decides WHICH elevator serves a request; Elevator only decides HOW it moves through its own stops — neither class reaches into the other's job.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "addStop() and moveToNextStop() are the only ways to change an Elevator's stops queue — Dispatcher assigns requests to an elevator but never reaches in and reorders its stops directly.",
+      },
+      {
+        name: "Separation of Concerns",
+        explanation: "Request (what's being asked for) and Elevator (what's doing the serving) are separate classes with different lifecycles — a Request can sit pending before any Elevator is even assigned to it.",
+      },
+      {
+        name: "Composition over inheritance",
+        explanation: "Building HAS-A list of Elevators and Floors — the object graph mirrors the physical structure directly, instead of forcing an elevator-type inheritance hierarchy the prompt never asked for.",
+      },
     ],
   },
   recap: [
