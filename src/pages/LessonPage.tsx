@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getLesson, PATH, RECOMMENDED_FIRST } from "@/content";
 import { findQuestionTitle } from "@/content/companies";
 import { getAlgorithm } from "@/algorithms";
-import { isDSA } from "@/types";
+import { isDSA, isLLD } from "@/types";
 import type { Confidence, Lesson, Track } from "@/types";
 import { useProgress } from "@/hooks/useProgress";
 import { ConceptCard } from "@/components/ConceptCard";
@@ -11,6 +11,7 @@ import { TraceVisualizer } from "@/components/TraceVisualizer";
 import { SandboxPractice } from "@/components/SandboxPractice";
 import { StageBuilder } from "@/components/StageBuilder";
 import { ClarifyInterview } from "@/components/ClarifyInterview";
+import { ClassModeler } from "@/components/ClassModeler";
 import { Glossary } from "@/components/Glossary";
 import { Button, Eyebrow, Panel, InlineCode } from "@/components/ui";
 import { Icon } from "@/components/Icon";
@@ -34,7 +35,7 @@ function ComingSoon({ title, fromCompany }: { title: string; fromCompany?: boole
   const navigate = useNavigate();
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 580 }}>
-      <BackLink />
+      <BackLink to={fromCompany ? "/companies" : "/"} label={fromCompany ? "Companies" : "Path"} />
       <Panel style={{ display: "grid", gap: 14 }}>
         <Eyebrow tone={color.amber}>On the roadmap</Eyebrow>
         <h1 style={{ fontSize: 25, fontWeight: 700, letterSpacing: "-0.5px" }}>{title}</h1>
@@ -68,12 +69,19 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
         { key: "practice", label: "Now you drive" },
         { key: "recap", label: "Recap" },
       ]
-    : [
-        { key: "overview", label: "Overview" },
-        ...(lesson.interview ? [{ key: "clarify", label: "Clarify" }] : []),
-        ...(lesson.stages?.length ? [{ key: "stages", label: "Build it" }] : []),
-        { key: "recap", label: "Recap" },
-      ];
+    : isLLD(lesson)
+      ? [
+          { key: "overview", label: "Overview" },
+          ...(lesson.interview ? [{ key: "clarify", label: "Clarify" }] : []),
+          { key: "design", label: "Design it" },
+          { key: "recap", label: "Recap" },
+        ]
+      : [
+          { key: "overview", label: "Overview" },
+          ...(lesson.interview ? [{ key: "clarify", label: "Clarify" }] : []),
+          ...(lesson.stages?.length ? [{ key: "stages", label: "Build it" }] : []),
+          { key: "recap", label: "Recap" },
+        ];
 
   const [stepIdx, setStepIdx] = useState(0);
   const accent = trackColor[lesson.track];
@@ -83,9 +91,12 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
   useEffect(() => { setStatus(lesson.id, "in-progress"); }, [lesson.id, setStatus]);
   const markComplete = () => setStatus(lesson.id, "completed");
 
+  const isCompanyOnly = lesson.track === "lld";
+  const trackLabel = lesson.track === "dsa" ? "DSA" : lesson.track === "lld" ? "Low-Level Design" : "System Design";
+
   return (
     <div style={{ display: "grid", gap: 22 }}>
-      <BackLink />
+      <BackLink to={isCompanyOnly ? "/companies" : "/"} label={isCompanyOnly ? "Companies" : "Path"} />
 
       <header style={{ display: "grid", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
@@ -103,7 +114,7 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
               padding: "3px 9px",
             }}
           >
-            {lesson.track === "dsa" ? "DSA" : "System Design"}
+            {trackLabel}
           </span>
           <span style={{ fontFamily: font.mono, fontSize: 12, color: color.textFaint }}>~{lesson.estMinutes} min</span>
         </div>
@@ -172,6 +183,22 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
       case "recap":
         return <Recap lesson={lesson} />;
     }
+  } else if (isLLD(lesson)) {
+    switch (stepKey) {
+      case "overview":
+        return (
+          <div style={{ display: "grid", gap: 14 }}>
+            <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7 }}>{lesson.overview}</p></Panel>
+            <Glossary terms={lesson.terms} />
+          </div>
+        );
+      case "clarify":
+        return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={onStepComplete} /> : null;
+      case "design":
+        return <ClassModeler design={lesson.design} onComplete={onStepComplete} />;
+      case "recap":
+        return <Recap lesson={lesson} />;
+    }
   } else {
     switch (stepKey) {
       case "overview":
@@ -225,6 +252,7 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
   const { get, setConfidence } = useProgress();
   const [dismissedSync, setDismissedSync] = useState(false);
   const chosen = get(lesson.id).confidence;
+  const isCompanyOnly = lesson.track === "lld";
 
   const nextRec =
     (Object.keys(PATH) as Track[])
@@ -272,7 +300,8 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
       {chosen && (
         <div style={{ display: "grid", gap: 14, borderTop: `1px solid ${color.hairline}`, paddingTop: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: color.green, fontFamily: font.mono, fontSize: 13 }}>
-            <Icon name="check" size={15} strokeWidth={2.2} /> Saved. This lesson is now on your map.
+            <Icon name="check" size={15} strokeWidth={2.2} />
+            {isCompanyOnly ? "Saved. Confidence is tracked on your Progress page." : "Saved. This lesson is now on your map."}
           </div>
 
           {!dismissedSync && (
@@ -283,12 +312,14 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {nextRec ? (
+            {isCompanyOnly ? (
+              <Button accent={trackColor[lesson.track]} iconRight="arrowRight" onClick={() => navigate("/companies")}>Back to Companies</Button>
+            ) : nextRec ? (
               <Button accent={trackColor[lesson.track]} iconRight="arrowRight" onClick={() => navigate(`/lesson/${nextRec}`)}>Next lesson</Button>
             ) : (
               <Button accent={trackColor[lesson.track]} iconRight="arrowRight" onClick={() => navigate("/progress")}>See your progress</Button>
             )}
-            <Button variant="ghost" onClick={() => navigate("/")}>Back to path</Button>
+            <Button variant="ghost" onClick={() => navigate(isCompanyOnly ? "/progress" : "/")}>{isCompanyOnly ? "See your progress" : "Back to path"}</Button>
           </div>
         </div>
       )}
@@ -296,14 +327,14 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
   );
 }
 
-function BackLink() {
+function BackLink({ to = "/", label = "Path" }: { to?: string; label?: string }) {
   const navigate = useNavigate();
   return (
     <button
-      onClick={() => navigate("/")}
+      onClick={() => navigate(to)}
       style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: color.textDim, fontFamily: font.mono, fontSize: 12.5, padding: 0, width: "fit-content" }}
     >
-      <Icon name="arrowLeft" size={14} /> Path
+      <Icon name="arrowLeft" size={14} /> {label}
     </button>
   );
 }

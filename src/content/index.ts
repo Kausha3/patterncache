@@ -9,6 +9,8 @@ import { chatApp } from "./lessons/chat-app";
 import { feed } from "./lessons/feed";
 import { rateLimiter } from "./lessons/rate-limiter";
 import { cacheLayer } from "./lessons/cache-layer";
+import { parkingLot } from "./lessons/parking-lot";
+import { amazonLocker } from "./lessons/amazon-locker";
 
 /** Fully-built, playable lessons keyed by id. */
 export const LESSONS: Record<string, Lesson> = {
@@ -22,6 +24,8 @@ export const LESSONS: Record<string, Lesson> = {
   [feed.id]: feed,
   [rateLimiter.id]: rateLimiter,
   [cacheLayer.id]: cacheLayer,
+  [parkingLot.id]: parkingLot,
+  [amazonLocker.id]: amazonLocker,
 };
 
 export function getLesson(id: string): Lesson | undefined {

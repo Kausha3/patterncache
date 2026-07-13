@@ -28,12 +28,14 @@ export const color = {
 export const trackColor = {
   dsa: color.teal,
   "system-design": color.blue,
+  lld: color.violet,
 } as const;
 
 /** Faint accent wash for a track (backgrounds/borders). */
 export const trackWash = {
   dsa: "rgba(91,176,173,0.09)",
   "system-design": "rgba(106,166,219,0.09)",
+  lld: "rgba(154,130,212,0.09)",
 } as const;
 
 export const font = {

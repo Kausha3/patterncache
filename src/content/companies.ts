@@ -207,6 +207,21 @@ export function listCompanies(): Company[] {
   return Object.values(COMPANIES).sort((a, b) => (a.status === b.status ? 0 : a.status === "available" ? -1 : 1));
 }
 
+/**
+ * Every distinct lessonId referenced by any company (built or not). Used by
+ * the Progress page so a lesson accessed only through Companies — e.g. an
+ * LLD lesson, which deliberately isn't on the main DSA/System-Design path
+ * spine — still surfaces in "Revisit" once you've been through it. Without
+ * this, confidence saved on a Companies-only lesson would silently vanish.
+ */
+export function listCompanyQuestionIds(): string[] {
+  const ids = new Set<string>();
+  for (const company of Object.values(COMPANIES)) {
+    for (const q of [...company.hld, ...company.lld]) ids.add(q.lessonId);
+  }
+  return [...ids];
+}
+
 /** Look up a question's display title across every company — used so a
  * not-yet-built lesson still shows its real title instead of a generic one. */
 export function findQuestionTitle(lessonId: string): string | undefined {

@@ -142,10 +142,69 @@ export interface SDLesson {
   interview?: InterviewSpec;
 }
 
-export type Lesson = DSALesson | SDLesson;
+// ---------------------------------------------------------------------------
+// Low-Level / Object-Oriented Design (LLD) — a third lesson grammar. Not
+// tiers-and-load like SDLesson — this is entities, responsibilities, and
+// edge cases. Drives <ClassModeler />.
+// ---------------------------------------------------------------------------
+
+export interface EntityCandidate {
+  id: string;
+  name: string; // e.g. "ParkingSpot"
+  isEntity: boolean; // true = a real class in the model
+  why: string; // shown after the learner checks their answer
+}
+
+export interface MethodCandidate {
+  id: string;
+  signature: string; // e.g. "assignVehicle(vehicle): void"
+  ownerId: string; // id of the EntityCandidate (isEntity: true) it truly belongs to
+}
+
+export interface EdgeCaseOption {
+  id: string;
+  label: string;
+  correct: boolean;
+  feedback: string; // shown once this option is chosen, win or lose
+}
+
+export interface EdgeCase {
+  id: string;
+  scenario: string; // "What if the lot is completely full?"
+  options: EdgeCaseOption[];
+}
+
+export interface ClassModelSpec {
+  entities: EntityCandidate[];
+  methods: MethodCandidate[];
+  edgeCases: EdgeCase[];
+  /** Static relationship lines shown in the finished diagram, e.g. "ParkingLot has many Levels". */
+  relationships: string[];
+}
+
+export interface LLDLesson {
+  id: string;
+  track: "lld";
+  title: string;
+  blurb: string;
+  estMinutes: number;
+  overview: string;
+  terms?: string[];
+  /** Interactive clarifying-questions simulator, same engine as SDLesson. */
+  interview?: InterviewSpec;
+  design: ClassModelSpec;
+  recap: string[];
+  relatedLessons: string[];
+}
+
+export type Lesson = DSALesson | SDLesson | LLDLesson;
 
 export function isDSA(lesson: Lesson): lesson is DSALesson {
   return lesson.track === "dsa";
+}
+
+export function isLLD(lesson: Lesson): lesson is LLDLesson {
+  return lesson.track === "lld";
 }
 
 // ---------------------------------------------------------------------------

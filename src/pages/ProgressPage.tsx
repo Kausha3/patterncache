@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { PathMap } from "@/components/PathMap";
 import { Button, Eyebrow, Panel } from "@/components/ui";
 import { getLesson, PATH } from "@/content";
+import { listCompanyQuestionIds } from "@/content/companies";
 import { useProgress } from "@/hooks/useProgress";
 import { color, font } from "@/theme/tokens";
 import type { Confidence, Track } from "@/types";
@@ -17,13 +18,21 @@ export function ProgressPage() {
 
   const CONF_RANK: Record<Confidence, number> = { shaky: 0, okay: 1, solid: 2 };
 
-  const revisit = (Object.keys(PATH) as Track[])
-    .flatMap((t) => PATH[t])
+  // Path-spine nodes (DSA + System Design) plus any Companies-only lesson
+  // (e.g. an LLD lesson, deliberately off the main spine) that's actually built.
+  const pathNodes = (Object.keys(PATH) as Track[]).flatMap((t) => PATH[t]);
+  const pathIds = new Set(pathNodes.map((n) => n.id));
+  const extraNodes = listCompanyQuestionIds()
+    .filter((id) => !pathIds.has(id) && getLesson(id))
+    .map((id) => ({ id, title: getLesson(id)!.title }));
+  const allNodes: { id: string; title: string }[] = [...pathNodes, ...extraNodes];
+
+  const revisit = allNodes
     .map((n) => ({ node: n, p: get(n.id) }))
     .filter((x) => x.p.status === "completed" && x.p.confidence && x.p.confidence !== "solid")
     .sort((a, b) => CONF_RANK[a.p.confidence!] - CONF_RANK[b.p.confidence!]);
 
-  const anyProgress = (Object.keys(PATH) as Track[]).flatMap((t) => PATH[t]).some((n) => get(n.id).status !== "not-started");
+  const anyProgress = allNodes.some((n) => get(n.id).status !== "not-started");
 
   return (
     <div style={{ display: "grid", gap: 28 }}>
