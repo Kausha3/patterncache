@@ -41,9 +41,12 @@ export function TraceVisualizer({
   useEffect(() => {
     if (!playing) return;
     if (atEnd) { setPlaying(false); return; }
-    const t = setTimeout(() => setI((x) => Math.min(last, x + 1)), 850);
+    // Scale dwell time to how much there is to read — a one-word DSA tag and a
+    // full LLD reasoning sentence shouldn't advance at the same fixed pace.
+    const duration = Math.min(4500, Math.max(1200, 600 + step.explanation.length * 20));
+    const t = setTimeout(() => setI((x) => Math.min(last, x + 1)), duration);
     return () => clearTimeout(t);
-  }, [playing, atEnd, i, last]);
+  }, [playing, atEnd, i, last, step.explanation]);
 
   useEffect(() => {
     if (atEnd && !reachedEnd.current) { reachedEnd.current = true; onComplete?.(); }
