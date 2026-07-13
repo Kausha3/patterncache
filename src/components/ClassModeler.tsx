@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import type { ClassModelSpec, EntityCandidate, MethodCandidate, EdgeCase, PropertyDef, TraceStep } from "@/types";
 import { color, font, radius, motion } from "@/theme/tokens";
 import { Panel, Button, SectionHeader, Eyebrow, Divider, PromptBanner } from "./ui";
 import { Icon } from "./Icon";
 import { TraceVisualizer } from "./TraceVisualizer";
 import { CodeBlock, RelationshipDiagram, generateClassCode } from "./CodeBlock";
+
+// CodeMirror + a language grammar are heavy — lazy-load so DSA/SD lessons
+// (which never touch this) don't pay for it on first load.
+const CodeExerciseBlock = lazy(() => import("./CodeExerciseBlock"));
 
 /**
  * <ClassModeler /> — the LLD signature interaction. Not tiers-and-load like
@@ -437,6 +441,11 @@ function PracticePhase({
                 </span>
               </div>
             </div>
+            {method.codeExercise && (
+              <Suspense fallback={<p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>Loading editor…</p>}>
+                <CodeExerciseBlock key={method.id} exercise={method.codeExercise} />
+              </Suspense>
+            )}
             <div>
               <Button variant="primary" accent={color.violet} iconRight="arrowRight" onClick={onNext}>
                 {isLast ? "Continue to edge cases" : "Next method"}

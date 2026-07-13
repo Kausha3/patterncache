@@ -137,6 +137,18 @@ export const parkingLot: LLDLesson = {
         signature: "findAvailableSpot(vehicle): Spot",
         ownerId: "lot",
         justification: "ParkingLot is the only object that can see across every Level, so it's the one that owns 'find me any free spot in the building' — it delegates the per-floor search down to findSpotOnLevel(), but the building-wide search itself belongs at the top.",
+        codeExercise: {
+          language: "java",
+          starter: "ParkingSpot findAvailableSpot(Vehicle vehicle) {\n    // your code here\n}",
+          reference:
+            "// Size ordered smallest to largest: MOTORCYCLE, COMPACT, LARGE\nParkingSpot findAvailableSpot(Vehicle vehicle) {\n    for (Level level : levels) {\n        for (ParkingSpot spot : level.getSpots()) {\n            boolean bigEnough = spot.getSize().ordinal() >= vehicle.getSize().ordinal();\n            if (!spot.isOccupied() && bigEnough) {\n                return spot;\n            }\n        }\n    }\n    return null;\n}",
+          checklist: [
+            "Checks every level, not just the first one with any free spot",
+            "Skips spots where isOccupied is already true",
+            "Compares spot size against vehicle size — a large vehicle must not match a compact spot",
+            "Returns null (not an exception, not a half-built object) when nothing fits",
+          ],
+        },
       },
       {
         id: "m2",
@@ -161,6 +173,18 @@ export const parkingLot: LLDLesson = {
         signature: "assignVehicle(vehicle): void",
         ownerId: "spot",
         justification: "isOccupied lives on ParkingSpot, so ParkingSpot is the only class that can flip it safely — if ParkingLot or Level mutated another object's field directly, nothing would stop two callers from racing on the same flag from outside.",
+        codeExercise: {
+          language: "java",
+          starter: "void assignVehicle(Vehicle vehicle) {\n    // your code here\n}",
+          reference:
+            "void assignVehicle(Vehicle vehicle) {\n    if (isOccupied) {\n        throw new IllegalStateException(\"Spot \" + id + \" is already occupied\");\n    }\n    this.isOccupied = true;\n}",
+          checklist: [
+            "Checks isOccupied before assigning — doesn't silently overwrite an already-occupied spot",
+            "Fails loudly (exception, or a boolean/Result return) instead of quietly doing nothing",
+            "Sets isOccupied to true only after the check passes",
+            "Bonus (L5+, not required here): notes that this check-then-act needs to be atomic under concurrent callers, not just correct in isolation",
+          ],
+        },
       },
       {
         id: "m6",

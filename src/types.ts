@@ -163,12 +163,30 @@ export interface EntityCandidate {
   properties?: PropertyDef[];
 }
 
+/** A real "write it yourself" exercise for the handful of methods that actually
+ * have interesting logic (search/filter, state mutation) — not every method
+ * needs one. Graded by commit-then-compare against a reference solution, same
+ * "ground truth reveal" philosophy as the rest of the app — not auto-executed,
+ * since that would require either a backend sandbox or a JS-only exercise, and
+ * this is meant to be practiced in the learner's actual interview language. */
+export interface CodeExercise {
+  language: "java";
+  /** Method stub shown before the learner writes anything — signature + a comment, no logic. */
+  starter: string;
+  /** A correct, real implementation — revealed after the learner commits their own attempt. */
+  reference: string;
+  /** What a correct solution must handle — self-checked against the learner's own code, not scored. */
+  checklist: string[];
+}
+
 export interface MethodCandidate {
   id: string;
   signature: string; // e.g. "assignVehicle(vehicle): void"
   ownerId: string; // id of the EntityCandidate (isEntity: true) it truly belongs to
   /** WHY it belongs there — the real teaching content, not just the fact of ownership. Optional so un-retrofit lessons still compile. */
   justification?: string;
+  /** Present only for the 2-3 methods per lesson worth actually coding — most methods don't need this. */
+  codeExercise?: CodeExercise;
 }
 
 export interface EdgeCaseOption {
