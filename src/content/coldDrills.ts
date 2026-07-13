@@ -21,7 +21,7 @@ const pizzaOrdering: ColdDrillPrompt = {
       },
       {
         question: "Can a pizza be customized (extra toppings, size), or is the menu fixed?",
-        why: "Decides whether OrderItem needs its own toppings list and price, or whether Order can just hold a flat list of Pizza.",
+        why: "Decides whether toppings need to compose onto a pizza at all — a fixed menu means Pizza is just a flat data row; customizable toppings is exactly what makes a Decorator-shaped model worth it.",
       },
       {
         question: "Is payment in scope, or just the order itself?",
@@ -49,11 +49,10 @@ const pizzaOrdering: ColdDrillPrompt = {
         id: "orderitem",
         name: "OrderItem",
         isEntity: true,
-        why: "One line in the order — a specific pizza, its customizations, and a quantity. Order itself doesn't need to know about toppings or sizes, just that it owns a list of these.",
+        why: "One line in the order — a fully-decorated pizza and a quantity. Order itself doesn't need to know how many toppings are stacked on that pizza, just that it owns a list of these.",
         properties: [
           { name: "id", type: "string" },
           { name: "pizza", type: "Pizza" },
-          { name: "toppings", type: "List<Topping>" },
           { name: "quantity", type: "int" },
         ],
       },
@@ -61,19 +60,35 @@ const pizzaOrdering: ColdDrillPrompt = {
         id: "pizza",
         name: "Pizza",
         isEntity: true,
-        why: "A menu definition — name, size, and base price. It's data the menu publishes, not something with its own behavior.",
+        why: "The shared contract PlainPizza and ToppingDecorator both implement — getCost() and getDescription(). It has no fields of its own; it's a behavioral contract, not shared state, which is exactly what makes decorators stackable and interchangeable with the thing they wrap.",
+        properties: [],
+      },
+      {
+        id: "plainpizza",
+        name: "PlainPizza",
+        isEntity: true,
+        why: "The base case — an undecorated pizza with just a size and a base price. Every decorator chain bottoms out at one of these.",
         properties: [
           { name: "id", type: "string" },
-          { name: "name", type: "string" },
           { name: "size", type: "Size" },
           { name: "basePrice", type: "Money" },
+        ],
+      },
+      {
+        id: "toppingdecorator",
+        name: "ToppingDecorator",
+        isEntity: true,
+        why: "Wraps any Pizza (a PlainPizza, or another ToppingDecorator) and adds one topping's cost and name on top — while still being a Pizza itself, so it can be wrapped again or handed to OrderItem with no special-casing.",
+        properties: [
+          { name: "wrappedPizza", type: "Pizza" },
+          { name: "topping", type: "Topping" },
         ],
       },
       {
         id: "topping",
         name: "Topping",
         isEntity: true,
-        why: "Has its own identity and price, and gets reused across many pizzas and many orders — that's exactly what makes it a real class instead of just a string.",
+        why: "Menu-level data — name and price — that a ToppingDecorator references rather than hardcodes, so adding a new topping to the menu never means writing a new decorator class.",
         properties: [
           { name: "id", type: "string" },
           { name: "name", type: "string" },
@@ -123,23 +138,63 @@ const pizzaOrdering: ColdDrillPrompt = {
       { id: "m1", signature: "addItem(item): void", ownerId: "order", justification: "Order owns its own items list; nothing else should be able to reach in and mutate it directly." },
       { id: "m2", signature: "calculateTotal(): Money", ownerId: "order", justification: "Total is derived purely from this order's own items — Order is the only class with the full list to sum, and it does so by summing each item's own calculatePrice()." },
       { id: "m3", signature: "updateStatus(status): void", ownerId: "order", justification: "Status is Order's own lifecycle field; only Order should be the one thing that can transition it, so nothing else can leave it in an invalid state." },
-      { id: "m4", signature: "calculatePrice(): Money", ownerId: "orderitem", justification: "Price for one line depends on this item's own pizza, toppings, and quantity — Order shouldn't need to know pizza/topping pricing to total itself." },
-      { id: "m5", signature: "charge(amount): boolean", ownerId: "payment", justification: "Processing the charge is Payment's whole reason to exist — same split as every other transactional system." },
-      { id: "m6", signature: "refund(): boolean", ownerId: "payment", justification: "A failed delivery or a mistaken order needs to reverse the same transaction Payment already owns — keeping refund on Payment means money-movement logic never leaks into Order or Delivery." },
-      { id: "m7", signature: "assignDriver(driver): void", ownerId: "delivery", justification: "Delivery is the only class that connects an order to a driver — Driver itself shouldn't need to know which orders it's carrying to do its own job." },
-      { id: "m8", signature: "markDelivered(): void", ownerId: "delivery", justification: "Same reasoning as Order's updateStatus() — the class that owns a status field is the only one that should transition it." },
-      { id: "m9", signature: "setAvailable(available): void", ownerId: "driver", justification: "isAvailable lives on Driver — only the class holding the flag should be the one flipping it, same invariant-protection shape as a ParkingSpot's isOccupied." },
+      { id: "m4", signature: "calculatePrice(): Money", ownerId: "orderitem", justification: "OrderItem just multiplies whatever its Pizza reports back by quantity — it never inspects how many toppings are stacked or what they cost; that math lives entirely inside the Pizza/ToppingDecorator chain now." },
+      { id: "m5", signature: "getCost(): Money", ownerId: "plainpizza", justification: "The base case of the decorator chain — PlainPizza just reports its own basePrice, with no wrapped pizza to delegate to." },
+      { id: "m6", signature: "getDescription(): String", ownerId: "plainpizza", justification: "Same base-case reasoning as getCost() — PlainPizza describes itself directly (its size), with nothing to delegate to." },
+      {
+        id: "m7",
+        signature: "getCost(): Money",
+        ownerId: "toppingdecorator",
+        justification: "ToppingDecorator can't know its own total cost without asking the Pizza it wraps first — that wrapped Pizza might itself be another ToppingDecorator, so this call recurses until it bottoms out at a PlainPizza.",
+        codeExercise: {
+          language: "java",
+          starter: "Money getCost() {\n    // your code here\n}",
+          reference: "Money getCost() {\n    return wrappedPizza.getCost().add(topping.getPrice());\n}",
+          checklist: [
+            "Adds this topping's own price to the wrapped pizza's cost — doesn't replace it",
+            "Calls wrappedPizza.getCost() rather than assuming the wrapped pizza is a PlainPizza — it might be another ToppingDecorator",
+            "Works correctly no matter how many layers deep the chain is, since each layer only ever asks the one it wraps",
+          ],
+        },
+      },
+      {
+        id: "m8",
+        signature: "getDescription(): String",
+        ownerId: "toppingdecorator",
+        justification: "Same recursive-delegation shape as getCost() — this decorator only knows its own topping's name, so it asks the wrapped Pizza to describe itself first and appends to that.",
+        codeExercise: {
+          language: "java",
+          starter: "String getDescription() {\n    // your code here\n}",
+          reference: "String getDescription() {\n    return wrappedPizza.getDescription() + \" + \" + topping.getName();\n}",
+          checklist: [
+            "Delegates to wrappedPizza.getDescription() first, then appends this decorator's own topping name",
+            "Reads the topping's name from this decorator's own field — doesn't hardcode a specific topping",
+            "Produces a readable chain like 'Medium pizza + Pepperoni + Extra Cheese' regardless of how many toppings are stacked",
+          ],
+        },
+      },
+      { id: "m9", signature: "charge(amount): boolean", ownerId: "payment", justification: "Processing the charge is Payment's whole reason to exist — same split as every other transactional system." },
+      { id: "m10", signature: "refund(): boolean", ownerId: "payment", justification: "A failed delivery or a mistaken order needs to reverse the same transaction Payment already owns — keeping refund on Payment means money-movement logic never leaks into Order or Delivery." },
+      { id: "m11", signature: "assignDriver(driver): void", ownerId: "delivery", justification: "Delivery is the only class that connects an order to a driver — Driver itself shouldn't need to know which orders it's carrying to do its own job." },
+      { id: "m12", signature: "markDelivered(): void", ownerId: "delivery", justification: "Same reasoning as Order's updateStatus() — the class that owns a status field is the only one that should transition it." },
+      { id: "m13", signature: "setAvailable(available): void", ownerId: "driver", justification: "isAvailable lives on Driver — only the class holding the flag should be the one flipping it, same invariant-protection shape as a ParkingSpot's isOccupied." },
     ],
     relationships: [
       "Order has many OrderItems",
-      "OrderItem references one Pizza and many Toppings",
+      "OrderItem references one Pizza",
+      "ToppingDecorator wraps one Pizza and references one Topping",
+      "PlainPizza and ToppingDecorator both implement Pizza",
       "Payment is computed from an Order's total",
       "Delivery references one Order and one Driver",
     ],
     edgeCases: [
       {
-        scenario: "A topping is removed from the menu while it's still sitting inside an already-placed order.",
-        handling: "OrderItem holds its own copy of the topping's price and name at order time, not a live reference to the menu — otherwise removing a topping from the menu would silently corrupt the price of every past order that used it.",
+        scenario: "A topping's price on the menu changes while it's still stacked inside an already-placed order.",
+        handling: "A ToppingDecorator captures the Topping's price at the moment it's built into the chain, not a live reference to a mutable menu row — otherwise repricing a topping on the menu would silently change the cost of every past order that used it.",
+      },
+      {
+        scenario: "The same topping is added twice to one pizza (double pepperoni).",
+        handling: "Nothing stops wrapping two ToppingDecorators referencing the same Topping around one Pizza — each layer only cares about the one it wraps, so getCost() and getDescription() both handle it correctly, charging and listing the topping twice, which is the physically correct outcome.",
       },
       {
         scenario: "The customer's card is declined after the kitchen has already started making the pizza.",
@@ -156,8 +211,16 @@ const pizzaOrdering: ColdDrillPrompt = {
     ],
     tradeoffs: [
       {
+        decision: "Toppings are modeled as a ToppingDecorator wrapping a Pizza, instead of OrderItem holding a flat List<Topping>.",
+        reasoning: "The flat-list version needs OrderItem.calculatePrice() to know how to sum a base price plus every topping itself. The decorator version pushes that math into the Pizza chain — calculatePrice() shrinks to pizza.getCost() * quantity, and a brand-new topping can be added to the menu without touching OrderItem or Pizza's existing code. The cost: a decorated pizza is a chain you have to walk, not one flat object.",
+      },
+      {
+        decision: "One generic ToppingDecorator parameterized by a Topping reference, instead of a separate decorator subclass per topping type (PepperoniDecorator, ExtraCheeseDecorator, and so on).",
+        reasoning: "A subclass per topping reads cleanly in a textbook example with three or four fixed options, but a real pizza menu can have dozens of toppings — one generic ToppingDecorator holding a Topping reference scales to any menu size with zero new classes, at the cost of losing a place to hang topping-specific behavior if any single topping ever needed unique logic beyond price and name.",
+      },
+      {
         decision: "OrderItem is its own class instead of Order holding a flat List<Pizza> with a separate quantities map.",
-        reasoning: "Costs one more class, but keeps quantity, toppings, and per-line pricing attached to the thing they actually describe — a flat list of Pizza can't represent two of the same pizza with different toppings.",
+        reasoning: "Costs one more class, but keeps quantity and per-line pricing attached to the thing it actually describes — a flat list of Pizza can't represent two orders of the same pizza built with different topping stacks.",
       },
       {
         decision: "Delivery is separate from Order instead of putting driver/ETA fields directly on Order.",
@@ -169,9 +232,13 @@ const pizzaOrdering: ColdDrillPrompt = {
       },
     ],
     principles: [
-      { name: "Single Responsibility Principle", explanation: "OrderItem only knows how to price itself from its own pizza+toppings+quantity; Order only knows how to sum whatever items it holds — neither reaches into the other's math." },
+      {
+        name: "Decorator Pattern",
+        explanation: "ToppingDecorator wraps a Pizza and adds its own cost and description on top, while still being a Pizza itself — same getCost()/getDescription() contract — which is what lets decorators stack arbitrarily deep and lets OrderItem treat the whole chain as just 'a Pizza,' never knowing or caring how many toppings are on it.",
+      },
+      { name: "Single Responsibility Principle", explanation: "OrderItem only knows how to combine a Pizza's reported cost with a quantity; Pizza and its decorators own all topping-pricing logic themselves — OrderItem never inspects what's inside the chain." },
       { name: "Encapsulation", explanation: "Order.updateStatus() and Driver.setAvailable() are the only ways to change those fields — nothing else reaches in and flips a status or availability flag directly." },
-      { name: "Value objects don't need identity", explanation: "A topping's price-at-order-time is copied data, not a class with its own behavior — giving every value full class treatment models data as if it were an actor." },
+      { name: "Value objects don't need identity", explanation: "A topping's price-at-decoration-time is copied data, not a class with its own behavior — giving every value full class treatment models data as if it were an actor." },
     ],
   },
 };

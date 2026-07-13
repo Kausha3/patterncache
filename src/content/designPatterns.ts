@@ -122,6 +122,21 @@ export const DESIGN_PATTERNS: DesignPatternEntry[] = [
       },
     ],
   },
+  {
+    id: "decorator",
+    name: "Decorator Pattern",
+    whenToUse:
+      "Reach for this when you need to add responsibilities to one specific object at runtime — stacking optional behavior on top of a base object — without touching the base class's code or creating a new subclass for every combination of add-ons. The decorator has to look exactly like the thing it wraps (same interface), which is what lets you stack several of them and still treat the whole chain as just one instance of the base type.",
+    examples: [
+      {
+        refId: "pizza-ordering",
+        isDrill: true,
+        title: "ToppingDecorator wraps a Pizza to add cost and description",
+        howItShowsUp:
+          "PlainPizza is the base case; ToppingDecorator wraps any Pizza — including another ToppingDecorator — and adds one topping's cost and name on top. getCost() and getDescription() both recurse through however many layers are stacked, and OrderItem never needs to know how many toppings are on the pizza it's holding, just that it's holding 'a Pizza.'",
+      },
+    ],
+  },
 ];
 
 export function listDesignPatterns(): DesignPatternEntry[] {
