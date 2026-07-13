@@ -8,9 +8,11 @@ import { Icon } from "./Icon";
 
 /**
  * <StageBuilder /> — walk a system through stages; each fades in the nodes it
- * adds, states problem → fix → tradeoff, and animates metric bars. The node
- * explorer is decoupled from stage progression — any visible node is clickable
- * at any stage, so it's exploration, not a slideshow.
+ * adds, states problem → fix → tradeoff, and animates metric bars. Two
+ * interactions:
+ *  - the node explorer (click any visible node), decoupled from progression;
+ *  - the load simulator (turn up traffic and watch the current architecture
+ *    saturate, then advance a stage and watch it absorb the same load).
  */
 
 const KIND_TINT: Record<string, string> = {
@@ -21,15 +23,36 @@ const KIND_TINT: Record<string, string> = {
   async: color.violet,
 };
 
+function fmt(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`;
+  return `${Math.round(n)}`;
+}
+
 export function StageBuilder({ stages, onComplete }: { stages: SDStage[]; onComplete?: () => void }) {
   const [s, setS] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
+  const [loadT, setLoadT] = useState(0.42); // slider position 0..1 (log-mapped)
 
   const stage = stages[s];
   const last = stages.length - 1;
   const maxCapacity = useMemo(() => Math.max(...stages.map((x) => x.metrics.capacity)), [stages]);
   const maxLatency = useMemo(() => Math.max(...stages.map((x) => x.metrics.latencyMs)), [stages]);
   const prevNodes = s > 0 ? stages[s - 1].visibleNodes : [];
+
+  // Load simulation — log-mapped slider so it spans 100 → ~1.6× the biggest stage.
+  const minLoad = 100;
+  const maxLoad = Math.round(maxCapacity * 1.6);
+  const load = Math.round(minLoad * Math.pow(maxLoad / minLoad, loadT));
+  const cap = stage.metrics.capacity;
+  const u = load / cap;
+  const servedRatio = Math.min(1, u);
+  const effLatency = Math.round(stage.metrics.latencyMs * (1 + Math.pow(servedRatio, 4) * 9));
+  const dropped = Math.max(0, load - cap);
+  const dropPct = load > 0 ? dropped / load : 0;
+  const saturated = u >= 1;
+  const strained = u >= 0.75 && u < 1;
+  const health = saturated ? color.red : strained ? color.amber : color.green;
 
   const goto = (next: number) => {
     const clamped = Math.max(0, Math.min(last, next));
@@ -44,7 +67,7 @@ export function StageBuilder({ stages, onComplete }: { stages: SDStage[]; onComp
     <div style={{ display: "grid", gap: 14 }}>
       <SectionHeader eyebrow={`Stage ${s + 1} / ${stages.length} · ${stage.title}`} tone={color.blue} meta="click a node to inspect it" />
 
-      <Panel style={{ display: "grid", gap: 20 }}>
+      <Panel style={{ display: "grid", gap: 20, borderColor: saturated ? color.red : color.panelBorder, transition: `border-color ${motion.step}` }}>
         {/* Diagram */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", padding: "6px 2px", minHeight: 64 }}>
           {stage.visibleNodes.map((id, idx) => {
@@ -85,15 +108,7 @@ export function StageBuilder({ stages, onComplete }: { stages: SDStage[]; onComp
 
         {/* Node explorer card */}
         {selectedNode && (
-          <div
-            style={{
-              background: "rgba(106,166,219,0.07)",
-              border: `1px solid ${color.blue}55`,
-              borderRadius: radius.md,
-              padding: "13px 15px",
-              animation: `pc-enter 200ms ${motion.enter}`,
-            }}
-          >
+          <div style={{ background: "rgba(106,166,219,0.07)", border: `1px solid ${color.blue}55`, borderRadius: radius.md, padding: "13px 15px", animation: `pc-enter 200ms ${motion.enter}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
               <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.blue }}>{selectedNode.label}</span>
               <button onClick={() => setSelected(null)} aria-label="Close" style={{ background: "none", border: "none", color: color.textDim, display: "grid", placeItems: "center" }}>
@@ -111,10 +126,61 @@ export function StageBuilder({ stages, onComplete }: { stages: SDStage[]; onComp
           <NarrativeRow eyebrow="Tradeoff" tone={color.amber}>{stage.tradeoff}</NarrativeRow>
         </div>
 
-        {/* Metrics */}
+        {/* Capacity of the design at this stage */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, borderTop: `1px solid ${color.hairline}`, paddingTop: 18 }}>
-          <MetricBar label="Throughput req/s" value={stage.metrics.capacity.toLocaleString()} ratio={stage.metrics.capacity / maxCapacity} tone={color.green} />
-          <MetricBar label="p50 latency ms" value={`${stage.metrics.latencyMs}`} ratio={1 - stage.metrics.latencyMs / (maxLatency * 1.1)} tone={color.teal} />
+          <MetricBar label="Design capacity req/s" value={fmt(cap)} ratio={cap / maxCapacity} tone={color.green} />
+          <MetricBar label="Base p50 latency ms" value={`${stage.metrics.latencyMs}`} ratio={1 - stage.metrics.latencyMs / (maxLatency * 1.1)} tone={color.teal} />
+        </div>
+
+        {/* Load simulator */}
+        <div style={{ display: "grid", gap: 14, borderTop: `1px solid ${color.hairline}`, paddingTop: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <Eyebrow tone={color.blue}>Load simulator · push traffic through this design</Eyebrow>
+            <span style={{ fontFamily: font.mono, fontSize: 12, color: color.textDim }}>
+              incoming <b style={{ color: color.text }}>{fmt(load)}</b> req/s
+            </span>
+          </div>
+
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.005}
+            value={loadT}
+            onChange={(e) => setLoadT(parseFloat(e.target.value))}
+            aria-label="Incoming request load"
+            style={{ width: "100%", accentColor: health }}
+          />
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
+            <SimStat label="Utilization" value={`${Math.round(u * 100)}%`} tone={health} sub={`${fmt(Math.min(load, cap))} / ${fmt(cap)} served`} />
+            <SimStat label="Effective latency" value={saturated ? "timeout" : `${effLatency} ms`} tone={saturated ? color.red : effLatency > stage.metrics.latencyMs * 3 ? color.amber : color.text} sub={saturated ? "queues overflow" : `base ${stage.metrics.latencyMs} ms`} />
+            <SimStat label="Requests dropped" value={dropped > 0 ? `${Math.round(dropPct * 100)}%` : "0%"} tone={dropped > 0 ? color.red : color.text} sub={dropped > 0 ? `${fmt(dropped)} req/s shed` : "all served"} />
+          </div>
+
+          <div
+            role="status"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: `${health}14`,
+              border: `1px solid ${health}55`,
+              borderRadius: radius.md,
+              padding: "11px 14px",
+            }}
+          >
+            <span style={{ color: health }}><Icon name={saturated ? "close" : strained ? "gauge" : "check"} size={16} /></span>
+            <span style={{ color: color.text, fontSize: 13.5 }}>
+              {saturated
+                ? s < last
+                  ? `Saturated — this design tops out at ${fmt(cap)} req/s and is shedding ${Math.round(dropPct * 100)}% of traffic. Advance a stage to add capacity.`
+                  : `Saturated even at this final stage — beyond ${fmt(cap)} req/s you'd shard or add regions further.`
+                : strained
+                  ? "Under strain — latency is climbing as the busiest tier approaches its limit."
+                  : "Healthy — comfortable headroom at this load."}
+            </span>
+          </div>
         </div>
 
         {/* Controls */}
@@ -123,16 +189,21 @@ export function StageBuilder({ stages, onComplete }: { stages: SDStage[]; onComp
           <Button variant="primary" accent={color.blue} iconRight="arrowRight" onClick={() => goto(s + 1)} disabled={s === last}>Next stage</Button>
           <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
             {stages.map((_, idx) => (
-              <button
-                key={idx}
-                aria-label={`Go to stage ${idx + 1}`}
-                onClick={() => goto(idx)}
-                style={{ width: 8, height: 8, borderRadius: 999, border: "none", padding: 0, background: idx <= s ? color.blue : "rgba(255,255,255,0.13)", transition: `background ${motion.fast}` }}
-              />
+              <button key={idx} aria-label={`Go to stage ${idx + 1}`} onClick={() => goto(idx)} style={{ width: 8, height: 8, borderRadius: 999, border: "none", padding: 0, background: idx <= s ? color.blue : "rgba(255,255,255,0.13)", transition: `background ${motion.fast}` }} />
             ))}
           </div>
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function SimStat({ label, value, tone, sub }: { label: string; value: string; tone: string; sub: string }) {
+  return (
+    <div style={{ display: "grid", gap: 3 }}>
+      <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: "0.8px", textTransform: "uppercase", color: color.textFaint }}>{label}</span>
+      <span style={{ fontFamily: font.mono, fontSize: 20, fontWeight: 700, color: tone, transition: `color ${motion.step}` }}>{value}</span>
+      <span style={{ fontSize: 11.5, color: color.textFaint }}>{sub}</span>
     </div>
   );
 }

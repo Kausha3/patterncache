@@ -22,7 +22,11 @@ export const NODES: Record<string, NodeDef> = {
   presence: { id: "presence", label: "Presence / Routing", what: "Tracks which gateway holds each user's live connection, so a message can be routed to the right box.", kind: "compute" },
   fanout: { id: "fanout", label: "Fan-out Service", what: "Writes an incoming message into every recipient's inbox/timeline — the expensive part of any social system.", kind: "compute" },
   notif: { id: "notif", label: "Push / Notifications", what: "Delivers messages to users who are offline via mobile/desktop push.", kind: "async" },
-  shard: { id: "shard", label: "Sharded Store", what: "Messages partitioned by conversation id so one hot chat never overwhelms a single database.", kind: "data" },
+  shard: { id: "shard", label: "Sharded Store", what: "Data partitioned by a key (conversation, user, hash) so one hot partition never overwhelms a single node.", kind: "data" },
+  limiter: { id: "limiter", label: "Rate Limiter", what: "Checks and decrements each caller's request budget before the work reaches your app — rejects the excess fast and cheap.", kind: "edge" },
+  counter: { id: "counter", label: "Counter Store", what: "A fast shared store (Redis) holding per-caller counters/tokens so every server enforces the same limit.", kind: "data" },
+  timeline: { id: "timeline", label: "Timeline Cache", what: "Each user's precomputed feed, ready to serve instantly — the read side of fan-out-on-write.", kind: "data" },
+  origin: { id: "origin", label: "Origin Store", what: "The durable write store — the source of truth records land in before any caching or fan-out.", kind: "data" },
 };
 
 export function getNode(id: string): NodeDef {

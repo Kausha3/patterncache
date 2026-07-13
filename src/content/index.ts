@@ -4,6 +4,9 @@ import { twoPointers } from "./lessons/two-pointers";
 import { bfs } from "./lessons/bfs";
 import { urlShortener } from "./lessons/url-shortener";
 import { chatApp } from "./lessons/chat-app";
+import { feed } from "./lessons/feed";
+import { rateLimiter } from "./lessons/rate-limiter";
+import { cacheLayer } from "./lessons/cache-layer";
 
 /** Fully-built, playable lessons keyed by id. */
 export const LESSONS: Record<string, Lesson> = {
@@ -12,6 +15,9 @@ export const LESSONS: Record<string, Lesson> = {
   [bfs.id]: bfs,
   [urlShortener.id]: urlShortener,
   [chatApp.id]: chatApp,
+  [feed.id]: feed,
+  [rateLimiter.id]: rateLimiter,
+  [cacheLayer.id]: cacheLayer,
 };
 
 export function getLesson(id: string): Lesson | undefined {
@@ -44,9 +50,9 @@ export const PATH: Record<Track, PathNode[]> = {
     { id: "client-server", title: "Client–Server Basics", track: "system-design", status: "coming-soon" },
     { id: "url-shortener", title: "Scaling a URL Shortener", track: "system-design", status: "available" },
     { id: "chat-app", title: "Designing a Chat App", track: "system-design", status: "available" },
-    { id: "feed", title: "Designing a Feed", track: "system-design", status: "coming-soon" },
-    { id: "rate-limiter", title: "Designing a Rate Limiter", track: "system-design", status: "coming-soon" },
-    { id: "cache-layer", title: "Designing a Cache Layer", track: "system-design", status: "coming-soon" },
+    { id: "feed", title: "Designing a News Feed", track: "system-design", status: "available" },
+    { id: "rate-limiter", title: "Designing a Rate Limiter", track: "system-design", status: "available" },
+    { id: "cache-layer", title: "Designing a Cache Layer", track: "system-design", status: "available" },
   ],
 };
 
