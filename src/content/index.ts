@@ -2,6 +2,7 @@ import type { Lesson, Track } from "@/types";
 import { slidingWindow } from "./lessons/sliding-window";
 import { twoPointers } from "./lessons/two-pointers";
 import { bfs } from "./lessons/bfs";
+import { systemDesign101 } from "./lessons/system-design-101";
 import { urlShortener } from "./lessons/url-shortener";
 import { chatApp } from "./lessons/chat-app";
 import { feed } from "./lessons/feed";
@@ -13,6 +14,7 @@ export const LESSONS: Record<string, Lesson> = {
   [slidingWindow.id]: slidingWindow,
   [twoPointers.id]: twoPointers,
   [bfs.id]: bfs,
+  [systemDesign101.id]: systemDesign101,
   [urlShortener.id]: urlShortener,
   [chatApp.id]: chatApp,
   [feed.id]: feed,
@@ -47,7 +49,7 @@ export const PATH: Record<Track, PathNode[]> = {
     { id: "heap", title: "Heaps / Top-K", track: "dsa", status: "coming-soon" },
   ],
   "system-design": [
-    { id: "client-server", title: "Client–Server Basics", track: "system-design", status: "coming-soon" },
+    { id: "client-server", title: "System Design 101", track: "system-design", status: "available" },
     { id: "url-shortener", title: "Scaling a URL Shortener", track: "system-design", status: "available" },
     { id: "chat-app", title: "Designing a Chat App", track: "system-design", status: "available" },
     { id: "feed", title: "Designing a News Feed", track: "system-design", status: "available" },

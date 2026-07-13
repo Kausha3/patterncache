@@ -57,4 +57,5 @@ export const rateLimiter: SDLesson = {
     "Push enforcement toward the edge so excess traffic is rejected before it costs you — accepting eventual-consistency on the counters as the tradeoff.",
   ],
   relatedLessons: ["url-shortener", "chat-app"],
+  terms: ["client", "server", "loadBalancer", "tokenBucket", "cache", "cdn", "consistency", "throughput"],
 };

@@ -29,7 +29,15 @@ function fmt(n: number): string {
   return `${Math.round(n)}`;
 }
 
-export function StageBuilder({ stages, onComplete }: { stages: SDStage[]; onComplete?: () => void }) {
+export function StageBuilder({
+  stages,
+  onComplete,
+  labels = { problem: "Problem", fix: "Fix", tradeoff: "Tradeoff" },
+}: {
+  stages: SDStage[];
+  onComplete?: () => void;
+  labels?: { problem: string; fix: string; tradeoff: string };
+}) {
   const [s, setS] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [loadT, setLoadT] = useState(0.42); // slider position 0..1 (log-mapped)
@@ -119,11 +127,11 @@ export function StageBuilder({ stages, onComplete }: { stages: SDStage[]; onComp
           </div>
         )}
 
-        {/* Problem → Fix → Tradeoff */}
+        {/* Problem → Fix → Tradeoff (labels overridable for the primer) */}
         <div style={{ display: "grid", gap: 13 }}>
-          <NarrativeRow eyebrow="Problem" tone={color.red}>{stage.problem}</NarrativeRow>
-          <NarrativeRow eyebrow="Fix" tone={color.teal}>{stage.fix}</NarrativeRow>
-          <NarrativeRow eyebrow="Tradeoff" tone={color.amber}>{stage.tradeoff}</NarrativeRow>
+          <NarrativeRow eyebrow={labels.problem} tone={color.red}>{stage.problem}</NarrativeRow>
+          <NarrativeRow eyebrow={labels.fix} tone={color.teal}>{stage.fix}</NarrativeRow>
+          <NarrativeRow eyebrow={labels.tradeoff} tone={color.amber}>{stage.tradeoff}</NarrativeRow>
         </div>
 
         {/* Capacity of the design at this stage */}

@@ -56,4 +56,5 @@ export const feed: SDLesson = {
     "Almost every 'timeline' or 'activity feed' question reduces to picking that fan-out strategy and its threshold.",
   ],
   relatedLessons: ["chat-app", "url-shortener"],
+  terms: ["client", "server", "database", "cache", "fanout", "queue", "shard", "cdn", "loadBalancer"],
 };

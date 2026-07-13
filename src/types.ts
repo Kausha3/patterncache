@@ -107,6 +107,10 @@ export interface SDLesson {
   stages: SDStage[];
   recap: string[];
   relatedLessons: string[];
+  /** Plain-English glossary keys (into GLOSSARY) relevant to this lesson. */
+  terms?: string[];
+  /** Override the Problem/Fix/Tradeoff row labels (e.g. for the primer). */
+  stageLabels?: { problem: string; fix: string; tradeoff: string };
 }
 
 export type Lesson = DSALesson | SDLesson;

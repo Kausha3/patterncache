@@ -56,4 +56,5 @@ export const chatApp: SDLesson = {
     "Async delivery buys scale but costs you easy ordering — you enforce per-conversation sequencing to get it back.",
   ],
   relatedLessons: ["url-shortener", "feed"],
+  terms: ["client", "server", "websocket", "presence", "fanout", "queue", "shard", "cache", "consistency"],
 };

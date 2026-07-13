@@ -57,4 +57,5 @@ export const cacheLayer: SDLesson = {
     "Recognize these tradeoffs behind any 'add a cache' answer: staleness, invalidation, eviction, stampede, and hotspots.",
   ],
   relatedLessons: ["url-shortener", "feed"],
+  terms: ["client", "server", "database", "cache", "cacheAside", "ttl", "eviction", "stampede", "shard"],
 };

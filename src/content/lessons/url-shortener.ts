@@ -55,4 +55,5 @@ export const urlShortener: SDLesson = {
     "Immutable mappings are what make aggressive caching safe here; a mutable domain would force harder consistency tradeoffs.",
   ],
   relatedLessons: ["chat-app"],
+  terms: ["client", "server", "database", "cache", "loadBalancer", "replica", "cdn", "latency", "throughput"],
 };

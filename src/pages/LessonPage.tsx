@@ -9,6 +9,7 @@ import { ConceptCard } from "@/components/ConceptCard";
 import { TraceVisualizer } from "@/components/TraceVisualizer";
 import { SandboxPractice } from "@/components/SandboxPractice";
 import { StageBuilder } from "@/components/StageBuilder";
+import { Glossary } from "@/components/Glossary";
 import { Button, Eyebrow, Panel, InlineCode } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { color, font, radius, trackColor, motion } from "@/theme/tokens";
@@ -166,9 +167,14 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
   } else {
     switch (stepKey) {
       case "overview":
-        return <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7 }}>{lesson.overview}</p></Panel>;
+        return (
+          <div style={{ display: "grid", gap: 14 }}>
+            <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7 }}>{lesson.overview}</p></Panel>
+            <Glossary terms={lesson.terms} />
+          </div>
+        );
       case "stages":
-        return <StageBuilder stages={lesson.stages} onComplete={onStepComplete} />;
+        return <StageBuilder stages={lesson.stages} onComplete={onStepComplete} labels={lesson.stageLabels} />;
       case "recap":
         return <Recap lesson={lesson} />;
     }
