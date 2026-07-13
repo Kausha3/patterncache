@@ -289,7 +289,7 @@ export function applySWSandbox(state: SWState, actionId: string): SandboxOutcome
   return { state, valid: false, done: atEnd, message: "Unknown action." };
 }
 
-export function scoreSWSandbox(state: SWState): { achieved: number; optimal: number; label: string } {
+export function scoreSWSandbox(state: SWState): { solved: boolean; message: string; note?: string } {
   // Brute-force the true optimum so the compare is honest.
   const { input } = state;
   let optimal = 0;
@@ -300,10 +300,11 @@ export function scoreSWSandbox(state: SWState): { achieved: number; optimal: num
       else break;
     }
   }
+  const solved = state.best >= optimal;
   return {
-    achieved: state.best,
-    optimal,
-    label: `longest window found: "${input.slice(state.bestWindow[0], state.bestWindow[1] + 1)}"`,
+    solved,
+    message: `You found a window of ${state.best}. The optimum for "${input}" is ${optimal}. ${solved ? "You matched it." : "Reset and see if you can reach it."}`,
+    note: `longest window found: "${input.slice(state.bestWindow[0], state.bestWindow[1] + 1)}"`,
   };
 }
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SandboxEngine } from "@/algorithms";
 import { color, font, radius } from "@/theme/tokens";
-import { Panel, Button, SectionHeader, Eyebrow, InlineCode } from "./ui";
+import { Panel, Button, SectionHeader, Eyebrow } from "./ui";
 import { Icon, type IconName } from "./Icon";
 
 /**
@@ -10,7 +10,13 @@ import { Icon, type IconName } from "./Icon";
  * silently. On finishing, compares their best to the true optimum, no shaming.
  */
 
-const ACTION_ICON: Record<string, IconName> = { expand: "plus", shrink: "minus" };
+const ACTION_ICON: Record<string, IconName> = {
+  expand: "plus",
+  shrink: "minus",
+  moveL: "arrowRight",
+  moveR: "arrowLeft",
+  visit: "chevronRight",
+};
 
 export function SandboxPractice({
   engine,
@@ -58,7 +64,6 @@ export function SandboxPractice({
   }, [engine, act]);
 
   const result = useMemo(() => (done ? engine.score(state) : null), [done, engine, state]);
-  const beatIt = result ? result.achieved >= result.optimal : false;
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -102,16 +107,13 @@ export function SandboxPractice({
         {result && (
           <div style={{ borderTop: `1px solid ${color.hairline}`, paddingTop: 16, display: "grid", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: beatIt ? color.green : color.amber }}>
-                <Icon name={beatIt ? "check" : "target"} size={16} />
+              <span style={{ color: result.solved ? color.green : color.amber }}>
+                <Icon name={result.solved ? "check" : "target"} size={16} />
               </span>
-              <Eyebrow tone={beatIt ? color.green : color.amber}>{beatIt ? "Optimal — nicely done" : "Good run"}</Eyebrow>
+              <Eyebrow tone={result.solved ? color.green : color.amber}>{result.solved ? "Solved — nicely done" : "Good run"}</Eyebrow>
             </div>
-            <p style={{ margin: 0, color: color.text }}>
-              You found a window of <b>{result.achieved}</b>. The optimum for <InlineCode>{input}</InlineCode> is <b>{result.optimal}</b>.{" "}
-              {beatIt ? "You matched it." : "Reset and see if you can reach it."}
-            </p>
-            <p style={{ margin: 0, color: color.textDim, fontSize: 13, fontFamily: font.mono }}>{result.label}</p>
+            <p style={{ margin: 0, color: color.text }}>{result.message}</p>
+            {result.note && <p style={{ margin: 0, color: color.textDim, fontSize: 13, fontFamily: font.mono }}>{result.note}</p>}
           </div>
         )}
       </Panel>

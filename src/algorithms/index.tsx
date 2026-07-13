@@ -9,6 +9,15 @@ import {
   renderSWSandbox,
   SW_PSEUDOCODE,
 } from "./slidingWindow";
+import {
+  runTwoPointer,
+  renderTwoPointerStep,
+  initTPSandbox,
+  applyTPSandbox,
+  scoreTPSandbox,
+  renderTPSandbox,
+  TP_PSEUDOCODE,
+} from "./twoPointer";
 
 /**
  * ALGORITHMS registry — the seam that keeps <TraceVisualizer /> and
@@ -19,12 +28,19 @@ import {
  * it here — no component changes required.
  */
 
+/** Terminal assessment shown when the learner finishes — algorithm-agnostic. */
+export interface SandboxScore {
+  solved: boolean; // reached the optimal/correct outcome
+  message: string; // the comparison, in plain language
+  note?: string; // secondary mono line (e.g. the winning window / pair / path)
+}
+
 export interface SandboxEngine {
   actions: SandboxAction[];
   init(input: string): unknown;
   apply(state: unknown, actionId: string): SandboxOutcome;
   render(state: unknown): ReactNode;
-  score(state: unknown): { achieved: number; optimal: number; label: string };
+  score(state: unknown): SandboxScore;
 }
 
 export interface AlgorithmDef {
@@ -50,7 +66,23 @@ export const ALGORITHMS: Partial<Record<AlgorithmKey, AlgorithmDef>> = {
       init: initSWSandbox as (input: string) => unknown,
       apply: applySWSandbox as (state: unknown, actionId: string) => SandboxOutcome,
       render: renderSWSandbox as (state: unknown) => ReactNode,
-      score: scoreSWSandbox as (state: unknown) => { achieved: number; optimal: number; label: string },
+      score: scoreSWSandbox as (state: unknown) => SandboxScore,
+    },
+  },
+  "two-pointer": {
+    key: "two-pointer",
+    run: runTwoPointer as (input: string) => TraceStep[],
+    renderStep: renderTwoPointerStep as (step: TraceStep) => ReactNode,
+    pseudocode: TP_PSEUDOCODE,
+    sandbox: {
+      actions: [
+        { id: "moveL", label: "Move L →", key: "ArrowRight" },
+        { id: "moveR", label: "Move R ←", key: "ArrowLeft" },
+      ],
+      init: initTPSandbox as (input: string) => unknown,
+      apply: applyTPSandbox as (state: unknown, actionId: string) => SandboxOutcome,
+      render: renderTPSandbox as (state: unknown) => ReactNode,
+      score: scoreTPSandbox as (state: unknown) => SandboxScore,
     },
   },
 };

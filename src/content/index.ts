@@ -1,11 +1,15 @@
 import type { Lesson, Track } from "@/types";
 import { slidingWindow } from "./lessons/sliding-window";
+import { twoPointers } from "./lessons/two-pointers";
 import { urlShortener } from "./lessons/url-shortener";
+import { chatApp } from "./lessons/chat-app";
 
 /** Fully-built, playable lessons keyed by id. */
 export const LESSONS: Record<string, Lesson> = {
   [slidingWindow.id]: slidingWindow,
+  [twoPointers.id]: twoPointers,
   [urlShortener.id]: urlShortener,
+  [chatApp.id]: chatApp,
 };
 
 export function getLesson(id: string): Lesson | undefined {
@@ -27,7 +31,7 @@ export interface PathNode {
 
 export const PATH: Record<Track, PathNode[]> = {
   dsa: [
-    { id: "two-pointer", title: "Two Pointers", track: "dsa", status: "coming-soon" },
+    { id: "two-pointer", title: "Two Pointers", track: "dsa", status: "available" },
     { id: "sliding-window", title: "Sliding Window", track: "dsa", status: "available" },
     { id: "bfs", title: "BFS / Graphs", track: "dsa", status: "coming-soon" },
     { id: "dfs", title: "DFS / Backtracking", track: "dsa", status: "coming-soon" },
@@ -37,7 +41,7 @@ export const PATH: Record<Track, PathNode[]> = {
   "system-design": [
     { id: "client-server", title: "Client–Server Basics", track: "system-design", status: "coming-soon" },
     { id: "url-shortener", title: "Scaling a URL Shortener", track: "system-design", status: "available" },
-    { id: "chat-app", title: "Designing a Chat App", track: "system-design", status: "coming-soon" },
+    { id: "chat-app", title: "Designing a Chat App", track: "system-design", status: "available" },
     { id: "feed", title: "Designing a Feed", track: "system-design", status: "coming-soon" },
     { id: "rate-limiter", title: "Designing a Rate Limiter", track: "system-design", status: "coming-soon" },
     { id: "cache-layer", title: "Designing a Cache Layer", track: "system-design", status: "coming-soon" },
