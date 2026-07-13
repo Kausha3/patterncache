@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { SDStage } from "@/types";
 import { getNode } from "@/content/nodes";
 import { color, font, radius, motion } from "@/theme/tokens";
-import { Panel, Button, MetricBar, Eyebrow, SectionHeader } from "./ui";
+import { Panel, Button, MetricBar, Eyebrow, SectionHeader, PromptBanner } from "./ui";
 import { Icon } from "./Icon";
 
 /**
@@ -31,10 +31,12 @@ function fmt(n: number): string {
 
 export function StageBuilder({
   stages,
+  prompt,
   onComplete,
   labels = { problem: "Problem", fix: "Fix", tradeoff: "Tradeoff" },
 }: {
   stages: SDStage[];
+  prompt?: string;
   onComplete?: () => void;
   labels?: { problem: string; fix: string; tradeoff: string };
 }) {
@@ -73,6 +75,7 @@ export function StageBuilder({
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
+      {prompt && <PromptBanner prompt={prompt} tone={color.blue} />}
       <SectionHeader eyebrow={`Stage ${s + 1} / ${stages.length} · ${stage.title}`} tone={color.blue} meta="click a node to inspect it" />
 
       <Panel style={{ display: "grid", gap: 20, borderColor: saturated ? color.red : color.panelBorder, transition: `border-color ${motion.step}` }}>

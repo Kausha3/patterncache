@@ -39,6 +39,20 @@ export function Divider({ style }: { style?: CSSProperties }) {
   return <div style={{ height: 1, background: color.hairline, ...style }} />;
 }
 
+/** Keeps the original interview prompt visible across a multi-phase
+ * interaction — once you're deep in a build-out it's easy to lose sight of
+ * what you're actually designing. */
+export function PromptBanner({ prompt, tone = color.textDim }: { prompt: string; tone?: string }) {
+  return (
+    <div style={{ display: "flex", gap: 9, alignItems: "baseline", borderLeft: `2px solid ${tone}`, paddingLeft: 11, paddingTop: 1, paddingBottom: 1 }}>
+      <span style={{ fontFamily: font.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: tone, flexShrink: 0 }}>
+        Prompt
+      </span>
+      <span style={{ fontSize: 13.5, color: color.textDim }}>{prompt}</span>
+    </div>
+  );
+}
+
 type BtnVariant = "primary" | "ghost" | "subtle" | "danger";
 interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: BtnVariant;

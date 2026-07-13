@@ -12,6 +12,7 @@ import { SandboxPractice } from "@/components/SandboxPractice";
 import { StageBuilder } from "@/components/StageBuilder";
 import { ClarifyInterview } from "@/components/ClarifyInterview";
 import { ClassModeler } from "@/components/ClassModeler";
+import { CodeBlock, generateClassCode } from "@/components/CodeBlock";
 import { Glossary } from "@/components/Glossary";
 import { Button, Eyebrow, Panel, InlineCode } from "@/components/ui";
 import { Icon } from "@/components/Icon";
@@ -195,7 +196,7 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
       case "clarify":
         return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={onStepComplete} /> : null;
       case "design":
-        return <ClassModeler design={lesson.design} onComplete={onStepComplete} />;
+        return <ClassModeler design={lesson.design} prompt={lesson.interview?.prompt} onComplete={onStepComplete} />;
       case "recap":
         return <Recap lesson={lesson} />;
     }
@@ -211,7 +212,9 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
       case "clarify":
         return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={onStepComplete} /> : null;
       case "stages":
-        return lesson.stages?.length ? <StageBuilder stages={lesson.stages} onComplete={onStepComplete} labels={lesson.stageLabels} /> : null;
+        return lesson.stages?.length ? (
+          <StageBuilder stages={lesson.stages} prompt={lesson.interview?.prompt} onComplete={onStepComplete} labels={lesson.stageLabels} />
+        ) : null;
       case "recap":
         return <Recap lesson={lesson} />;
     }
@@ -242,6 +245,12 @@ function Recap({ lesson }: { lesson: Lesson }) {
           ))}
         </ul>
       </Panel>
+      {isLLD(lesson) && (
+        <div style={{ display: "grid", gap: 8 }}>
+          <Eyebrow tone={color.violet}>Your class skeleton</Eyebrow>
+          <CodeBlock code={generateClassCode(lesson.design)} label="Class skeleton" />
+        </div>
+      )}
       <ConfidenceCheckin lesson={lesson} />
     </div>
   );

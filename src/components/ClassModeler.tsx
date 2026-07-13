@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import type { ClassModelSpec, EntityCandidate, MethodCandidate, EdgeCase } from "@/types";
 import { color, font, radius, motion } from "@/theme/tokens";
-import { Panel, Button, SectionHeader, Eyebrow, Divider } from "./ui";
+import { Panel, Button, SectionHeader, Eyebrow, Divider, PromptBanner } from "./ui";
 import { Icon, type IconName } from "./Icon";
+import { CodeBlock, RelationshipDiagram, generateClassCode } from "./CodeBlock";
 
 /**
  * <ClassModeler /> — the LLD signature interaction. Not tiers-and-load like
@@ -27,7 +28,7 @@ const PHASE_META: Record<Phase, string> = {
   done: "the finished class model",
 };
 
-export function ClassModeler({ design, onComplete }: { design: ClassModelSpec; onComplete?: () => void }) {
+export function ClassModeler({ design, prompt, onComplete }: { design: ClassModelSpec; prompt?: string; onComplete?: () => void }) {
   const [phase, setPhase] = useState<Phase>("entities");
   const [entitySel, setEntitySel] = useState<Set<string>>(new Set());
   const [entityChecked, setEntityChecked] = useState(false);
@@ -42,6 +43,7 @@ export function ClassModeler({ design, onComplete }: { design: ClassModelSpec; o
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
+      {prompt && <PromptBanner prompt={prompt} tone={color.violet} />}
       <SectionHeader eyebrow={`Design it · phase ${phaseIndex} / 3`} tone={color.violet} meta={PHASE_META[phase]} />
 
       {phase === "entities" && (
@@ -297,7 +299,10 @@ function MethodsPhase({
                 transition: `all ${motion.fast}`,
               }}
             >
-              <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.violet }}>{e.name}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.violet }}>
+                <Icon name="layers" size={12} color={color.violet} />
+                {e.name}
+              </span>
               <div style={{ display: "grid", gap: 4 }}>
                 {assigned.length === 0 && <span style={{ fontSize: 11, color: color.textFaint }}>no methods yet</span>}
                 {assigned.map((m) => (
@@ -398,37 +403,56 @@ function EdgesPhase({
 
 function FinalDiagram({ design }: { design: ClassModelSpec }) {
   const entities = design.entities.filter((e) => e.isEntity);
+  const code = useMemo(() => generateClassCode(design), [design]);
+
   return (
-    <Panel style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <Icon name="check" size={17} color={color.green} strokeWidth={2.2} />
-        <Eyebrow tone={color.green}>Class model complete</Eyebrow>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
-        {entities.map((e) => (
-          <div key={e.id} style={{ border: `1.5px solid ${color.violet}55`, borderRadius: radius.md, padding: 12, background: "rgba(154,130,212,0.06)" }}>
-            <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.violet }}>{e.name}</span>
-            <div style={{ marginTop: 7, display: "grid", gap: 3 }}>
-              {design.methods
-                .filter((m) => m.ownerId === e.id)
-                .map((m) => (
-                  <span key={m.id} style={{ fontFamily: font.mono, fontSize: 11, color: color.textDim }}>
-                    {m.signature}
-                  </span>
-                ))}
+    <div style={{ display: "grid", gap: 16 }}>
+      <Panel style={{ display: "grid", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <Icon name="check" size={17} color={color.green} strokeWidth={2.2} />
+          <Eyebrow tone={color.green}>Class model complete</Eyebrow>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
+          {entities.map((e) => (
+            <div
+              key={e.id}
+              style={{
+                border: `1.5px solid ${color.violet}55`,
+                borderRadius: radius.md,
+                overflow: "hidden",
+                background: "rgba(154,130,212,0.06)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "rgba(154,130,212,0.1)", borderBottom: `1px solid ${color.violet}33` }}>
+                <Icon name="layers" size={13} color={color.violet} />
+                <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.violet }}>{e.name}</span>
+              </div>
+              <div style={{ padding: "10px 12px", display: "grid", gap: 4 }}>
+                {design.methods.filter((m) => m.ownerId === e.id).length === 0 && (
+                  <span style={{ fontSize: 11, color: color.textFaint, fontStyle: "italic" }}>identity only</span>
+                )}
+                {design.methods
+                  .filter((m) => m.ownerId === e.id)
+                  .map((m) => (
+                    <span key={m.id} style={{ fontFamily: font.mono, fontSize: 11, color: color.textDim }}>
+                      {m.signature}
+                    </span>
+                  ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <Divider />
+        <div style={{ display: "grid", gap: 8 }}>
+          <Eyebrow>Relationships</Eyebrow>
+          <RelationshipDiagram relationships={design.relationships} entityNames={entities.map((e) => e.name)} />
+        </div>
+      </Panel>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        <Eyebrow tone={color.violet}>Take this into the interview</Eyebrow>
+        <CodeBlock code={code} label="Class skeleton" />
       </div>
-      <Divider />
-      <div style={{ display: "grid", gap: 6 }}>
-        <Eyebrow>Relationships</Eyebrow>
-        {design.relationships.map((r, i) => (
-          <span key={i} style={{ fontSize: 13, color: color.text }}>
-            · {r}
-          </span>
-        ))}
-      </div>
-    </Panel>
+    </div>
   );
 }
