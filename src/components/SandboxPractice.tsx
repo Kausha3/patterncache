@@ -30,13 +30,13 @@ export function SandboxPractice({
   onComplete?: () => void;
 }) {
   const [state, setState] = useState<unknown>(() => engine.init(input));
-  const [message, setMessage] = useState<string>("Drive the window with the controls below. Every move gets explained.");
+  const [message, setMessage] = useState<string>("Use the controls below to drive it yourself. Every move gets explained.");
   const [lastValid, setLastValid] = useState<boolean>(true);
   const [done, setDone] = useState(false);
 
   const reset = useCallback(() => {
     setState(engine.init(input));
-    setMessage("Reset. See if you can reach the longest window in fewer moves.");
+    setMessage("Reset. Give it another go.");
     setLastValid(true);
     setDone(false);
   }, [engine, input]);

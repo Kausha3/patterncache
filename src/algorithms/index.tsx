@@ -18,6 +18,15 @@ import {
   renderTPSandbox,
   TP_PSEUDOCODE,
 } from "./twoPointer";
+import {
+  runBFS,
+  renderBFSStep,
+  initBFSSandbox,
+  applyBFSSandbox,
+  scoreBFSSandbox,
+  renderBFSSandbox,
+  BFS_PSEUDOCODE,
+} from "./bfs";
 
 /**
  * ALGORITHMS registry — the seam that keeps <TraceVisualizer /> and
@@ -83,6 +92,22 @@ export const ALGORITHMS: Partial<Record<AlgorithmKey, AlgorithmDef>> = {
       apply: applyTPSandbox as (state: unknown, actionId: string) => SandboxOutcome,
       render: renderTPSandbox as (state: unknown) => ReactNode,
       score: scoreTPSandbox as (state: unknown) => SandboxScore,
+    },
+  },
+  bfs: {
+    key: "bfs",
+    run: runBFS as (input: string) => TraceStep[],
+    renderStep: renderBFSStep as (step: TraceStep) => ReactNode,
+    pseudocode: BFS_PSEUDOCODE,
+    sandbox: {
+      actions: [
+        { id: "oldest", label: "Pull oldest (BFS)" },
+        { id: "newest", label: "Pull newest" },
+      ],
+      init: initBFSSandbox as (input: string) => unknown,
+      apply: applyBFSSandbox as (state: unknown, actionId: string) => SandboxOutcome,
+      render: renderBFSSandbox as (state: unknown) => ReactNode,
+      score: scoreBFSSandbox as (state: unknown) => SandboxScore,
     },
   },
 };

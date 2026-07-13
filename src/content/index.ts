@@ -1,6 +1,7 @@
 import type { Lesson, Track } from "@/types";
 import { slidingWindow } from "./lessons/sliding-window";
 import { twoPointers } from "./lessons/two-pointers";
+import { bfs } from "./lessons/bfs";
 import { urlShortener } from "./lessons/url-shortener";
 import { chatApp } from "./lessons/chat-app";
 
@@ -8,6 +9,7 @@ import { chatApp } from "./lessons/chat-app";
 export const LESSONS: Record<string, Lesson> = {
   [slidingWindow.id]: slidingWindow,
   [twoPointers.id]: twoPointers,
+  [bfs.id]: bfs,
   [urlShortener.id]: urlShortener,
   [chatApp.id]: chatApp,
 };
@@ -33,7 +35,7 @@ export const PATH: Record<Track, PathNode[]> = {
   dsa: [
     { id: "two-pointer", title: "Two Pointers", track: "dsa", status: "available" },
     { id: "sliding-window", title: "Sliding Window", track: "dsa", status: "available" },
-    { id: "bfs", title: "BFS / Graphs", track: "dsa", status: "coming-soon" },
+    { id: "bfs", title: "BFS / Shortest Path", track: "dsa", status: "available" },
     { id: "dfs", title: "DFS / Backtracking", track: "dsa", status: "coming-soon" },
     { id: "dp", title: "Dynamic Programming", track: "dsa", status: "coming-soon" },
     { id: "heap", title: "Heaps / Top-K", track: "dsa", status: "coming-soon" },
