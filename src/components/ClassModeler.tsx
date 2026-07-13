@@ -1,93 +1,110 @@
 import { useMemo, useState } from "react";
-import type { ClassModelSpec, EntityCandidate, MethodCandidate, EdgeCase } from "@/types";
+import type { ClassModelSpec, EntityCandidate, MethodCandidate, EdgeCase, PropertyDef, TraceStep } from "@/types";
 import { color, font, radius, motion } from "@/theme/tokens";
 import { Panel, Button, SectionHeader, Eyebrow, Divider, PromptBanner } from "./ui";
-import { Icon, type IconName } from "./Icon";
+import { Icon } from "./Icon";
+import { TraceVisualizer } from "./TraceVisualizer";
 import { CodeBlock, RelationshipDiagram, generateClassCode } from "./CodeBlock";
 
 /**
  * <ClassModeler /> — the LLD signature interaction. Not tiers-and-load like
  * <StageBuilder />; this is entities, responsibilities, and edge cases —
- * exactly what Amazon's low-level design round actually probes.
+ * exactly what a low-level design round actually probes.
  *
  * Three phases, driven entirely by ClassModelSpec data:
- *  1. Entities — pick which nouns from the prompt become classes.
- *  2. Responsibilities — assign each method to the class that owns it.
+ *  1. Watch it get designed — a real reasoning TRACE (reuses <TraceVisualizer/>,
+ *     same shell as the DSA algorithm traces): step through WHY each class was
+ *     accepted or rejected, why each field exists, and how classes relate —
+ *     the diagram builds itself while it narrates. Fully derived from the
+ *     lesson's own data; no separate content to author.
+ *  2. Now you design it — one method at a time. You commit to an owner AND a
+ *     reason before the reveal, then see the real justification — not a
+ *     right/wrong banner. This replaced a grid "sort the chip into a bucket"
+ *     matching-game mechanic that tested guessing, not reasoning.
  *  3. Edge cases — defend the design under "what if" scenarios.
- * Every subsequent phase works off the TRUE model (not the learner's
- * mistakes) so a wrong answer in phase 1 never corrupts phase 2 — same
- * "no shaming" philosophy as <SandboxPractice />.
+ * Every phase works off the TRUE model (not the learner's picks), so a wrong
+ * answer never corrupts what comes after — same "no shaming" philosophy as
+ * <SandboxPractice />.
  */
 
-type Phase = "entities" | "methods" | "edges" | "done";
+type Phase = "watch" | "practice" | "edges" | "done";
 
 const PHASE_META: Record<Phase, string> = {
-  entities: "which nouns become classes?",
-  methods: "assign each method to its class",
+  watch: "watch the class model come together",
+  practice: "place each method, with your reasoning",
   edges: "defend the design under edge cases",
   done: "the finished class model",
 };
 
 export function ClassModeler({ design, prompt, onComplete }: { design: ClassModelSpec; prompt?: string; onComplete?: () => void }) {
-  const [phase, setPhase] = useState<Phase>("entities");
-  const [entitySel, setEntitySel] = useState<Set<string>>(new Set());
-  const [entityChecked, setEntityChecked] = useState(false);
-  const [placed, setPlaced] = useState<Record<string, string>>({});
-  const [pickedMethod, setPickedMethod] = useState<string | null>(null);
-  const [methodMsg, setMethodMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [phase, setPhase] = useState<Phase>("watch");
+  const [watchDone, setWatchDone] = useState(false);
+
+  const [practiceOrder] = useState(() => shuffle(design.methods.map((m) => m.id)));
+  const [practiceIdx, setPracticeIdx] = useState(0);
+  const [placedIds, setPlacedIds] = useState<Set<string>>(new Set());
+  const [pickedClass, setPickedClass] = useState<string | null>(null);
+  const [pickedReason, setPickedReason] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
+
   const [edgeIdx, setEdgeIdx] = useState(0);
   const [edgeChoice, setEdgeChoice] = useState<Record<string, string>>({});
 
   const correctEntities = useMemo(() => design.entities.filter((e) => e.isEntity), [design.entities]);
-  const phaseIndex = { entities: 1, methods: 2, edges: 3, done: 3 }[phase];
+  const reasoningSteps = useMemo(() => buildReasoningSteps(design), [design]);
+  const phaseIndex = { watch: 1, practice: 2, edges: 3, done: 3 }[phase];
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
       {prompt && <PromptBanner prompt={prompt} tone={color.violet} />}
       <SectionHeader eyebrow={`Design it · phase ${phaseIndex} / 3`} tone={color.violet} meta={PHASE_META[phase]} />
 
-      {phase === "entities" && (
-        <EntitiesPhase
-          candidates={design.entities}
-          selected={entitySel}
-          checked={entityChecked}
-          onToggle={(id) =>
-            setEntitySel((s) => {
-              const n = new Set(s);
-              n.has(id) ? n.delete(id) : n.add(id);
-              return n;
-            })
-          }
-          onCheck={() => setEntityChecked(true)}
-          onContinue={() => setPhase("methods")}
-        />
+      {phase === "watch" && (
+        <div style={{ display: "grid", gap: 14 }}>
+          <TraceVisualizer
+            steps={reasoningSteps}
+            renderStep={(step) => <ReasoningStepView step={step as TraceStep<DiagramState>} />}
+            goal="How the class model comes together, one decision at a time"
+            eyebrow="Watch it get designed"
+            accent={color.violet}
+            onComplete={() => setWatchDone(true)}
+          />
+          {watchDone && (
+            <div>
+              <Button variant="primary" accent={color.violet} iconRight="arrowRight" onClick={() => setPhase("practice")}>
+                Now you design it — place the methods
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
-      {phase === "methods" && (
-        <MethodsPhase
+      {phase === "practice" && (
+        <PracticePhase
           entities={correctEntities}
-          methods={design.methods}
-          placed={placed}
-          picked={pickedMethod}
-          message={methodMsg}
-          onPick={(id) => {
-            setPickedMethod(id);
-            setMethodMsg(null);
+          allMethods={design.methods}
+          order={practiceOrder}
+          idx={practiceIdx}
+          placedIds={placedIds}
+          pickedClass={pickedClass}
+          pickedReason={pickedReason}
+          revealed={revealed}
+          onPickClass={setPickedClass}
+          onPickReason={setPickedReason}
+          onReveal={() => {
+            setRevealed(true);
+            setPlacedIds((s) => new Set(s).add(practiceOrder[practiceIdx]));
           }}
-          onAssign={(entityId) => {
-            if (!pickedMethod) return;
-            const m = design.methods.find((x) => x.id === pickedMethod)!;
-            if (m.ownerId === entityId) {
-              setPlaced((p) => ({ ...p, [m.id]: entityId }));
-              const name = design.entities.find((e) => e.id === entityId)!.name;
-              setMethodMsg({ text: `Correct — ${m.signature} belongs to ${name}.`, ok: true });
+          onNext={() => {
+            if (practiceIdx < practiceOrder.length - 1) {
+              setPracticeIdx((i) => i + 1);
+              setPickedClass(null);
+              setPickedReason(null);
+              setRevealed(false);
             } else {
-              const correctName = design.entities.find((e) => e.id === m.ownerId)!.name;
-              setMethodMsg({ text: `Not quite — ${m.signature} belongs to ${correctName}, not here.`, ok: false });
+              setPhase("edges");
             }
-            setPickedMethod(null);
           }}
-          onContinue={() => setPhase("edges")}
         />
       )}
 
@@ -113,224 +130,341 @@ export function ClassModeler({ design, prompt, onComplete }: { design: ClassMode
   );
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // ---------------------------------------------------------------------------
-// Phase 1 — Entities
+// Shared: a class card — used by the Watch trace, Practice's growing diagram,
+// and the reasoning behind both.
 // ---------------------------------------------------------------------------
 
-function EntitiesPhase({
-  candidates,
-  selected,
-  checked,
-  onToggle,
-  onCheck,
-  onContinue,
+function ClassCard({
+  entity,
+  properties,
+  methods,
+  highlighted,
 }: {
-  candidates: EntityCandidate[];
-  selected: Set<string>;
-  checked: boolean;
-  onToggle: (id: string) => void;
-  onCheck: () => void;
-  onContinue: () => void;
+  entity: EntityCandidate;
+  properties: PropertyDef[];
+  methods: MethodCandidate[];
+  highlighted?: boolean;
 }) {
   return (
-    <Panel style={{ display: "grid", gap: 16 }}>
-      <p style={{ margin: 0, color: color.textDim, fontSize: 13.5 }}>
-        Which of these nouns from the prompt should become their own class? Click to select, then check your answer.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-        {candidates.map((c) => {
-          const isSel = selected.has(c.id);
-          let tone: string = isSel ? color.violet : color.panelBorder;
-          let bg = isSel ? "rgba(154,130,212,0.14)" : "rgba(255,255,255,0.02)";
-          let icon: IconName | null = null;
-          if (checked) {
-            if (c.isEntity && isSel) {
-              tone = color.green;
-              bg = "rgba(130,184,114,0.14)";
-              icon = "check";
-            } else if (!c.isEntity && isSel) {
-              tone = color.red;
-              bg = "rgba(208,123,110,0.12)";
-              icon = "close";
-            } else if (c.isEntity && !isSel) {
-              tone = color.amber;
-              bg = "rgba(217,169,78,0.1)";
-              icon = "target";
-            } else {
-              tone = color.panelBorder;
-              bg = "rgba(255,255,255,0.02)";
-            }
-          }
-          return (
-            <button
-              key={c.id}
-              onClick={() => onToggle(c.id)}
-              disabled={checked}
-              aria-pressed={isSel}
-              style={{
-                textAlign: "left",
-                border: `1.5px solid ${tone}`,
-                background: bg,
-                borderRadius: radius.md,
-                padding: "12px 12px",
-                display: "grid",
-                gap: 6,
-                cursor: checked ? "default" : "pointer",
-                transition: `all ${motion.fast}`,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.text }}>{c.name}</span>
-                {icon && <Icon name={icon} size={14} color={tone} />}
-              </div>
-              {checked && <span style={{ fontSize: 11.5, color: color.textDim, lineHeight: 1.45 }}>{c.why}</span>}
-              {checked && c.isEntity && c.properties && c.properties.length > 0 && (
-                <div style={{ borderTop: `1px solid ${color.hairline}`, marginTop: 2, paddingTop: 6, display: "grid", gap: 2 }}>
-                  {c.properties.map((p) => (
-                    <span key={p.name} style={{ fontFamily: font.mono, fontSize: 10.5, color: color.textFaint }}>
-                      {p.name}: <span style={{ color: color.amber }}>{p.type}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </button>
-          );
-        })}
+    <div
+      style={{
+        border: `1.5px solid ${highlighted ? color.teal : `${color.violet}55`}`,
+        boxShadow: highlighted ? `0 0 0 3px ${color.teal}22` : undefined,
+        borderRadius: radius.md,
+        overflow: "hidden",
+        background: "rgba(154,130,212,0.06)",
+        transition: `all ${motion.step}`,
+        animation: `pc-enter 280ms ${motion.enter}`,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "rgba(154,130,212,0.1)", borderBottom: `1px solid ${color.violet}33` }}>
+        <Icon name="layers" size={12} color={color.violet} />
+        <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 12.5, color: color.violet }}>{entity.name}</span>
       </div>
-      <div>
-        {!checked ? (
-          <Button variant="primary" accent={color.violet} onClick={onCheck} disabled={selected.size === 0}>
-            Check my answer
-          </Button>
-        ) : (
-          <Button variant="primary" accent={color.violet} iconRight="arrowRight" onClick={onContinue}>
-            Continue to responsibilities
-          </Button>
+      <div style={{ padding: "8px 10px", display: "grid", gap: 3 }}>
+        {properties.length === 0 && methods.length === 0 && (
+          <span style={{ fontSize: 10.5, color: color.textFaint, fontStyle: "italic" }}>no members yet</span>
         )}
+        {properties.map((p) => (
+          <span key={p.name} style={{ fontFamily: font.mono, fontSize: 10.5, color: color.textFaint }}>
+            {p.name}: <span style={{ color: color.amber }}>{p.type}</span>
+          </span>
+        ))}
+        {properties.length > 0 && methods.length > 0 && <div style={{ height: 1, background: color.hairline, margin: "2px 0" }} />}
+        {methods.map((m) => (
+          <span key={m.id} style={{ fontFamily: font.mono, fontSize: 10.5, color: color.textDim }}>
+            {m.signature}
+          </span>
+        ))}
       </div>
-    </Panel>
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Phase 2 — Responsibilities (methods)
+// Phase 1 — Watch it get designed (a real reasoning trace)
 // ---------------------------------------------------------------------------
 
-function MethodsPhase({
+interface DiagramState {
+  design: ClassModelSpec;
+  revealedEntities: string[];
+  propertyCounts: Record<string, number>;
+  highlightEntityIds: string[];
+}
+
+/** Derives a full reasoning trace from the lesson's own ClassModelSpec — no
+ * separate content to author. Order: accept/reject each candidate noun, then
+ * reveal each accepted class's fields, then draw each relationship. Methods
+ * are deliberately left for the Practice phase — structure first, then the
+ * behavior the learner actively places. */
+function buildReasoningSteps(design: ClassModelSpec): TraceStep<DiagramState>[] {
+  const steps: TraceStep<DiagramState>[] = [];
+  const revealedEntities: string[] = [];
+  const propertyCounts: Record<string, number> = {};
+
+  const snapshot = (highlightEntityIds: string[]): DiagramState => ({
+    design,
+    revealedEntities: [...revealedEntities],
+    propertyCounts: { ...propertyCounts },
+    highlightEntityIds,
+  });
+
+  for (const e of design.entities) {
+    if (e.isEntity) {
+      revealedEntities.push(e.id);
+      propertyCounts[e.id] = 0;
+      steps.push({ state: snapshot([e.id]), explanation: `${e.name} — ${e.why}`, tag: "class", milestone: true });
+    } else {
+      steps.push({ state: snapshot([]), explanation: `${e.name} — ${e.why}`, tag: "not a class" });
+    }
+  }
+
+  for (const eid of [...revealedEntities]) {
+    const entity = design.entities.find((x) => x.id === eid)!;
+    for (const p of entity.properties ?? []) {
+      propertyCounts[eid] = (propertyCounts[eid] ?? 0) + 1;
+      steps.push({ state: snapshot([eid]), explanation: `${entity.name} needs ${p.name}: ${p.type}.`, tag: "field" });
+    }
+  }
+
+  for (const r of design.relationships) {
+    const mentioned = design.entities.filter((e) => e.isEntity && r.includes(e.name)).map((e) => e.id);
+    steps.push({ state: snapshot(mentioned), explanation: r, tag: "relationship" });
+  }
+
+  if (steps.length === 0) {
+    steps.push({ state: snapshot([]), explanation: "No candidates to evaluate." });
+  }
+
+  return steps;
+}
+
+function ReasoningStepView({ step }: { step: TraceStep<DiagramState> }) {
+  const s = step.state;
+  const entities = s.design.entities.filter((e) => s.revealedEntities.includes(e.id));
+  if (entities.length === 0) {
+    return <p style={{ margin: 0, color: color.textFaint, fontSize: 13, fontStyle: "italic" }}>No classes identified yet.</p>;
+  }
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <span style={{ fontFamily: font.mono, fontSize: 10.5, color: color.textFaint }}>
+        {entities.length} class{entities.length === 1 ? "" : "es"} so far
+      </span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
+        {entities.map((e) => (
+          <ClassCard
+            key={e.id}
+            entity={e}
+            properties={(e.properties ?? []).slice(0, s.propertyCounts[e.id] ?? 0)}
+            methods={[]}
+            highlighted={s.highlightEntityIds.includes(e.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Now you design it (justify, then reveal — not a matching game)
+// ---------------------------------------------------------------------------
+
+const REASON_TAGS = [
+  { id: "data", label: "Owns the data it touches" },
+  { id: "behavior", label: "Owns this responsibility" },
+  { id: "role", label: "Matches its real-world role" },
+  { id: "guess", label: "Not sure — best guess" },
+];
+
+function PracticePhase({
   entities,
-  methods,
-  placed,
-  picked,
-  message,
-  onPick,
-  onAssign,
-  onContinue,
+  allMethods,
+  order,
+  idx,
+  placedIds,
+  pickedClass,
+  pickedReason,
+  revealed,
+  onPickClass,
+  onPickReason,
+  onReveal,
+  onNext,
 }: {
   entities: EntityCandidate[];
-  methods: MethodCandidate[];
-  placed: Record<string, string>;
-  picked: string | null;
-  message: { text: string; ok: boolean } | null;
-  onPick: (id: string) => void;
-  onAssign: (entityId: string) => void;
-  onContinue: () => void;
+  allMethods: MethodCandidate[];
+  order: string[];
+  idx: number;
+  placedIds: Set<string>;
+  pickedClass: string | null;
+  pickedReason: string | null;
+  revealed: boolean;
+  onPickClass: (id: string) => void;
+  onPickReason: (id: string) => void;
+  onReveal: () => void;
+  onNext: () => void;
 }) {
-  const pool = methods.filter((m) => !placed[m.id]);
-  const allPlaced = pool.length === 0;
+  const method = allMethods.find((m) => m.id === order[idx])!;
+  const owner = entities.find((e) => e.id === method.ownerId)!;
+  const isCorrect = pickedClass === method.ownerId;
+  const canReveal = !!pickedClass && !!pickedReason;
+  const isLast = idx === order.length - 1;
 
   return (
-    <Panel style={{ display: "grid", gap: 16 }}>
-      <p style={{ margin: 0, color: color.textDim, fontSize: 13.5 }}>
-        Pick a method below, then click the class you think owns it.
-      </p>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minHeight: 34 }}>
-        {pool.length === 0 && <span style={{ fontFamily: font.mono, fontSize: 12, color: color.green }}>All methods placed.</span>}
-        {pool.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => onPick(m.id)}
-            aria-pressed={picked === m.id}
-            style={{
-              fontFamily: font.mono,
-              fontSize: 12,
-              padding: "7px 11px",
-              borderRadius: radius.md,
-              border: `1.5px solid ${picked === m.id ? color.violet : color.panelBorder}`,
-              background: picked === m.id ? "rgba(154,130,212,0.16)" : "rgba(255,255,255,0.02)",
-              color: color.text,
-              transition: `all ${motion.fast}`,
-            }}
-          >
-            {m.signature}
-          </button>
+    <div style={{ display: "grid", gap: 16 }}>
+      {/* The diagram, growing as methods are placed */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
+        {entities.map((e) => (
+          <ClassCard
+            key={e.id}
+            entity={e}
+            properties={e.properties ?? []}
+            methods={allMethods.filter((m) => placedIds.has(m.id) && m.ownerId === e.id)}
+            highlighted={revealed && e.id === method.ownerId}
+          />
         ))}
       </div>
 
-      {message && (
-        <div
-          role="status"
-          style={{
-            display: "flex",
-            gap: 9,
-            alignItems: "flex-start",
-            background: message.ok ? "rgba(130,184,114,0.09)" : "rgba(208,123,110,0.09)",
-            border: `1px solid ${message.ok ? color.green : color.red}55`,
-            borderRadius: radius.md,
-            padding: "10px 13px",
-          }}
-        >
-          <Icon name={message.ok ? "check" : "close"} size={14} color={message.ok ? color.green : color.red} />
-          <span style={{ fontSize: 13, color: color.text }}>{message.text}</span>
+      <Panel style={{ display: "grid", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+          <Eyebrow tone={color.violet}>
+            Method {idx + 1} / {order.length}
+          </Eyebrow>
         </div>
-      )}
 
-      <Divider />
+        <InlineSignature signature={method.signature} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-        {entities.map((e) => {
-          const assigned = methods.filter((m) => placed[m.id] === e.id);
-          return (
-            <button
-              key={e.id}
-              onClick={() => onAssign(e.id)}
-              disabled={!picked}
+        <div style={{ display: "grid", gap: 8 }}>
+          <Eyebrow>Where does this belong?</Eyebrow>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {entities.map((e) => {
+              const isPicked = pickedClass === e.id;
+              const showResult = revealed;
+              const isRightAnswer = showResult && e.id === method.ownerId;
+              const isWrongPick = showResult && isPicked && !isRightAnswer;
+              const tone = isRightAnswer ? color.green : isWrongPick ? color.red : isPicked ? color.violet : color.panelBorder;
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => !revealed && onPickClass(e.id)}
+                  disabled={revealed}
+                  aria-pressed={isPicked}
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    padding: "8px 13px",
+                    borderRadius: radius.md,
+                    border: `1.5px solid ${tone}`,
+                    background: isRightAnswer ? "rgba(130,184,114,0.12)" : isWrongPick ? "rgba(208,123,110,0.1)" : isPicked ? "rgba(154,130,212,0.14)" : "rgba(255,255,255,0.02)",
+                    color: color.text,
+                    transition: `all ${motion.fast}`,
+                  }}
+                >
+                  {e.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          <Eyebrow>Why do you think so?</Eyebrow>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {REASON_TAGS.map((tag) => {
+              const isPicked = pickedReason === tag.id;
+              return (
+                <button
+                  key={tag.id}
+                  onClick={() => !revealed && onPickReason(tag.id)}
+                  disabled={revealed}
+                  aria-pressed={isPicked}
+                  style={{
+                    fontFamily: font.mono,
+                    fontSize: 12,
+                    padding: "7px 12px",
+                    borderRadius: radius.pill,
+                    border: `1.5px solid ${isPicked ? color.blue : color.panelBorder}`,
+                    background: isPicked ? "rgba(106,166,219,0.14)" : "rgba(255,255,255,0.02)",
+                    color: isPicked ? color.text : color.textDim,
+                    transition: `all ${motion.fast}`,
+                  }}
+                >
+                  {tag.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {!revealed ? (
+          <div>
+            <Button variant="primary" accent={color.violet} onClick={onReveal} disabled={!canReveal}>
+              Reveal
+            </Button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            <div
+              role="status"
               style={{
-                textAlign: "left",
-                border: `1.5px solid ${picked ? `${color.violet}aa` : color.panelBorder}`,
+                display: "flex",
+                gap: 10,
+                alignItems: "flex-start",
+                background: isCorrect ? "rgba(130,184,114,0.09)" : "rgba(208,123,110,0.09)",
+                border: `1px solid ${isCorrect ? color.green : color.red}55`,
                 borderRadius: radius.md,
-                padding: 12,
-                background: "rgba(154,130,212,0.05)",
-                display: "grid",
-                gap: 8,
-                cursor: picked ? "pointer" : "default",
-                opacity: picked ? 1 : 0.85,
-                transition: `all ${motion.fast}`,
+                padding: "12px 14px",
               }}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.violet }}>
-                <Icon name="layers" size={12} color={color.violet} />
-                {e.name}
-              </span>
+              <Icon name={isCorrect ? "check" : "close"} size={16} color={isCorrect ? color.green : color.red} />
               <div style={{ display: "grid", gap: 4 }}>
-                {assigned.length === 0 && <span style={{ fontSize: 11, color: color.textFaint }}>no methods yet</span>}
-                {assigned.map((m) => (
-                  <span key={m.id} style={{ fontFamily: font.mono, fontSize: 11, color: color.textDim }}>
-                    · {m.signature}
-                  </span>
-                ))}
+                <span style={{ fontSize: 13, color: color.text, fontWeight: 600 }}>
+                  {isCorrect ? "Right — it belongs on " : "Not quite — it belongs on "}
+                  {owner.name}
+                </span>
+                <span style={{ fontSize: 13, color: color.textDim, lineHeight: 1.55 }}>
+                  {method.justification ?? `${owner.name} is the class that actually owns the data and state this method touches.`}
+                </span>
               </div>
-            </button>
-          );
-        })}
-      </div>
+            </div>
+            <div>
+              <Button variant="primary" accent={color.violet} iconRight="arrowRight" onClick={onNext}>
+                {isLast ? "Continue to edge cases" : "Next method"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Panel>
+    </div>
+  );
+}
 
-      <div>
-        <Button variant="primary" accent={color.violet} iconRight="arrowRight" onClick={onContinue} disabled={!allPlaced}>
-          Continue to edge cases
-        </Button>
-      </div>
-    </Panel>
+function InlineSignature({ signature }: { signature: string }) {
+  return (
+    <div
+      style={{
+        fontFamily: font.mono,
+        fontSize: 16,
+        fontWeight: 700,
+        color: color.text,
+        background: "#15171C",
+        border: `1px solid ${color.hairline}`,
+        borderRadius: radius.md,
+        padding: "12px 14px",
+      }}
+    >
+      {signature}
+    </div>
   );
 }
 

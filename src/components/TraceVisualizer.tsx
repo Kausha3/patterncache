@@ -15,12 +15,18 @@ export function TraceVisualizer({
   pseudocode,
   goal,
   onComplete,
+  eyebrow = "Watch it run",
+  accent = color.teal,
 }: {
   steps: TraceStep[];
   renderStep: (step: TraceStep) => ReactNode;
-  pseudocode: string[];
+  /** Omit for traces with no literal code to sync to (e.g. an OOD reasoning trace) — the side panel just won't render. */
+  pseudocode?: string[];
   goal: string;
   onComplete?: () => void;
+  /** Header label + accent color — DSA defaults to "Watch it run" / teal; other lesson types can relabel. */
+  eyebrow?: string;
+  accent?: string;
 }) {
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -56,13 +62,13 @@ export function TraceVisualizer({
       aria-label="Algorithm trace. Left/right arrows step, space plays."
       style={{ display: "grid", gap: 14, outline: "none" }}
     >
-      <SectionHeader eyebrow="Watch it run" tone={color.teal} meta={goal} />
+      <SectionHeader eyebrow={eyebrow} tone={accent} meta={goal} />
 
       <Panel style={{ display: "grid", gap: 18 }}>
-        {/* Visualization + synced pseudocode */}
+        {/* Visualization + synced pseudocode (pseudocode panel omitted if not provided) */}
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
           <div style={{ flex: "1 1 300px", minWidth: 0 }}>{renderStep(step)}</div>
-          <Pseudocode lines={pseudocode} active={step.line} />
+          {pseudocode && <Pseudocode lines={pseudocode} active={step.line} accent={accent} />}
         </div>
 
         {/* Explanation — the "why" for this step */}
@@ -78,7 +84,7 @@ export function TraceVisualizer({
             alignItems: "flex-start",
           }}
         >
-          {step.tag && <StepTag tag={step.tag} milestone={step.milestone} />}
+          {step.tag && <StepTag tag={step.tag} milestone={step.milestone} accent={accent} />}
           <p style={{ margin: 0, color: color.text }}>{step.explanation}</p>
         </div>
 
@@ -90,6 +96,7 @@ export function TraceVisualizer({
           <Button variant="ghost" icon="stepBack" onClick={() => { setPlaying(false); go(i - 1); }} disabled={i === 0} aria-label="Step back" />
           <Button
             variant="primary"
+            accent={accent}
             icon={playing ? "pause" : "play"}
             onClick={() => { if (atEnd) { setI(0); setPlaying(true); } else setPlaying((p) => !p); }}
           >
@@ -102,15 +109,15 @@ export function TraceVisualizer({
         </div>
 
         <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: radius.pill }}>
-          <div style={{ width: `${((i + 1) / steps.length) * 100}%`, height: "100%", background: color.teal, borderRadius: radius.pill, transition: `width ${motion.step}` }} />
+          <div style={{ width: `${((i + 1) / steps.length) * 100}%`, height: "100%", background: accent, borderRadius: radius.pill, transition: `width ${motion.step}` }} />
         </div>
       </Panel>
     </div>
   );
 }
 
-function StepTag({ tag, milestone }: { tag: string; milestone?: boolean }) {
-  const tone = milestone ? color.amber : color.teal;
+function StepTag({ tag, milestone, accent }: { tag: string; milestone?: boolean; accent: string }) {
+  const tone = milestone ? color.amber : accent;
   return (
     <span
       style={{
@@ -133,7 +140,7 @@ function StepTag({ tag, milestone }: { tag: string; milestone?: boolean }) {
   );
 }
 
-function Pseudocode({ lines, active }: { lines: string[]; active?: number }) {
+function Pseudocode({ lines, active, accent }: { lines: string[]; active?: number; accent: string }) {
   return (
     <div
       role="img"
@@ -158,12 +165,12 @@ function Pseudocode({ lines, active }: { lines: string[]; active?: number }) {
               gridTemplateColumns: "30px 1fr",
               alignItems: "baseline",
               padding: "2px 12px 2px 0",
-              borderLeft: `2px solid ${on ? color.teal : "transparent"}`,
-              background: on ? "rgba(91,176,173,0.09)" : "transparent",
+              borderLeft: `2px solid ${on ? accent : "transparent"}`,
+              background: on ? `${accent}18` : "transparent",
               transition: `background ${motion.step}, border-color ${motion.step}`,
             }}
           >
-            <span style={{ fontFamily: font.mono, fontSize: 11, color: on ? color.teal : color.textFaint, textAlign: "right", paddingRight: 10, userSelect: "none" }}>
+            <span style={{ fontFamily: font.mono, fontSize: 11, color: on ? accent : color.textFaint, textAlign: "right", paddingRight: 10, userSelect: "none" }}>
               {idx + 1}
             </span>
             <code

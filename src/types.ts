@@ -167,6 +167,8 @@ export interface MethodCandidate {
   id: string;
   signature: string; // e.g. "assignVehicle(vehicle): void"
   ownerId: string; // id of the EntityCandidate (isEntity: true) it truly belongs to
+  /** WHY it belongs there — the real teaching content, not just the fact of ownership. Optional so un-retrofit lessons still compile. */
+  justification?: string;
 }
 
 export interface EdgeCaseOption {
