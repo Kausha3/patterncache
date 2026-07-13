@@ -57,4 +57,58 @@ export const feed: SDLesson = {
   ],
   relatedLessons: ["chat-app", "url-shortener"],
   terms: ["client", "server", "database", "cache", "fanout", "queue", "shard", "cdn", "loadBalancer"],
+  interview: {
+    prompt: "Design a news feed.",
+    opening: "Design the home feed for a social app — the merged stream of posts from everyone you follow. Go ahead.",
+    summary:
+      "Clarified: a read-heavy, reverse-chronological feed for hundreds of millions of users, with celebrity accounts in the mix, and a few seconds of delay for new posts is fine. That points straight at fan-out-on-write for the common case (precomputed timelines), a hybrid merge-on-read path for celebrities, and heavy caching — exactly the design we build next.",
+    questions: [
+      {
+        id: "scope",
+        ask: "Chronological or ranked feed? And what's in a post — text, images, video?",
+        category: "scope",
+        answer: "Start with a reverse-chronological feed of text and images. Ranking can come later.",
+        why: "Ranked vs chronological changes the read path a lot — ranking adds a scoring step and usually more precomputation. Pin it early.",
+        establishes: "Reverse-chron · text + images",
+        branches: [
+          { label: "Chronological (this)", approach: "Merge followees' recent posts by time — no scoring step, a simpler read path." },
+          { label: "Ranked / ML", approach: "Add a ranking service that scores candidate posts per user — more compute, a candidate-generation step, and usually precomputed." },
+        ],
+      },
+      {
+        id: "graph",
+        ask: "How many users, and how lopsided is the follower graph — any accounts with tens of millions of followers?",
+        category: "scale",
+        answer: "Hundreds of millions of users, and yes — some accounts have tens of millions of followers.",
+        why: "Follower distribution is THE feed question. A handful of mega-accounts break naive fan-out-on-write and force a hybrid.",
+        establishes: "100Ms of users · celebrity accounts exist",
+        branches: [
+          { label: "Everyone ~hundreds of followers", approach: "Fan-out-on-write works cleanly — precompute each follower's timeline the moment someone posts." },
+          { label: "Celebrities with millions (this)", approach: "Fan-out-on-write explodes for them → go hybrid: precompute for normal users, merge celebrity posts in at read time." },
+        ],
+      },
+      {
+        id: "freshness",
+        ask: "How fresh must the feed be — is a few seconds of delay for a new post acceptable?",
+        category: "constraints",
+        answer: "A few seconds of delay is fine; it doesn't have to be real-time to the millisecond.",
+        why: "Freshness tolerance decides how aggressively you can precompute and cache. Loose freshness unlocks fan-out-on-write and heavy caching.",
+        establishes: "Eventual freshness OK (seconds)",
+      },
+      {
+        id: "ratio",
+        ask: "How does viewing compare to posting — read-heavy or write-heavy?",
+        category: "scale",
+        answer: "Massively read-heavy — people scroll far more than they post.",
+        why: "The read:write ratio decides whether you pay at write time (fan-out) or read time. Heavy reads justify precomputing feeds.",
+        establishes: "Very read-heavy → precompute reads",
+      },
+      {
+        id: "cache-premature",
+        ask: "Should the timeline cache be Redis or Memcached?",
+        category: "premature",
+        redirect: "Cache tech is a later detail — first decide fan-out-on-write vs read, which determines what you're even caching.",
+      },
+    ],
+  },
 };

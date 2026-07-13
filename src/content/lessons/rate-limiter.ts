@@ -58,4 +58,58 @@ export const rateLimiter: SDLesson = {
   ],
   relatedLessons: ["url-shortener", "chat-app"],
   terms: ["client", "server", "loadBalancer", "tokenBucket", "cache", "cdn", "consistency", "throughput"],
+  interview: {
+    prompt: "Design a rate limiter.",
+    opening: "Design a rate limiter for an API — something that caps how many requests a caller can make. Go ahead.",
+    summary:
+      "Clarified: per-API-key, per-endpoint limits, millions of requests/sec across a global fleet, a hard 429 on rejection with slight overshoot acceptable, and controlled bursts allowed. That points to a token-bucket algorithm, a shared counter store with atomic check-and-decrement, and edge enforcement to shed abusive load cheaply — exactly what we build next.",
+    questions: [
+      {
+        id: "scope",
+        ask: "What are we limiting by — per user, per IP, per API key? One global limit or different per endpoint?",
+        category: "scope",
+        answer: "Limit per API key, with different limits for different endpoint tiers.",
+        why: "The limit key (user / IP / key) and granularity decide what you count and where the counters live — it's foundational.",
+        establishes: "Per-API-key · per-endpoint limits",
+      },
+      {
+        id: "scale",
+        ask: "How many callers and requests/sec are we protecting — one service, or a large fleet of servers?",
+        category: "scale",
+        answer: "Millions of requests/sec across a large fleet of servers, globally.",
+        why: "Many servers is the whole challenge — an in-memory counter on one box is wrong the moment traffic spreads. Scale forces a shared counter.",
+        establishes: "Millions req/s · distributed fleet",
+        branches: [
+          { label: "Single server", approach: "A local in-memory counter is fine and instant — no shared store needed." },
+          { label: "Distributed fleet (this)", approach: "Counters must be shared (Redis) so every server enforces one global limit; each request pays a lookup." },
+        ],
+      },
+      {
+        id: "accuracy",
+        ask: "On over-limit, do we reject hard (429) or throttle? And how exact must the limit be?",
+        category: "constraints",
+        answer: "Reject with a 429. Accurate, but a small amount of overshoot under load is acceptable.",
+        why: "Hard-reject vs throttle changes behavior, and exact-vs-approximate is a real tradeoff — perfect accuracy needs atomic ops and costs latency.",
+        establishes: "Hard 429 · slight overshoot OK",
+        branches: [
+          { label: "Approximate OK (this)", approach: "Use fast, eventually-synced edge counters — cheaper, with a little overshoot at the margins." },
+          { label: "Strictly exact", approach: "Every check-and-decrement must be atomic on one source of truth — correct, but a hot-path round-trip and a scaling bottleneck." },
+        ],
+      },
+      {
+        id: "bursts",
+        ask: "Should short bursts be allowed, or must the rate be perfectly smooth?",
+        category: "constraints",
+        answer: "Allow small controlled bursts — a caller shouldn't be blocked for a brief, reasonable spike.",
+        why: "Burst tolerance picks your algorithm: token bucket allows controlled bursts; fixed window is bursty at edges; sliding window is smoothest.",
+        establishes: "Controlled bursts → token bucket",
+      },
+      {
+        id: "deploy-premature",
+        ask: "Should we build this as a sidecar or a middleware library?",
+        category: "premature",
+        redirect: "Deployment shape comes after the algorithm and counter store — hold it until we know the accuracy and scale needs.",
+      },
+    ],
+  },
 };

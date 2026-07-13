@@ -57,4 +57,66 @@ export const chatApp: SDLesson = {
   ],
   relatedLessons: ["url-shortener", "feed"],
   terms: ["client", "server", "websocket", "presence", "fanout", "queue", "shard", "cache", "consistency"],
+  interview: {
+    prompt: "Design a chat app.",
+    opening: "Let's design a messaging app — think WhatsApp or Slack DMs. Where do you want to start?",
+    summary:
+      "You've got the shape: 1:1 and group chat with receipts, ~100k messages/sec across 50M users, groups up to a few hundred, at-least-once delivery with per-conversation ordering, offline push, and full history kept. That dictates the design — persistent connections through a gateway, a presence layer to find each recipient, a durable queue plus fan-out for ordered delivery, sharded storage for history, and a push path for offline users. That's exactly what we build next.",
+    questions: [
+      {
+        id: "scope",
+        ask: "One-to-one DMs only, or group chats too? And do we need read receipts and typing indicators?",
+        category: "scope",
+        answer: "Support both 1:1 and group chats. Read receipts and typing indicators are in scope; media can be a follow-up.",
+        why: "1:1 vs groups is the single biggest fork in a chat design — delivering to one person is a different problem than fanning out to a whole room.",
+        establishes: "1:1 + group chat · receipts + typing",
+        branches: [
+          { label: "1:1 only", approach: "Delivery is simple — route each message to the one recipient's live connection. No fan-out service needed." },
+          { label: "Small groups (this)", approach: "Fan out each message to every member's connection and inbox — manageable at a few hundred members." },
+          { label: "Huge broadcast rooms (100k+)", approach: "Fan-out-on-write explodes — switch large rooms to fan-out-on-read (members pull), treating it more like a feed." },
+        ],
+      },
+      {
+        id: "scale",
+        ask: "How many users and messages per second at peak, and how big can a group get?",
+        category: "scale",
+        answer: "Assume ~50M daily users, hundreds of thousands of messages/sec at peak, and groups up to a few hundred people.",
+        why: "Message rate and max group size decide whether simple fan-out survives or you need queues, sharding, and backpressure.",
+        establishes: "50M DAU · 100k+ msg/s · groups ≤ few hundred",
+      },
+      {
+        id: "delivery",
+        ask: "What delivery guarantee do we need, and does message order have to be preserved?",
+        category: "constraints",
+        answer: "Messages must not be lost — at-least-once — and must appear in the same order within a conversation.",
+        why: "Delivery and ordering guarantees drive whether you need a durable queue and per-conversation sequencing. They shape the whole pipeline.",
+        establishes: "At-least-once · per-conversation ordering",
+        branches: [
+          { label: "Best-effort, unordered", approach: "Simplest — push and forget. Fine for ephemeral presence pings, not for real chat history." },
+          { label: "At-least-once + ordered (this)", approach: "Persist before you ack, and stamp a per-conversation sequence number so clients can order and de-duplicate." },
+          { label: "Exactly-once, global order", approach: "Much harder and rarely needed — global ordering across all conversations kills throughput. Push back on this ask." },
+        ],
+      },
+      {
+        id: "offline",
+        ask: "Do we deliver to users who are offline, and how much history do we keep?",
+        category: "constraints",
+        answer: "Yes — offline users get a push notification and see the message on return. Keep full history.",
+        why: "Offline delivery forces a store-and-push path, not just live sockets; full history means durable, scalable storage from day one.",
+        establishes: "Offline push · full history retained",
+      },
+      {
+        id: "transport-premature",
+        ask: "Should we use WebSockets or long-polling for the connection?",
+        category: "premature",
+        redirect: "Let's settle transport once we know the delivery and scale needs — hold it. (It'll be persistent connections, but establish why first.)",
+      },
+      {
+        id: "db-premature",
+        ask: "Should messages live in Cassandra or a SQL database?",
+        category: "premature",
+        redirect: "Too early — the datastore falls out of the access pattern and scale, which we're still pinning down.",
+      },
+    ],
+  },
 };
