@@ -184,6 +184,15 @@ function EntitiesPhase({
                 {icon && <Icon name={icon} size={14} color={tone} />}
               </div>
               {checked && <span style={{ fontSize: 11.5, color: color.textDim, lineHeight: 1.45 }}>{c.why}</span>}
+              {checked && c.isEntity && c.properties && c.properties.length > 0 && (
+                <div style={{ borderTop: `1px solid ${color.hairline}`, marginTop: 2, paddingTop: 6, display: "grid", gap: 2 }}>
+                  {c.properties.map((p) => (
+                    <span key={p.name} style={{ fontFamily: font.mono, fontSize: 10.5, color: color.textFaint }}>
+                      {p.name}: <span style={{ color: color.amber }}>{p.type}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </button>
           );
         })}
@@ -427,17 +436,31 @@ function FinalDiagram({ design }: { design: ClassModelSpec }) {
                 <Icon name="layers" size={13} color={color.violet} />
                 <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 13, color: color.violet }}>{e.name}</span>
               </div>
-              <div style={{ padding: "10px 12px", display: "grid", gap: 4 }}>
-                {design.methods.filter((m) => m.ownerId === e.id).length === 0 && (
+              <div style={{ padding: "10px 12px", display: "grid", gap: 8 }}>
+                {(e.properties?.length ?? 0) === 0 && design.methods.filter((m) => m.ownerId === e.id).length === 0 && (
                   <span style={{ fontSize: 11, color: color.textFaint, fontStyle: "italic" }}>identity only</span>
                 )}
-                {design.methods
-                  .filter((m) => m.ownerId === e.id)
-                  .map((m) => (
-                    <span key={m.id} style={{ fontFamily: font.mono, fontSize: 11, color: color.textDim }}>
-                      {m.signature}
-                    </span>
-                  ))}
+                {(e.properties?.length ?? 0) > 0 && (
+                  <div style={{ display: "grid", gap: 3 }}>
+                    {e.properties!.map((p) => (
+                      <span key={p.name} style={{ fontFamily: font.mono, fontSize: 11, color: color.textFaint }}>
+                        {p.name}: <span style={{ color: color.amber }}>{p.type}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {(e.properties?.length ?? 0) > 0 && design.methods.filter((m) => m.ownerId === e.id).length > 0 && (
+                  <div style={{ height: 1, background: color.hairline }} />
+                )}
+                <div style={{ display: "grid", gap: 3 }}>
+                  {design.methods
+                    .filter((m) => m.ownerId === e.id)
+                    .map((m) => (
+                      <span key={m.id} style={{ fontFamily: font.mono, fontSize: 11, color: color.textDim }}>
+                        {m.signature}
+                      </span>
+                    ))}
+                </div>
               </div>
             </div>
           ))}
@@ -447,6 +470,34 @@ function FinalDiagram({ design }: { design: ClassModelSpec }) {
           <Eyebrow>Relationships</Eyebrow>
           <RelationshipDiagram relationships={design.relationships} entityNames={entities.map((e) => e.name)} />
         </div>
+        {design.tradeoffs && design.tradeoffs.length > 0 && (
+          <>
+            <Divider />
+            <div style={{ display: "grid", gap: 10 }}>
+              <Eyebrow tone={color.amber}>Design trade-offs</Eyebrow>
+              {design.tradeoffs.map((t, i) => (
+                <div key={i} style={{ display: "grid", gap: 3 }}>
+                  <span style={{ fontSize: 13, color: color.text, fontWeight: 600 }}>{t.decision}</span>
+                  <span style={{ fontSize: 12.5, color: color.textDim, lineHeight: 1.55 }}>{t.reasoning}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {design.principles && design.principles.length > 0 && (
+          <>
+            <Divider />
+            <div style={{ display: "grid", gap: 10 }}>
+              <Eyebrow tone={color.blue}>Design principles at play</Eyebrow>
+              {design.principles.map((p, i) => (
+                <div key={i} style={{ display: "grid", gap: 3 }}>
+                  <span style={{ fontSize: 13, color: color.blue, fontWeight: 700, fontFamily: font.mono }}>{p.name}</span>
+                  <span style={{ fontSize: 12.5, color: color.textDim, lineHeight: 1.55 }}>{p.explanation}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </Panel>
 
       <div style={{ display: "grid", gap: 8 }}>

@@ -27,6 +27,46 @@ export const NODES: Record<string, NodeDef> = {
   counter: { id: "counter", label: "Counter Store", what: "A fast shared store (Redis) holding per-caller counters/tokens so every server enforces the same limit.", kind: "data" },
   timeline: { id: "timeline", label: "Timeline Cache", what: "Each user's precomputed feed, ready to serve instantly — the read side of fan-out-on-write.", kind: "data" },
   origin: { id: "origin", label: "Origin Store", what: "The durable write store — the source of truth records land in before any caching or fan-out.", kind: "data" },
+
+  // Warehouse / fulfillment
+  inventory: { id: "inventory", label: "Inventory Service", what: "Tracks real-time stock counts per SKU per warehouse location — the single source of truth for 'how many do we have'.", kind: "compute" },
+  orderRouter: { id: "orderRouter", label: "Order Router", what: "Decides which warehouse should fulfill an order, based on stock availability and proximity to the customer.", kind: "compute" },
+  wms: { id: "wms", label: "Warehouse Mgmt (Pick/Pack)", what: "Coordinates the physical pick, pack, and ship workflow inside one warehouse.", kind: "compute" },
+  eventStream: { id: "eventStream", label: "Event Stream", what: "A durable, ordered log of inventory-changing events (unlike a plain queue, every consumer sees the same order) so every service's view of stock stays consistent.", kind: "async" },
+
+  // Checkout / cart
+  cartService: { id: "cartService", label: "Cart Service", what: "Owns each user's in-progress cart contents and running price, before checkout.", kind: "compute" },
+  inventoryReserve: { id: "inventoryReserve", label: "Inventory Reservation", what: "Temporarily holds stock for items in an active checkout so two carts can't both buy the last unit.", kind: "compute" },
+  paymentService: { id: "paymentService", label: "Payment Service", what: "Charges the customer and returns a definitive success or failure — the one place money actually moves.", kind: "compute" },
+  orderService: { id: "orderService", label: "Order Service", what: "The durable record of a placed order, created only once payment has actually succeeded.", kind: "data" },
+  saga: { id: "saga", label: "Order Saga / Orchestrator", what: "Coordinates the multi-step checkout (reserve stock → charge → confirm order) and rolls back cleanly if any step fails.", kind: "compute" },
+
+  // Notifications
+  templateService: { id: "templateService", label: "Template Service", what: "Renders the right message content and format for a notification type and channel.", kind: "compute" },
+  providerAdapter: { id: "providerAdapter", label: "Provider Adapters", what: "Thin integrations to each channel's real delivery API — push, email, and SMS vendors.", kind: "edge" },
+  deliveryTracker: { id: "deliveryTracker", label: "Delivery Tracker", what: "Records sent, delivered, and failed status per notification — what retries and analytics read from.", kind: "data" },
+
+  // Job scheduling
+  scheduler: { id: "scheduler", label: "Scheduler", what: "Decides when each job is due to run and hands ready jobs off to workers.", kind: "compute" },
+  workerPool: { id: "workerPool", label: "Worker Pool", what: "A fleet of workers that pull ready jobs and execute them.", kind: "compute" },
+  jobStore: { id: "jobStore", label: "Job Store", what: "The durable record of every job's definition, schedule, and current status.", kind: "data" },
+  coordinator: { id: "coordinator", label: "Leader Coordinator", what: "Elects a single active scheduler instance so a job is never scheduled twice by two competing schedulers.", kind: "compute" },
+
+  // Delivery tracking
+  gpsIngest: { id: "gpsIngest", label: "GPS Ingest", what: "Receives a continuous stream of location pings from delivery vehicles.", kind: "edge" },
+  routeOptimizer: { id: "routeOptimizer", label: "Route Optimizer", what: "Computes efficient delivery routes and re-routes drivers when conditions change.", kind: "compute" },
+  geoIndex: { id: "geoIndex", label: "Geospatial Index", what: "A location-indexed store that answers 'where is package X right now' and nearby-driver queries fast.", kind: "data" },
+
+  // Prime Video
+  catalog: { id: "catalog", label: "Catalog Service", what: "The durable metadata store of every title, with regional availability.", kind: "data" },
+  personalization: { id: "personalization", label: "Personalization Engine", what: "Ranks and assembles the personalized rows a specific user sees on their home page.", kind: "compute" },
+  manifestService: { id: "manifestService", label: "Manifest / Streaming Service", what: "Serves the video manifest and stream segments a player actually needs to play a title.", kind: "compute" },
+
+  // Review-abuse detection
+  reviewIngest: { id: "reviewIngest", label: "Review Ingest", what: "Receives every newly submitted review before it's published.", kind: "edge" },
+  mlScorer: { id: "mlScorer", label: "ML Scoring Service", what: "Runs a trained model over each review to produce a fraud/abuse likelihood score.", kind: "compute" },
+  featureStore: { id: "featureStore", label: "Feature Store", what: "Precomputed signals — reviewer history, posting velocity, IP reputation — the model reads at scoring time.", kind: "data" },
+  moderationQueue: { id: "moderationQueue", label: "Moderation Queue", what: "Holds borderline-scored reviews for human review before they're published or rejected.", kind: "async" },
 };
 
 export function getNode(id: string): NodeDef {

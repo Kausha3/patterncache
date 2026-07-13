@@ -148,11 +148,19 @@ export interface SDLesson {
 // edge cases. Drives <ClassModeler />.
 // ---------------------------------------------------------------------------
 
+/** A typed field on a class — e.g. `{ name: "isOccupied", type: "boolean" }`. */
+export interface PropertyDef {
+  name: string;
+  type: string; // e.g. "string", "Size", "List<Level>"
+}
+
 export interface EntityCandidate {
   id: string;
   name: string; // e.g. "ParkingSpot"
   isEntity: boolean; // true = a real class in the model
   why: string; // shown after the learner checks their answer
+  /** Typed fields this class actually holds — only meaningful when isEntity: true. */
+  properties?: PropertyDef[];
 }
 
 export interface MethodCandidate {
@@ -174,12 +182,30 @@ export interface EdgeCase {
   options: EdgeCaseOption[];
 }
 
+/** A named OOD/SOLID principle and how it concretely applies to THIS model —
+ * not a generic definition, the specific reason it shows up here. */
+export interface DesignPrinciple {
+  name: string; // e.g. "Single Responsibility Principle"
+  explanation: string;
+}
+
+/** A structural decision and the alternative that was rejected — the "we
+ * could have done X, here's why we didn't" a real interview probes for. */
+export interface DesignTradeoff {
+  decision: string; // "Level is its own class instead of ParkingLot owning Spots directly"
+  reasoning: string;
+}
+
 export interface ClassModelSpec {
   entities: EntityCandidate[];
   methods: MethodCandidate[];
   edgeCases: EdgeCase[];
   /** Static relationship lines shown in the finished diagram, e.g. "ParkingLot has many Levels". */
   relationships: string[];
+  /** Named design principles this specific model embodies. Optional so existing lessons keep compiling while being retrofit. */
+  principles?: DesignPrinciple[];
+  /** Structural decisions and the alternative considered — the real trade-off content, not just entity-selection reasoning. */
+  tradeoffs?: DesignTradeoff[];
 }
 
 export interface LLDLesson {

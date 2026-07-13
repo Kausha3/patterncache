@@ -23,6 +23,10 @@ export const parkingLot: LLDLesson = {
         why: "Vehicle-to-spot size matching is the core object-modeling decision here — it determines what Vehicle and ParkingSpot each need to know.",
         establishes: "3 vehicle sizes, size-matched spots",
         lp: ["customer-obsession"],
+        branches: [
+          { label: "One spot type only", approach: "Neither Vehicle nor ParkingSpot needs a Size field at all — findAvailableSpot() just returns any free spot. Fewer properties, but it doesn't match how real garages actually work." },
+          { label: "3 sizes, size-matched (this)", approach: "Both Vehicle and ParkingSpot need a Size property, and findAvailableSpot() must filter candidates by size before assigning — this is exactly why Size shows up as a field on two different classes, not one." },
+        ],
       },
       {
         id: "levels",
@@ -32,6 +36,10 @@ export const parkingLot: LLDLesson = {
         why: "This decides whether ParkingLot owns Spots directly, or delegates through a Level layer — a real class-hierarchy decision, not a detail.",
         establishes: "Multi-level garage",
         lp: ["dive-deep"],
+        branches: [
+          { label: "Single level", approach: "Level wouldn't exist as a class at all — ParkingLot would own a flat list of ParkingSpots directly. One fewer class, but it doesn't scale past a single floor." },
+          { label: "Multi-level (this)", approach: "Level becomes a real class — it owns its own spots and free count, and ParkingLot delegates 'find a spot' down to each Level instead of scanning every spot in the building itself." },
+        ],
       },
       {
         id: "payment",
@@ -52,12 +60,72 @@ export const parkingLot: LLDLesson = {
   },
   design: {
     entities: [
-      { id: "lot", name: "ParkingLot", isEntity: true, why: "The top-level system — owns the levels and enforces overall capacity." },
-      { id: "level", name: "Level", isEntity: true, why: "A floor of the garage — owns a set of spots and tracks its own free count." },
-      { id: "spot", name: "ParkingSpot", isEntity: true, why: "A single space — has a size and an occupied/free state." },
-      { id: "vehicle", name: "Vehicle", isEntity: true, why: "The car, motorcycle, or truck being parked — has a size that must fit a spot." },
-      { id: "ticket", name: "Ticket", isEntity: true, why: "Issued on entry, closed on exit — links a vehicle, a spot, and a timestamp." },
-      { id: "payment", name: "Payment", isEntity: true, why: "Calculates and processes the fee owed on exit." },
+      {
+        id: "lot",
+        name: "ParkingLot",
+        isEntity: true,
+        why: "The top-level system — owns the levels and enforces overall capacity.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "levels", type: "List<Level>" },
+        ],
+      },
+      {
+        id: "level",
+        name: "Level",
+        isEntity: true,
+        why: "A floor of the garage — owns a set of spots and tracks its own free count.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "floorNumber", type: "int" },
+          { name: "spots", type: "List<ParkingSpot>" },
+        ],
+      },
+      {
+        id: "spot",
+        name: "ParkingSpot",
+        isEntity: true,
+        why: "A single space — has a size and an occupied/free state.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "size", type: "Size" },
+          { name: "isOccupied", type: "boolean" },
+        ],
+      },
+      {
+        id: "vehicle",
+        name: "Vehicle",
+        isEntity: true,
+        why: "The car, motorcycle, or truck being parked — has a size that must fit a spot.",
+        properties: [
+          { name: "licensePlate", type: "string" },
+          { name: "size", type: "Size" },
+        ],
+      },
+      {
+        id: "ticket",
+        name: "Ticket",
+        isEntity: true,
+        why: "Issued on entry, closed on exit — links a vehicle, a spot, and a timestamp.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "vehicle", type: "Vehicle" },
+          { name: "spot", type: "ParkingSpot" },
+          { name: "entryTime", type: "DateTime" },
+        ],
+      },
+      {
+        id: "payment",
+        name: "Payment",
+        isEntity: true,
+        why: "Calculates and processes the fee owed on exit.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "ticket", type: "Ticket" },
+          { name: "amount", type: "Money" },
+          { name: "status", type: "PaymentStatus" },
+        ],
+      },
       { id: "color", name: "Color", isEntity: false, why: "An attribute of Vehicle (like paint or plate color), not its own class — modeling it separately is over-engineering." },
       { id: "plate", name: "LicensePlate", isEntity: false, why: "A value belonging to Vehicle, not a class of its own — it has no independent behavior beyond identifying the vehicle." },
       { id: "attendant", name: "ParkingAttendant", isEntity: false, why: "Nobody asked for staffed attendants — inventing this scope adds complexity the prompt never requested." },
@@ -120,12 +188,45 @@ export const parkingLot: LLDLesson = {
       "Ticket references one Vehicle and one ParkingSpot",
       "Payment is computed from a Ticket's duration",
     ],
+    tradeoffs: [
+      {
+        decision: "Level is its own class instead of ParkingLot owning a flat list of ParkingSpots directly.",
+        reasoning: "Costs one extra layer of indirection, but models the real multi-floor structure and lets each floor track and query its own free count independently — worth it once you've clarified this is a multi-level garage.",
+      },
+      {
+        decision: "Ticket and Payment are separate classes instead of one merged 'Transaction' class.",
+        reasoning: "Costs two classes instead of one, but keeps 'proof you're parked' cleanly separate from 'the money that changed hands' — a Ticket exists the moment a vehicle enters, long before Payment happens at exit, and they can fail or evolve independently.",
+      },
+      {
+        decision: "ParkingSpot stores its own Size rather than Vehicle deciding where it fits.",
+        reasoning: "Puts the size-matching responsibility on the resource being allocated, consistent with how findAvailableSpot() already searches spots. The alternative — Vehicle.fitsIn(spot) — works too, but scatters the matching logic across two classes instead of one.",
+      },
+    ],
+    principles: [
+      {
+        name: "Single Responsibility Principle",
+        explanation: "Each class has exactly one reason to change: ParkingSpot only manages its own occupancy, Payment only handles fee calculation and charging — neither reaches into the other's job.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "ParkingSpot.assignVehicle() and release() are the only way to change its occupied state — no other class flips isOccupied directly, so the invariant can't be violated from outside the class.",
+      },
+      {
+        name: "Composition over inheritance",
+        explanation: "ParkingLot HAS-A list of Levels, Level HAS-A list of Spots — the object graph mirrors the physical structure directly, instead of forcing a vehicle/spot type hierarchy that doesn't reflect reality.",
+      },
+      {
+        name: "Separation of Concerns",
+        explanation: "Ticket (proof of parking) and Payment (the financial transaction) are separate even though related — they have different lifecycles and different failure modes, so keeping them apart lets each evolve without touching the other.",
+      },
+    ],
   },
   recap: [
     "Not every noun in the prompt is a class — attributes (color, plate) and out-of-scope ideas (an attendant nobody asked for) are the traps.",
     "Assign each method to the class that actually owns the data it touches — Spot knows how to assign/release itself; ParkingLot just finds one.",
     "The edge cases ARE the interview: a full lot, a size mismatch, a lost ticket, and a concurrency race are the four questions worth rehearsing.",
     "Clarify scope before naming classes — vehicle sizes, levels, and whether payment is in scope all change what the model needs to represent.",
+    "Naming the principle (Single Responsibility, Encapsulation, Composition over inheritance) out loud is what separates a design that happens to work from one you can defend.",
   ],
   relatedLessons: ["amazon-locker", "url-shortener"],
 };

@@ -14,8 +14,14 @@ export function generateClassCode(design: ClassModelSpec): string {
   const relComment = design.relationships.map((r) => `// ${r}`).join("\n");
   const classes = entities
     .map((e) => {
+      const props = e.properties ?? [];
       const methods = design.methods.filter((m) => m.ownerId === e.id);
-      const body = methods.length ? methods.map((m) => `  ${m.signature}`).join("\n") : "  // no methods — identity only";
+      const propLines = props.map((p) => `  ${p.name}: ${p.type}`);
+      const methodLines = methods.map((m) => `  ${m.signature}`);
+      const parts: string[] = [];
+      if (propLines.length) parts.push(propLines.join("\n"));
+      if (methodLines.length) parts.push(methodLines.join("\n"));
+      const body = parts.length ? parts.join("\n\n") : "  // no members — identity only";
       return `class ${e.name} {\n${body}\n}`;
     })
     .join("\n\n");
@@ -110,6 +116,20 @@ function CodeLine({ line }: { line: string }) {
         <span style={{ color: color.blue }}>{name}</span>
         <span style={{ color: color.textDim }}>{args}</span>
         {ret && <span style={{ color: color.amber }}>{ret}</span>}
+      </div>
+    );
+  }
+
+  // A property/field line: "name: Type" — no parens, unlike a method.
+  const fieldMatch = trimmed.match(/^([A-Za-z_]\w*):\s*(.+)$/);
+  if (fieldMatch) {
+    const [, name, type] = fieldMatch;
+    return (
+      <div>
+        {indent}
+        <span style={{ color: color.text }}>{name}</span>
+        <span style={{ color: color.textFaint }}>: </span>
+        <span style={{ color: color.amber }}>{type}</span>
       </div>
     );
   }
