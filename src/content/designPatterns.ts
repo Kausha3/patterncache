@@ -107,6 +107,21 @@ export const DESIGN_PATTERNS: DesignPatternEntry[] = [
       },
     ],
   },
+  {
+    id: "command",
+    name: "Command Pattern",
+    whenToUse:
+      "Reach for this when you need to reverse or replay an action later, and reversing it takes more than just knowing what happened — a plain history log of 'insert happened at position 4' isn't enough to undo it. Wrap each action in its own object that knows how to execute() itself AND undo() itself, storing whatever state it needs to reverse its own effect.",
+    examples: [
+      {
+        refId: "undo-redo",
+        isDrill: true,
+        title: "InsertTextCommand and DeleteTextCommand both implement execute()/undo()",
+        howItShowsUp:
+          "CommandHistory.executeCommand() and undo() never know which concrete command they're holding — they just call execute()/undo() on it. DeleteTextCommand specifically captures the real deleted substring the moment it removes it, since by the time undo() runs later the document has already changed shape and can't say what used to be there.",
+      },
+    ],
+  },
 ];
 
 export function listDesignPatterns(): DesignPatternEntry[] {

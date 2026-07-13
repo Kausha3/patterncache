@@ -1572,6 +1572,742 @@ const fileSystem: ColdDrillPrompt = {
   },
 };
 
+const lruCache: ColdDrillPrompt = {
+  id: "lru-cache",
+  title: "Design an LRU Cache",
+  prompt: "Design a Least Recently Used (LRU) cache — get and put must both run in O(1) time.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Is capacity fixed at construction, or can it change later?",
+        why: "A fixed capacity means LRUCache just needs a constant int field; a resizable cache means put() (or a resize() method) has to be able to evict multiple entries in one call, not just one.",
+      },
+      {
+        question: "What happens to the evicted key/value — silently dropped, or does something need to observe it (e.g. a write-back to a slower store)?",
+        why: "Silently dropping means eviction is just an internal removal; needing to observe it means the eviction site has to invoke a callback or return the evicted pair, which changes evict()'s signature.",
+      },
+      {
+        question: "Does this need to be thread-safe for concurrent get/put calls?",
+        why: "Single-threaded means the map + doubly linked list mutations can be plain, unsynchronized operations; thread-safe means every mutation needs a lock (or a concurrent structure), which is an L5+ branch, not assumed here.",
+      },
+      {
+        question: "Is there a TTL/expiry on top of capacity-based eviction, or is capacity the only eviction trigger?",
+        why: "Pure capacity-based eviction needs only the recency-ordered list; adding TTL means each Node also needs an expiry timestamp and get()/put() both need an extra expiry check before touching recency order.",
+      },
+    ],
+    entities: [
+      {
+        id: "lrucache",
+        name: "LRUCache",
+        isEntity: true,
+        why: "The public class — owns the capacity, the lookup map, and the recency-ordered list, and is the only thing that exposes get()/put() to callers.",
+        properties: [
+          { name: "capacity", type: "int" },
+          { name: "map", type: "Map<Key, Node>" },
+          { name: "head", type: "Node" },
+          { name: "tail", type: "Node" },
+        ],
+      },
+      {
+        id: "node",
+        name: "Node",
+        isEntity: true,
+        why: "One entry in the doubly linked list — holds the key (needed so eviction can remove the matching map entry, not just unlink a node), the value, and prev/next pointers for O(1) reordering.",
+        properties: [
+          { name: "key", type: "Key" },
+          { name: "value", type: "Value" },
+          { name: "prev", type: "Node" },
+          { name: "next", type: "Node" },
+        ],
+      },
+      {
+        id: "evictionpolicy",
+        name: "EvictionPolicy",
+        isEntity: false,
+        why: "Nobody asked for pluggable eviction strategies (LFU, FIFO, etc.) — inventing a strategy interface for a single fixed policy (LRU) adds indirection with no caller that needs it.",
+      },
+      {
+        id: "cacheentry",
+        name: "CacheEntry",
+        isEntity: false,
+        why: "Node already is the cache entry — wrapping it in a second class that just holds a Node adds a layer with no new field or behavior.",
+      },
+    ],
+    methods: [
+      {
+        id: "m1",
+        signature: "get(key): Value",
+        ownerId: "lrucache",
+        justification: "LRUCache is the only class that holds both the map (for O(1) lookup) and the list (for O(1) move-to-front) — it's the one that can do both the read and the recency update in one call.",
+        codeExercise: {
+          language: "java",
+          starter: "Value get(Key key) {\n    // your code here\n}",
+          reference:
+            "Value get(Key key) {\n    Node node = map.get(key);\n    if (node == null) {\n        return null;\n    }\n    removeFromList(node);\n    insertAtHead(node);\n    return node.value;\n}",
+          checklist: [
+            "Looks the key up in the map, not by scanning the list — this is where the O(1) actually comes from",
+            "Returns null (or an Optional/sentinel) on a missing key instead of throwing",
+            "Moves the found node to the most-recently-used end of the list, not just reads its value and leaves the order untouched",
+            "Uses O(1) pointer surgery to move the node (unlink via prev/next, relink at head) — no scanning the list to find its position",
+          ],
+        },
+      },
+      {
+        id: "m2",
+        signature: "put(key, value): void",
+        ownerId: "lrucache",
+        justification: "Same reasoning as get() — inserting or updating needs both the map (to know if the key already exists) and the list (to place the node at the most-recently-used end, and to evict from the least-recently-used end if now over capacity).",
+        codeExercise: {
+          language: "java",
+          starter: "void put(Key key, Value value) {\n    // your code here\n}",
+          reference:
+            "void put(Key key, Value value) {\n    if (map.containsKey(key)) {\n        Node existing = map.get(key);\n        existing.value = value;\n        removeFromList(existing);\n        insertAtHead(existing);\n        return;\n    }\n    if (map.size() >= capacity) {\n        Node lru = tail.prev;\n        removeFromList(lru);\n        map.remove(lru.key);\n    }\n    Node fresh = new Node(key, value);\n    map.put(key, fresh);\n    insertAtHead(fresh);\n}",
+          checklist: [
+            "If the key already exists, updates its value AND moves it to most-recently-used — doesn't just overwrite in place and leave it wherever it was",
+            "If at capacity on a new key, evicts the node at the least-recently-used end (next to the tail sentinel) before inserting — not an arbitrary node",
+            "Evicts from BOTH the list and the map — removing only from the list would leave a stale map entry pointing at an unlinked node",
+            "Inserts the new or updated node at the most-recently-used end (next to the head sentinel), consistently with get()'s move-to-front",
+          ],
+        },
+      },
+    ],
+    relationships: ["LRUCache has many Nodes, indexed by key in its map and ordered by recency in its list", "Node.prev and Node.next link Nodes into a doubly linked list"],
+    edgeCases: [
+      {
+        scenario: "put() is called on a key that already exists in the cache.",
+        handling: "The value must be updated AND the node moved to the most-recently-used end — updating the value in place without touching recency order is the single most common bug in this problem, since it silently makes 'recently used' mean 'recently inserted' instead.",
+      },
+      {
+        scenario: "The cache is at capacity and put() is called with a brand-new key.",
+        handling: "The node at the least-recently-used end (adjacent to the tail sentinel) must be evicted from both the list and the map before the new node is inserted — evicting from only one of the two leaves the structures inconsistent.",
+      },
+      {
+        scenario: "get() is called on a key that was never inserted, or was already evicted.",
+        handling: "Returns null (or an agreed sentinel/Optional) without mutating the list — a miss shouldn't touch recency order for a node that was never in the cache to begin with.",
+      },
+      {
+        scenario: "Capacity is 0, or get()/put() is called before any entry has ever been inserted.",
+        handling: "put() with capacity 0 should evict-then-insert down to zero net entries (or reject the insert outright, if that's the agreed contract) rather than crash on an empty list with only sentinel head/tail nodes.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "A doubly linked list, not a singly linked list or a plain array, backs the recency order.",
+        reasoning: "Moving a node to the most-recently-used end requires unlinking it from its current position first — with a singly linked list you can't reach a node's predecessor in O(1) to relink around it, forcing an O(n) scan; a doubly linked list's prev pointer makes that unlink O(1). An array would need to shift elements on every move, which is O(n).",
+      },
+      {
+        decision: "Head and tail are sentinel (dummy) nodes rather than nullable pointers checked on every operation.",
+        reasoning: "Costs two permanently-allocated nodes that never hold real data, but removes every null-check branch for 'is this the first/last real node' from insertAtHead()/removeFromList() — every real node always has a real prev and next to relink against.",
+      },
+      {
+        decision: "The map stores key → Node (not key → Value directly).",
+        reasoning: "Storing key → Value would give O(1) lookup but no way to reach that entry's position in the recency list to move it — the map has to point at the actual Node object so get()/put() can splice it within the list, not just read its value.",
+      },
+    ],
+    principles: [
+      {
+        name: "Single Responsibility Principle",
+        explanation: "LRUCache owns the get/put contract and orchestrates the map+list together; Node only holds its own key/value/prev/next — Node has no logic of its own, it's a plain data holder the list operations manipulate.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "Callers only ever see get(key) and put(key, value) — the map, the sentinel nodes, and the pointer-relinking helpers are all internal to LRUCache, so nothing outside can corrupt the list/map consistency directly.",
+      },
+      {
+        name: "Composition over duplication",
+        explanation: "insertAtHead()/removeFromList() are small internal helpers reused by both get() and put() — without them, the pointer-relinking logic would be duplicated (and could drift out of sync) in both methods.",
+      },
+    ],
+  },
+};
+
+const ticTacToe: ColdDrillPrompt = {
+  id: "tic-tac-toe",
+  title: "Design Tic-Tac-Toe",
+  prompt: "Design Tic-Tac-Toe — two players take turns marking a grid; first to get a line wins.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Is the board a fixed 3x3, or does it need to support a configurable NxN size?",
+        why: "Decides whether size is a hardcoded constant or a real field on Board, and whether win-detection can special-case 'three in a row' or must generalize — the running-counter approach only pays off once size is a variable, not a literal 3.",
+      },
+      {
+        question: "Is this strictly two players (X and O), or does it need to support more symbols on a larger board?",
+        why: "Two players keeps Player as a simple X/O pair and lets win-detection use a signed +1/-1 counter; more players turns that into a per-symbol count array — a real algorithmic fork, not just more data.",
+      },
+      {
+        question: "Does a full board with no winner need to be reported as an explicit draw, or is 'no winner yet' enough?",
+        why: "Decides whether GameStatus needs a DRAW value and Game needs to track a move count to detect a full board, versus leaving status at IN_PROGRESS forever with no terminal signal.",
+      },
+      {
+        question: "Is this a single game, or does it need to track a match/series across multiple games?",
+        why: "A single game needs no memory beyond the current board; a series means Player (or a new Match class) needs to accumulate wins across games — scope the current model deliberately doesn't cover unless asked.",
+      },
+    ],
+    entities: [
+      {
+        id: "board",
+        name: "Board",
+        isEntity: true,
+        why: "Owns the grid itself and the running win-detection counters — the only class with enough state to know instantly whether the mark just placed completed a line.",
+        properties: [
+          { name: "size", type: "int" },
+          { name: "cells", type: "Player[][]" },
+          { name: "rowCounts", type: "int[]" },
+          { name: "colCounts", type: "int[]" },
+          { name: "diagonalCount", type: "int" },
+          { name: "antiDiagonalCount", type: "int" },
+        ],
+      },
+      {
+        id: "game",
+        name: "Game",
+        isEntity: true,
+        why: "The top-level controller — enforces turn order and tracks whether the game has already ended.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "board", type: "Board" },
+          { name: "players", type: "List<Player>" },
+          { name: "currentPlayer", type: "Player" },
+          { name: "status", type: "GameStatus" },
+          { name: "movesPlayed", type: "int" },
+        ],
+      },
+      {
+        id: "player",
+        name: "Player",
+        isEntity: true,
+        why: "Represents one of the two participants and the symbol they mark the board with.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "symbol", type: "String" },
+        ],
+      },
+      { id: "cell", name: "Cell", isEntity: false, why: "Just a mark stored in Board's own grid — giving it independent identity and behavior is unnecessary; Board can already answer 'what's at row, col' without Cell needing its own class." },
+      { id: "referee", name: "Referee", isEntity: false, why: "Nobody asked for officiating or spectators — Game already owns turn enforcement and win detection, so a separate referee class would just duplicate a responsibility Game already has." },
+      { id: "matchhistory", name: "MatchHistory", isEntity: false, why: "Tracking results across multiple games wasn't asked for — a single game's outcome lives on Game.status; a running series record is out of scope until the clarifying question about a match/series comes back yes." },
+    ],
+    methods: [
+      {
+        id: "m1",
+        signature: "recordMark(row, col, player): void",
+        ownerId: "board",
+        justification: "Only Board holds the grid and the running counters together, so placing a mark and updating rowCounts/colCounts/diagonal counts in the same step is Board's own state mutation — nothing else should reach in and flip a cell or a counter directly.",
+      },
+      {
+        id: "m2",
+        signature: "checkWin(row, col): boolean",
+        ownerId: "board",
+        justification: "Win-detection reads the same counters recordMark() just updated — Board is the only class holding that state, so it's the only class that can answer 'did that move win' in O(1).",
+        codeExercise: {
+          language: "java",
+          starter: "boolean checkWin(int row, int col) {\n    // your code here\n}",
+          reference:
+            "boolean checkWin(int row, int col) {\n    if (Math.abs(rowCounts[row]) == size) {\n        return true;\n    }\n    if (Math.abs(colCounts[col]) == size) {\n        return true;\n    }\n    if (row == col && Math.abs(diagonalCount) == size) {\n        return true;\n    }\n    if (row + col == size - 1 && Math.abs(antiDiagonalCount) == size) {\n        return true;\n    }\n    return false;\n}",
+          checklist: [
+            "Checks only the row and column counters for the cell just played, not every row/column on the board",
+            "Only checks the main diagonal when row == col, and the anti-diagonal when row + col == size - 1 — a mark elsewhere can't win on a diagonal it isn't actually on",
+            "Runs in O(1) using the running counters — never rescans the grid to look for a line",
+            "Reads size as a field rather than a hardcoded 3, so the same check works on any NxN board",
+          ],
+        },
+      },
+      {
+        id: "m3",
+        signature: "getCellAt(row, col): Player",
+        ownerId: "board",
+        justification: "A plain accessor into Board's own grid — reading what's at a square is Board's data, not a decision, so it belongs on the class that actually holds the grid.",
+      },
+      {
+        id: "m4",
+        signature: "isFull(): boolean",
+        ownerId: "board",
+        justification: "Whether every cell is occupied is derived entirely from Board's own grid — no other class has enough visibility to answer this without reaching into Board's internals.",
+      },
+      {
+        id: "m5",
+        signature: "makeMove(row, col, player): boolean",
+        ownerId: "game",
+        justification: "Making a move touches turn order, game-over status, and the board all at once — Game is the only class positioned to enforce 'is it this player's turn and is the game still on' before ever touching Board.",
+        codeExercise: {
+          language: "java",
+          starter: "boolean makeMove(int row, int col, Player player) {\n    // your code here\n}",
+          reference:
+            "boolean makeMove(int row, int col, Player player) {\n    if (status != GameStatus.IN_PROGRESS) {\n        throw new IllegalStateException(\"Game is already over\");\n    }\n    if (board.getCellAt(row, col) != null) {\n        throw new IllegalStateException(\"Cell is already occupied\");\n    }\n    board.recordMark(row, col, player);\n    movesPlayed++;\n    if (board.checkWin(row, col)) {\n        status = player.getSymbol().equals(\"X\") ? GameStatus.X_WON : GameStatus.O_WON;\n        return true;\n    }\n    if (movesPlayed == board.getSize() * board.getSize()) {\n        status = GameStatus.DRAW;\n    } else {\n        switchTurn();\n    }\n    return false;\n}",
+          checklist: [
+            "Rejects a move on an already-occupied cell before mutating anything",
+            "Rejects a move once the game already has a winner or already ended in a draw",
+            "Checks for a win immediately after recording the mark, using Board's O(1) checkWin() — not a full rescan",
+            "Only switches turns when the game is still in progress — a winning or board-filling move shouldn't hand the turn to the other player",
+          ],
+        },
+      },
+      {
+        id: "m6",
+        signature: "switchTurn(): void",
+        ownerId: "game",
+        justification: "currentPlayer is Game's own turn-tracking field; only Game should be the one thing that flips whose turn it is, so two callers can't disagree about who moves next.",
+      },
+      {
+        id: "m7",
+        signature: "getCurrentPlayer(): Player",
+        ownerId: "game",
+        justification: "A plain accessor onto Game's own currentPlayer field — reading whose turn it is doesn't require any other class's state.",
+      },
+      {
+        id: "m8",
+        signature: "getSymbol(): String",
+        ownerId: "player",
+        justification: "Symbol is data Player itself holds — it's a plain accessor, not a decision, so it belongs on the object whose field it's reading.",
+      },
+    ],
+    relationships: ["Game owns one Board", "Game owns two Players", "Board tracks per-row, per-column, and per-diagonal counters alongside its grid"],
+    edgeCases: [
+      {
+        scenario: "A player tries to mark a cell that's already occupied.",
+        handling: "makeMove() checks board.getCellAt(row, col) for null before recording anything — an occupied cell rejects the move immediately, never silently overwriting the existing mark.",
+      },
+      {
+        scenario: "A player tries to move after the game already has a winner.",
+        handling: "makeMove() checks status != IN_PROGRESS first and rejects the move outright — once status flips to X_WON, O_WON, or DRAW, no further mutation is allowed.",
+      },
+      {
+        scenario: "The board fills completely with no line ever completed.",
+        handling: "Game tracks movesPlayed and compares it to size*size right after a mark that didn't win — reaching the max with no win sets status to DRAW instead of leaving the game silently stuck at IN_PROGRESS forever.",
+      },
+      {
+        scenario: "The board size changes from 3x3 to a much larger NxN — does win-detection still work?",
+        handling: "Because checkWin() reads size from Board's own field and compares counters against it rather than hardcoding the number 3, the exact same O(1) logic scales to any NxN board with no code changes.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "Win-detection uses running per-row/column/diagonal counters updated on every move, instead of rescanning the whole board after each move.",
+        reasoning: "The rescan approach is the 'naive' first pass interviewers expect you to name and move past — O(size) per move, re-deriving information the game already has. The counter approach is what actually impresses: O(1) per move by maintaining just 2*size + 2 integers instead of touching every cell again.",
+      },
+      {
+        decision: "Player is a real class with a symbol field instead of encoding X/O as a raw boolean or char scattered through Game and Board.",
+        reasoning: "A raw 'isPlayerOneTurn' boolean works for exactly two players but breaks the moment a third symbol or a series/rematch feature comes up — Player as a class is the one-line-cheaper-now decision that costs more later.",
+      },
+      {
+        decision: "Board owns and updates the win-detection counters itself (via recordMark), instead of Game maintaining them externally.",
+        reasoning: "Counters are derived entirely from marks on the grid, which is data only Board holds — keeping them on Board means Game never has to keep two representations of the same fact in sync.",
+      },
+    ],
+    principles: [
+      {
+        name: "Single Responsibility Principle",
+        explanation: "Board only knows about the grid and win-detection counters; Game only knows about turn order and overall game status — neither reaches into the other's job.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "Board.recordMark() is the only way a cell or a counter changes — nothing else reaches in and flips cells[row][col] or rowCounts[row] directly, so the counters can never drift out of sync with the actual grid.",
+      },
+      {
+        name: "Algorithmic efficiency as a design decision",
+        explanation: "Choosing running counters over a full rescan isn't an optimization bolted on afterward — it's why Board needs rowCounts/colCounts/diagonalCount/antiDiagonalCount as real fields in the first place, not just a to-do.",
+      },
+      {
+        name: "Generalization over hardcoding",
+        explanation: "size is a field on Board, not a literal 3, and checkWin()'s diagonal checks use row == col / row + col == size - 1 instead of hardcoded coordinates — the exact same class handles a 3x3 or a 15x15 board with no code changes.",
+      },
+    ],
+  },
+};
+
+const undoRedo: ColdDrillPrompt = {
+  id: "undo-redo",
+  title: "Design Undo/Redo for a Text Editor",
+  prompt: "Design an undo/redo system for a text editor — a sequence of edit actions that can be undone and redone.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Is the undo history bounded (a fixed number of steps) or unlimited?",
+        why: "Decides whether CommandHistory needs an eviction policy on its undo stack (e.g. dropping the oldest entry) or can just grow unbounded — changes whether the stack needs a max-size field at all.",
+      },
+      {
+        question: "Do actions need to be grouped into one undoable unit (e.g. pasting 10 characters undoes as one step), or is every keystroke its own undo step?",
+        why: "Decides whether commands are created per-keystroke or batched — changes how many command objects exist and what one undo() actually reverses.",
+      },
+      {
+        question: "Does undo/redo need to survive the app closing and reopening, or is it fine if history resets each session?",
+        why: "Decides whether CommandHistory's stacks need to be serializable, or can just live in memory for the process lifetime.",
+      },
+      {
+        question: "Is this single-user, or does it need to handle two people editing the same document at once?",
+        why: "Multi-user collaborative undo (whose action gets undone if edits interleave) is a materially harder L5+ problem needing operational transforms or CRDTs — single-user keeps the undo/redo stacks a clean LIFO pair.",
+      },
+    ],
+    entities: [
+      {
+        id: "document",
+        name: "Document",
+        isEntity: true,
+        why: "The receiver whose actual text content changes — every command's execute()/undo() ultimately calls back into this class to mutate or restore content.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "content", type: "string" },
+        ],
+      },
+      {
+        id: "inserttextcommand",
+        name: "InsertTextCommand",
+        isEntity: true,
+        why: "One concrete Command — knows how to insert text into the Document (execute()) and how to reverse that exact insertion (undo()). Implements the same execute()/undo() contract as every other command, which is what lets CommandHistory treat any command interchangeably.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "document", type: "Document" },
+          { name: "position", type: "int" },
+          { name: "insertedText", type: "string" },
+        ],
+      },
+      {
+        id: "deletetextcommand",
+        name: "DeleteTextCommand",
+        isEntity: true,
+        why: "The other concrete Command — must capture what it actually deleted at execute() time, since by the time undo() runs later, the document has already changed shape and can't tell you what used to be there.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "document", type: "Document" },
+          { name: "position", type: "int" },
+          { name: "length", type: "int" },
+          { name: "deletedText", type: "string" },
+        ],
+      },
+      {
+        id: "history",
+        name: "CommandHistory",
+        isEntity: true,
+        why: "Owns the undo and redo stacks and sequences commands forward and backward — a cross-cutting concern kept separate from Document so Document only has to know how to hold text, not how to remember what happened to it.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "undoStack", type: "List<Command>" },
+          { name: "redoStack", type: "List<Command>" },
+        ],
+      },
+      { id: "keystroke", name: "Keystroke", isEntity: false, why: "A raw input event, not itself a Command — it's the trigger that causes an InsertTextCommand to be created, not a command with its own execute()/undo()." },
+      { id: "cursor", name: "Cursor", isEntity: false, why: "Tracks where typing happens, a separate concern from what changed — nobody asked for cursor-position undo, so modeling it here is scope nobody requested." },
+      { id: "clipboard", name: "Clipboard", isEntity: false, why: "Copy/paste is its own separate feature — out of scope unless the interviewer specifically asks for it." },
+    ],
+    methods: [
+      {
+        id: "m1",
+        signature: "insertText(position, text): void",
+        ownerId: "document",
+        justification: "Document owns content, so it's the only class that should mutate its own text — a Command should never reach in and manipulate the string directly.",
+      },
+      {
+        id: "m2",
+        signature: "deleteText(position, length): string",
+        ownerId: "document",
+        justification: "Same reasoning as insertText — Document is the only class allowed to change content, and returning the removed substring is what lets the calling command remember what it deleted.",
+      },
+      {
+        id: "m3",
+        signature: "execute(): void",
+        ownerId: "inserttextcommand",
+        justification: "This command already knows what to insert and where — calling document.insertText(position, insertedText) is the forward action it exists to encapsulate.",
+      },
+      {
+        id: "m4",
+        signature: "undo(): void",
+        ownerId: "inserttextcommand",
+        justification: "Undoing an insert means deleting exactly what was inserted — only this command knows insertedText's length, which is what makes it the right class to reverse itself.",
+      },
+      {
+        id: "m5",
+        signature: "execute(): void",
+        ownerId: "deletetextcommand",
+        justification: "Capturing the real deleted substring the moment it's removed (via document.deleteText()'s return value) is what makes this command's own undo() possible later.",
+      },
+      {
+        id: "m6",
+        signature: "undo(): void",
+        ownerId: "deletetextcommand",
+        justification: "Restoring exactly what was deleted means re-inserting its own stored deletedText at its own stored position — mirroring execute() in reverse using state only this command has.",
+      },
+      {
+        id: "m7",
+        signature: "executeCommand(command): void",
+        ownerId: "history",
+        justification: "CommandHistory is the only class that sequences commands — it's the one place that both runs a command and records it, so nothing else can push to the undo stack without actually having executed something first.",
+        codeExercise: {
+          language: "java",
+          starter: "void executeCommand(Command command) {\n    // your code here\n}",
+          reference:
+            "void executeCommand(Command command) {\n    command.execute();\n    undoStack.push(command);\n    redoStack.clear();\n}",
+          checklist: [
+            "Executes the command before pushing it — pushing first and executing after would record history for an action that hasn't actually happened yet",
+            "Pushes the command onto the undo stack after it executes",
+            "Clears the redo stack — a new action invalidates whatever 'future' could have been redone, and silently keeping it would let redo() replay against a document state it was never designed for",
+            "Bonus (L5+, not required here): if execute() can throw, the command should NOT end up on the undo stack at all",
+          ],
+        },
+      },
+      {
+        id: "m8",
+        signature: "undo(): void",
+        ownerId: "history",
+        justification: "Reversing the most recent action means popping the top of the undo stack and asking that specific command to undo itself — CommandHistory doesn't need to know HOW any command reverses, just that it can.",
+        codeExercise: {
+          language: "java",
+          starter: "void undo() {\n    // your code here\n}",
+          reference:
+            "void undo() {\n    if (undoStack.isEmpty()) {\n        return;\n    }\n    Command command = undoStack.pop();\n    command.undo();\n    redoStack.push(command);\n}",
+          checklist: [
+            "Returns (no-op) when the undo stack is empty instead of throwing",
+            "Pops the most recently executed command, not the oldest",
+            "Calls command.undo() rather than re-implementing the reversal itself",
+            "Pushes the undone command onto the redo stack so redo() can bring it back",
+          ],
+        },
+      },
+      {
+        id: "m9",
+        signature: "redo(): void",
+        ownerId: "history",
+        justification: "Redo is the mirror of undo — pop from the redo side, re-run the command's own execute(), and move it back onto the undo stack, so undo/redo can alternate indefinitely on the same command objects.",
+      },
+    ],
+    relationships: [
+      "InsertTextCommand references one Document",
+      "DeleteTextCommand references one Document",
+      "CommandHistory owns an undo stack and a redo stack of Commands",
+    ],
+    edgeCases: [
+      {
+        scenario: "undo() is called when the undo stack is empty.",
+        handling: "undo() must be a no-op rather than throwing — same defensive empty-check shape as popping any empty stack.",
+      },
+      {
+        scenario: "A new command is executed after the user has already undone a few steps.",
+        handling: "executeCommand() must clear the redo stack before pushing the new command — the old 'future' is no longer valid once a new action branches off from an earlier point, and keeping it would let redo() replay a command against a document state it no longer matches.",
+      },
+      {
+        scenario: "redo() is called when the redo stack is empty.",
+        handling: "Same defensive no-op as undo() on an empty stack — there's nothing left to reapply.",
+      },
+      {
+        scenario: "The document is modified directly, bypassing CommandHistory, while commands are still on the undo stack.",
+        handling: "Every mutation must go through a Command's execute()/undo() — a direct edit means a stored command's undo() (e.g. 'delete 5 characters at position 10') no longer matches what's actually there, silently corrupting undo.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "Undo/redo stacks live on a separate CommandHistory class instead of Document tracking its own history.",
+        reasoning: "Keeping Document purely about what the text currently is (not what happened to it) stops one class from doing two unrelated jobs — undo/redo is a cross-cutting concern that could apply to any receiver, not something specific to what a document is.",
+      },
+      {
+        decision: "Each edit type is its own concrete Command class instead of one generic EditCommand with an operation-type field and a branch in execute().",
+        reasoning: "A type-tagged generic command just moves the type-switching problem into execute()/undo() themselves — separate classes mean a new edit type (e.g. ReplaceTextCommand) is a new class, not a new branch in code that already works.",
+      },
+      {
+        decision: "DeleteTextCommand stores the actual deleted text at execute() time instead of just storing position + length and re-reading from the document later.",
+        reasoning: "By the time undo() runs, the document has already changed shape — position and length alone can't say what text used to be there. Capturing the real substring the instant it's removed is the only way undo() can restore the exact original content.",
+      },
+    ],
+    principles: [
+      {
+        name: "Command Pattern",
+        explanation: "InsertTextCommand and DeleteTextCommand both implement the same execute()/undo() contract — CommandHistory never needs to know which concrete command it's holding, just that it can execute() and undo() it, which is what lets the undo/redo stacks treat every command interchangeably.",
+      },
+      {
+        name: "Single Responsibility Principle",
+        explanation: "Document only knows how to mutate its own text; CommandHistory only knows how to sequence commands forward and backward — neither reaches into the other's job.",
+      },
+      {
+        name: "Encapsulation",
+        explanation: "Document's content only ever changes through insertText()/deleteText() — no command reaches in and manipulates the string directly, which is what keeps every command's stored undo-state trustworthy.",
+      },
+      {
+        name: "Open/Closed Principle",
+        explanation: "Adding a new kind of edit (e.g. ReplaceTextCommand) means writing one new class that implements execute()/undo() — CommandHistory, Document, and every existing command stay completely untouched.",
+      },
+    ],
+  },
+};
+
+const splitwise: ColdDrillPrompt = {
+  id: "splitwise",
+  title: "Design an Expense-Sharing App (Splitwise)",
+  prompt: "Design an expense-sharing app like Splitwise — friends split shared expenses and settle up later.",
+  reference: {
+    clarifyingQuestions: [
+      {
+        question: "Is this single-currency, or do different expenses need different currencies?",
+        why: "Multi-currency means Money needs a currency field plus conversion logic before any net-balance math is even possible — single-currency keeps Money a plain amount.",
+      },
+      {
+        question: "Is settling up (actually recording a payment) in scope, or just tracking who owes whom?",
+        why: "Decides whether Settlement exists as a class at all — balance-tracking-only drops the whole settle-up flow and its own history.",
+      },
+      {
+        question: "Can more than one person pay for a single expense (e.g. splitting the bill upfront), or is there always exactly one payer per expense?",
+        why: "Multiple payers would mean Expense needs a list of (payer, amountPaid) pairs instead of one paidBy field — a real structural fork, not a detail.",
+      },
+      {
+        question: "Is this scoped to one group at a time, or does a user's balance span every group and every friend they've ever split an expense with?",
+        why: "A single-group scope keeps computeNetBalances() bounded to one Group's own expenses; a cross-group 'net balance with this friend everywhere' feature needs a User-centric aggregation across every Group they're in.",
+      },
+    ],
+    entities: [
+      {
+        id: "user",
+        name: "User",
+        isEntity: true,
+        why: "A real participant with an identity that persists across many groups and many expenses — everything else in this model hangs off of who owes whom.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+        ],
+      },
+      {
+        id: "group",
+        name: "Group",
+        isEntity: true,
+        why: "The aggregate root for one shared context — owns its members, its expenses, and its settlement history, the same coordinator role ParkingLot plays over Levels.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "name", type: "string" },
+          { name: "members", type: "List<User>" },
+          { name: "expenses", type: "List<Expense>" },
+          { name: "settlements", type: "List<Settlement>" },
+        ],
+      },
+      {
+        id: "expense",
+        name: "Expense",
+        isEntity: true,
+        why: "One shared cost — who paid, how much, and how it's split among participants. The split logic depends entirely on data this class already holds.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "description", type: "string" },
+          { name: "amount", type: "Money" },
+          { name: "paidBy", type: "User" },
+          { name: "participants", type: "List<User>" },
+          { name: "splitType", type: "SplitType" },
+          { name: "splitValues", type: "Map<String, Double>" },
+        ],
+      },
+      {
+        id: "split",
+        name: "Split",
+        isEntity: true,
+        why: "One person's share of one expense — has its own identity separate from a raw number, the same reasoning as OrderItem being its own class instead of a bare quantity field.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "user", type: "User" },
+          { name: "amountOwed", type: "Money" },
+        ],
+      },
+      {
+        id: "settlement",
+        name: "Settlement",
+        isEntity: true,
+        why: "The auditable record of an actual payment between two users — exists independently of whatever the current computed balance says, the same 'proof of the transaction' role Parking Lot's Ticket plays.",
+        properties: [
+          { name: "id", type: "string" },
+          { name: "fromUser", type: "User" },
+          { name: "toUser", type: "User" },
+          { name: "amount", type: "Money" },
+          { name: "timestamp", type: "DateTime" },
+        ],
+      },
+      { id: "currency", name: "Currency", isEntity: false, why: "A value Money already carries as a field, not a class with its own behavior — modeling it separately adds a class for no new responsibility." },
+      { id: "notification", name: "Notification", isEntity: false, why: "A byproduct of a new expense or settlement — a message sent elsewhere, not a class with its own responsibilities in this domain model." },
+      { id: "receipt", name: "Receipt", isEntity: false, why: "An attachment/photo on an Expense, not a class with independent behavior — storage is an infrastructure concern, not a modeling one." },
+    ],
+    methods: [
+      { id: "m1", signature: "addMember(user): void", ownerId: "group", justification: "Group owns its own members list; nothing else should be able to reach in and mutate it directly." },
+      { id: "m2", signature: "addExpense(expense): void", ownerId: "group", justification: "Group owns its own expenses list, the same reasoning as Order owning its own OrderItems." },
+      {
+        id: "m3",
+        signature: "calculateSplits(): List<Split>",
+        ownerId: "expense",
+        justification: "Expense holds its own amount, splitType, and participants — it's the class with the data to compute each person's share, without Group needing to know anything about split math.",
+        codeExercise: {
+          language: "java",
+          starter: "List<Split> calculateSplits() {\n    // your code here\n}",
+          reference:
+            "List<Split> calculateSplits() {\n    List<Split> result = new ArrayList<>();\n    if (splitType == SplitType.EQUAL) {\n        Money share = amount.divide(participants.size());\n        for (User user : participants) {\n            result.add(new Split(user, share));\n        }\n    } else if (splitType == SplitType.EXACT) {\n        Money total = Money.zero();\n        for (User user : participants) {\n            Money owed = splitValues.get(user.getId());\n            result.add(new Split(user, owed));\n            total = total.add(owed);\n        }\n        if (!total.equals(amount)) {\n            throw new IllegalArgumentException(\"Exact splits do not sum to the expense amount\");\n        }\n    } else if (splitType == SplitType.PERCENTAGE) {\n        double totalPercent = 0;\n        for (User user : participants) {\n            double percent = splitValues.get(user.getId());\n            totalPercent += percent;\n            result.add(new Split(user, amount.multiply(percent / 100.0)));\n        }\n        if (Math.abs(totalPercent - 100.0) > 0.01) {\n            throw new IllegalArgumentException(\"Percentages do not sum to 100\");\n        }\n    }\n    return result;\n}",
+          checklist: [
+            "Handles all three split types (EQUAL, EXACT, PERCENTAGE), not just one",
+            "Validates that EXACT splits sum to the expense's total amount, and PERCENTAGE splits sum to 100 — rejects a malformed split before creating any Split objects",
+            "For EQUAL splits, divides evenly among every participant, not just everyone except the payer",
+            "Bonus (L5+, not required here): equal splits that don't divide evenly (e.g. $10 / 3 people) need a remainder-distribution rule rather than silently losing or gaining a cent",
+          ],
+        },
+      },
+      { id: "m4", signature: "computeNetBalances(): Map<String, Money>", ownerId: "group", justification: "Only Group can see every Expense and Settlement at once — deriving each member's net balance requires that whole-group view, which no single Expense or User has." },
+      {
+        id: "m5",
+        signature: "simplifyDebts(): List<Settlement>",
+        ownerId: "group",
+        justification: "Minimizing settlement transactions requires the same whole-group view computeNetBalances() already needs — Group is the only class positioned to run the matching algorithm across every member's net balance.",
+        codeExercise: {
+          language: "java",
+          starter: "List<Settlement> simplifyDebts() {\n    // your code here\n}",
+          reference:
+            "List<Settlement> simplifyDebts() {\n    Map<String, Money> balances = computeNetBalances();\n    List<Settlement> settlements = new ArrayList<>();\n\n    PriorityQueue<Map.Entry<String, Money>> creditors =\n        new PriorityQueue<>((a, b) -> b.getValue().compareTo(a.getValue()));\n    PriorityQueue<Map.Entry<String, Money>> debtors =\n        new PriorityQueue<>((a, b) -> a.getValue().compareTo(b.getValue()));\n\n    for (Map.Entry<String, Money> entry : balances.entrySet()) {\n        if (entry.getValue().isGreaterThan(Money.zero())) {\n            creditors.add(entry);\n        } else if (entry.getValue().isLessThan(Money.zero())) {\n            debtors.add(entry);\n        }\n    }\n\n    while (!creditors.isEmpty() && !debtors.isEmpty()) {\n        Map.Entry<String, Money> creditor = creditors.poll();\n        Map.Entry<String, Money> debtor = debtors.poll();\n\n        Money owed = creditor.getValue();\n        Money owedBack = debtor.getValue().abs();\n        Money settleAmount = owed.isLessThan(owedBack) ? owed : owedBack;\n\n        settlements.add(Settlement.create(getUserById(debtor.getKey()), getUserById(creditor.getKey()), settleAmount));\n\n        Money creditorRemaining = owed.subtract(settleAmount);\n        Money debtorRemaining = owedBack.subtract(settleAmount);\n\n        if (creditorRemaining.isGreaterThan(Money.zero())) {\n            creditors.add(Map.entry(creditor.getKey(), creditorRemaining));\n        }\n        if (debtorRemaining.isGreaterThan(Money.zero())) {\n            debtors.add(Map.entry(debtor.getKey(), debtorRemaining.negate()));\n        }\n    }\n\n    return settlements;\n}",
+          checklist: [
+            "Computes NET balances first (per person, across all expenses) rather than settling each pairwise debt individually — a 3-person debt cycle should net to zero settlements, not three",
+            "Repeatedly matches the CURRENT largest creditor with the CURRENT largest debtor, not the first pair found or a fixed order",
+            "Settles the smaller of the two amounts each round, so at least one side reaches exactly zero and drops out of contention",
+            "Bonus (L5+, not required here): this greedy approach bounds the transaction count at n-1 for n people with nonzero balance and works well in practice, but it is NOT formally proven to find the mathematically fewest possible transactions in every case — naming that nuance out loud is itself a strong interview signal",
+          ],
+        },
+      },
+      { id: "m6", signature: "create(fromUser, toUser, amount): Settlement", ownerId: "settlement", justification: "Creating a Settlement is its own constructor-style responsibility — it's the class that knows what fields a valid settlement record needs, the same shape as Parking Lot's Ticket.issue()." },
+      { id: "m7", signature: "recordSettlement(settlement): void", ownerId: "group", justification: "Group owns its own settlements list — recording one changes what the next computeNetBalances() call will return, so only Group should be the one appending to it." },
+    ],
+    relationships: [
+      "Group has many Users as members",
+      "Group has many Expenses and many Settlements",
+      "Expense references one paying User and has many Splits",
+      "Split references one User",
+      "Settlement references two Users (fromUser and toUser)",
+    ],
+    edgeCases: [
+      {
+        scenario: "An expense is split with EXACT amounts that don't sum to the total (a $50 dinner split into $20 + $20 = $40, missing $10).",
+        handling: "calculateSplits() must validate the sum before creating any Split records, and reject the expense outright rather than silently leaving a $10 shortfall nobody is responsible for.",
+      },
+      {
+        scenario: "A user leaves the group with an outstanding balance.",
+        handling: "Group can't just remove them from members — computeNetBalances() and simplifyDebts() still need their historical Expenses and any unresolved balance, so leaving a group should be a status/flag, not a deletion.",
+      },
+      {
+        scenario: "A three-person cycle of debts: A owes B $10 on one expense, B owes C $10 on another, C owes A $10 on a third.",
+        handling: "Net balance for A, B, and C each come out to exactly zero once every expense is summed — simplifyDebts() should produce zero settlements here, not three pairwise ones. This is the entire point of computing net balances before matching.",
+      },
+      {
+        scenario: "Two group members settle up in cash outside the app, but only one of them records the Settlement.",
+        handling: "Settlement recorded unilaterally by one side risks erasing a debt the other party never agreed was paid — worth raising in an interview as an extension (a pending/confirmed status) even if out of scope for the base design.",
+      },
+    ],
+    tradeoffs: [
+      {
+        decision: "computeNetBalances() derives balances fresh from Expenses and Settlements every time, instead of storing a persistent balance that's incrementally updated.",
+        reasoning: "A stored balance that must be kept in sync with every new Expense or Settlement is a classic source of drift bugs — deriving it fresh from the source-of-truth history means it can never silently disagree with what actually happened, at the cost of recomputing it on demand.",
+      },
+      {
+        decision: "Split is its own class instead of Expense holding a flat Map<User, Money>.",
+        reasoning: "Costs one more class, but gives each person's share its own identity — useful the moment a Split needs anything beyond a raw number, without Expense itself needing to change shape.",
+      },
+      {
+        decision: "Settlement is a separate auditable record instead of simplifyDebts() directly mutating some stored balance field.",
+        reasoning: "Same split as every other transactional system in this app — Settlement is the record of an actual transfer; recomputing computeNetBalances() afterward (now including the new Settlement) is what reflects it, rather than two pieces of state that could drift apart.",
+      },
+    ],
+    principles: [
+      { name: "Single Responsibility Principle", explanation: "Expense only knows how to split its own amount by its own splitType; Group only knows how to aggregate balances and match settlements across the Expenses and Settlements it owns — neither reaches into the other's math." },
+      { name: "Encapsulation", explanation: "Group.addExpense() and addMember() are the only ways those lists grow — nothing else reaches in and appends to them directly, which matters here specifically because computeNetBalances() has to trust that list is complete." },
+      { name: "Strategy Pattern", explanation: "Expense.calculateSplits() branches on splitType (EQUAL/EXACT/PERCENTAGE) — the same shape as Discount/Coupon System's DiscountRule.apply(), though here it's a branch inside one method rather than a polymorphic class per type; a fuller version would extract each split type into its own SplitStrategy if an interviewer pushes on extensibility." },
+      { name: "Derived state over stored state", explanation: "computeNetBalances() is always computed from the Expense/Settlement history, never stored and incrementally updated — so it can never disagree with what actually happened, unlike a cached balance field that has to be kept in sync by every mutation." },
+    ],
+  },
+};
+
 const COLD_DRILLS: ColdDrillPrompt[] = [
   pizzaOrdering,
   libraryManagement,
@@ -1581,6 +2317,10 @@ const COLD_DRILLS: ColdDrillPrompt[] = [
   pcBuilder,
   stockAlerts,
   fileSystem,
+  lruCache,
+  ticTacToe,
+  undoRedo,
+  splitwise,
 ];
 
 export function listColdDrills(): ColdDrillPrompt[] {
