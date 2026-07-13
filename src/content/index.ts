@@ -11,6 +11,10 @@ import { rateLimiter } from "./lessons/rate-limiter";
 import { cacheLayer } from "./lessons/cache-layer";
 import { parkingLot } from "./lessons/parking-lot";
 import { amazonLocker } from "./lessons/amazon-locker";
+import { elevatorSystem } from "./lessons/elevator-system";
+import { vendingMachine } from "./lessons/vending-machine";
+import { discountCouponSystem } from "./lessons/discount-coupon-system";
+import { chessGame } from "./lessons/chess-game";
 
 /** Fully-built, playable lessons keyed by id. */
 export const LESSONS: Record<string, Lesson> = {
@@ -26,6 +30,10 @@ export const LESSONS: Record<string, Lesson> = {
   [cacheLayer.id]: cacheLayer,
   [parkingLot.id]: parkingLot,
   [amazonLocker.id]: amazonLocker,
+  [elevatorSystem.id]: elevatorSystem,
+  [vendingMachine.id]: vendingMachine,
+  [discountCouponSystem.id]: discountCouponSystem,
+  [chessGame.id]: chessGame,
 };
 
 export function getLesson(id: string): Lesson | undefined {
