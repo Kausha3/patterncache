@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { listColdDrills } from "@/content/coldDrills";
 import { color, font } from "@/theme/tokens";
-import { Panel } from "@/components/ui";
+import { Panel, Button, Eyebrow } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 
 /**
@@ -26,6 +26,24 @@ export function ColdDrillsPage() {
           reference design and see what you missed.
         </p>
       </header>
+
+      <Panel style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", border: `1px solid ${color.violet}55`, background: "rgba(154,130,212,0.06)" }}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <Eyebrow tone={color.violet}>New to low-level design?</Eyebrow>
+          <p style={{ margin: 0, fontSize: 13.5, color: color.textDim, maxWidth: 520 }}>
+            This mode is deliberately the hardest one — no hints, no walkthrough. If you've never designed a class
+            before, start with the guided lessons instead: they watch it get built for you first, then let you try it.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <Button variant="ghost" onClick={() => navigate("/lesson/lld-101")}>
+            Start with LLD Basics
+          </Button>
+          <Button variant="primary" accent={color.violet} onClick={() => navigate("/lesson/parking-lot")}>
+            Or Parking Lot
+          </Button>
+        </div>
+      </Panel>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
         {drills.map((d) => (

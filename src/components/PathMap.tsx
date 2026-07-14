@@ -23,6 +23,7 @@ export function PathMap({ highlightId }: { highlightId?: string }) {
 
 function Spine({ track, highlightId }: { track: Track; highlightId?: string }) {
   const accent = trackColor[track];
+  const nodes = PATH[track];
   return (
     <section aria-label={TRACK_META[track].label} style={{ display: "grid", gap: 14, alignContent: "start" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
@@ -30,9 +31,21 @@ function Spine({ track, highlightId }: { track: Track; highlightId?: string }) {
         <Eyebrow tone={accent}>{TRACK_META[track].label}</Eyebrow>
       </div>
       <div style={{ display: "grid", gap: 2 }}>
-        {PATH[track].map((node, idx) => (
-          <NodeRow key={node.id} node={node} accent={accent} track={track} isFirst={idx === 0} isLast={idx === PATH[track].length - 1} highlight={highlightId === node.id} />
-        ))}
+        {nodes.map((node, idx) => {
+          const prevGroup = idx > 0 ? nodes[idx - 1].group : undefined;
+          const showGroupHeader = !!node.group && node.group !== prevGroup;
+          const nodeAccent = node.groupAccent ?? accent;
+          return (
+            <div key={node.id}>
+              {showGroupHeader && (
+                <div style={{ margin: idx === 0 ? "0 0 4px" : "16px 0 4px", paddingLeft: 42 }}>
+                  <span style={{ fontFamily: font.mono, fontSize: 10.5, letterSpacing: "0.6px", textTransform: "uppercase", color: nodeAccent }}>{node.group}</span>
+                </div>
+              )}
+              <NodeRow node={node} accent={nodeAccent} track={track} isFirst={idx === 0} isLast={idx === nodes.length - 1} highlight={highlightId === node.id} />
+            </div>
+          );
+        })}
       </div>
     </section>
   );

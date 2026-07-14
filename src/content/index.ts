@@ -9,6 +9,7 @@ import { chatApp } from "./lessons/chat-app";
 import { feed } from "./lessons/feed";
 import { rateLimiter } from "./lessons/rate-limiter";
 import { cacheLayer } from "./lessons/cache-layer";
+import { lld101 } from "./lessons/lld-101";
 import { parkingLot } from "./lessons/parking-lot";
 import { amazonLocker } from "./lessons/amazon-locker";
 import { elevatorSystem } from "./lessons/elevator-system";
@@ -28,6 +29,7 @@ export const LESSONS: Record<string, Lesson> = {
   [feed.id]: feed,
   [rateLimiter.id]: rateLimiter,
   [cacheLayer.id]: cacheLayer,
+  [lld101.id]: lld101,
   [parkingLot.id]: parkingLot,
   [amazonLocker.id]: amazonLocker,
   [elevatorSystem.id]: elevatorSystem,
@@ -51,7 +53,18 @@ export interface PathNode {
   title: string;
   track: Track;
   status: "available" | "coming-soon";
+  /** Optional sub-heading within a track's spine — used to split System Design
+   * into "High-Level Design" and "Low-Level Design" without adding a third
+   * top-level track. A node's group differing from the previous node's group
+   * renders a small divider in <PathMap/>. */
+  group?: string;
+  /** Optional accent override for this node's marker/heading, so LLD nodes
+   * keep reading as violet (their brand color everywhere else in the app)
+   * even while nested inside the blue System Design spine. */
+  groupAccent?: string;
 }
+
+const LLD_ACCENT = "#9A82D4"; // color.violet — LLD's brand color everywhere else in the app
 
 export const PATH: Record<Track, PathNode[]> = {
   dsa: [
@@ -63,13 +76,20 @@ export const PATH: Record<Track, PathNode[]> = {
     { id: "heap", title: "Heaps / Top-K", track: "dsa", status: "coming-soon" },
   ],
   "system-design": [
-    { id: "client-server", title: "System Design 101", track: "system-design", status: "available" },
-    { id: "the-interview", title: "The Interview: Clarifying Questions", track: "system-design", status: "available" },
-    { id: "url-shortener", title: "Scaling a URL Shortener", track: "system-design", status: "available" },
-    { id: "chat-app", title: "Designing a Chat App", track: "system-design", status: "available" },
-    { id: "feed", title: "Designing a News Feed", track: "system-design", status: "available" },
-    { id: "rate-limiter", title: "Designing a Rate Limiter", track: "system-design", status: "available" },
-    { id: "cache-layer", title: "Designing a Cache Layer", track: "system-design", status: "available" },
+    { id: "client-server", title: "System Design 101", track: "system-design", status: "available", group: "High-Level Design" },
+    { id: "the-interview", title: "The Interview: Clarifying Questions", track: "system-design", status: "available", group: "High-Level Design" },
+    { id: "url-shortener", title: "Scaling a URL Shortener", track: "system-design", status: "available", group: "High-Level Design" },
+    { id: "chat-app", title: "Designing a Chat App", track: "system-design", status: "available", group: "High-Level Design" },
+    { id: "feed", title: "Designing a News Feed", track: "system-design", status: "available", group: "High-Level Design" },
+    { id: "rate-limiter", title: "Designing a Rate Limiter", track: "system-design", status: "available", group: "High-Level Design" },
+    { id: "cache-layer", title: "Designing a Cache Layer", track: "system-design", status: "available", group: "High-Level Design" },
+    { id: "lld-101", title: "LLD Basics: Classes, Objects, Responsibility", track: "system-design", status: "available", group: "Low-Level Design", groupAccent: LLD_ACCENT },
+    { id: "parking-lot", title: "Design a Parking Lot", track: "system-design", status: "available", group: "Low-Level Design", groupAccent: LLD_ACCENT },
+    { id: "amazon-locker", title: "Design Amazon Locker", track: "system-design", status: "available", group: "Low-Level Design", groupAccent: LLD_ACCENT },
+    { id: "elevator-system", title: "Design an Elevator System", track: "system-design", status: "available", group: "Low-Level Design", groupAccent: LLD_ACCENT },
+    { id: "vending-machine", title: "Design a Vending Machine", track: "system-design", status: "available", group: "Low-Level Design", groupAccent: LLD_ACCENT },
+    { id: "discount-coupon-system", title: "Design a Discount / Coupon System", track: "system-design", status: "available", group: "Low-Level Design", groupAccent: LLD_ACCENT },
+    { id: "chess-game", title: "Design a Chess Game", track: "system-design", status: "available", group: "Low-Level Design", groupAccent: LLD_ACCENT },
   ],
 };
 

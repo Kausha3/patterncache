@@ -189,7 +189,7 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
       case "overview":
         return (
           <div style={{ display: "grid", gap: 14 }}>
-            <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7 }}>{lesson.overview}</p></Panel>
+            <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{lesson.overview}</p></Panel>
             <Glossary terms={lesson.terms} />
           </div>
         );
@@ -205,7 +205,7 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
       case "overview":
         return (
           <div style={{ display: "grid", gap: 14 }}>
-            <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7 }}>{lesson.overview}</p></Panel>
+            <Panel><p style={{ margin: 0, color: color.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{lesson.overview}</p></Panel>
             <Glossary terms={lesson.terms} />
           </div>
         );
