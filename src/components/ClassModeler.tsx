@@ -323,8 +323,12 @@ function PracticePhase({
 }) {
   const method = allMethods.find((m) => m.id === order[idx])!;
   const owner = entities.find((e) => e.id === method.ownerId)!;
-  const isCorrect = normalizeClassName(typedClass) === normalizeClassName(owner.name);
-  const canReveal = typedClass.trim().length > 0 && !!pickedReason;
+  // With only one real class on the board there's nothing to recall — the
+  // card is already the only option visible. Typing its name back would just
+  // test copying, not design reasoning, so skip straight to "why."
+  const singleEntity = entities.length === 1;
+  const isCorrect = singleEntity || normalizeClassName(typedClass) === normalizeClassName(owner.name);
+  const canReveal = (singleEntity || typedClass.trim().length > 0) && !!pickedReason;
   const isLast = idx === order.length - 1;
 
   return (
@@ -351,33 +355,53 @@ function PracticePhase({
 
         <InlineSignature signature={method.signature} />
 
-        <div style={{ display: "grid", gap: 8 }}>
-          <Eyebrow>Where does this belong? Name the class — no list to pick from.</Eyebrow>
-          <input
-            value={typedClass}
-            onChange={(e) => !revealed && onTypeClass(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && canReveal && !revealed) {
-                e.preventDefault();
-                onReveal();
-              }
-            }}
-            disabled={revealed}
-            placeholder="type the class name, e.g. ParkingSpot"
-            style={{
-              fontFamily: font.mono,
-              fontSize: 14,
-              fontWeight: 600,
-              padding: "10px 13px",
-              borderRadius: radius.md,
-              border: `1.5px solid ${revealed ? (isCorrect ? color.green : color.red) : color.panelBorder}`,
-              background: revealed ? (isCorrect ? "rgba(130,184,114,0.1)" : "rgba(208,123,110,0.08)") : "rgba(255,255,255,0.02)",
-              color: color.text,
-              outline: "none",
-              transition: `all ${motion.fast}`,
-            }}
-          />
-        </div>
+        {singleEntity ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            <Eyebrow>Where does this belong?</Eyebrow>
+            <div
+              style={{
+                fontFamily: font.mono,
+                fontSize: 14,
+                fontWeight: 600,
+                padding: "10px 13px",
+                borderRadius: radius.md,
+                border: `1.5px solid ${color.violet}66`,
+                background: "rgba(154,130,212,0.08)",
+                color: color.text,
+              }}
+            >
+              {owner.name} — the only class in this lesson so far
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 8 }}>
+            <Eyebrow>Where does this belong? Name the class — no list to pick from.</Eyebrow>
+            <input
+              value={typedClass}
+              onChange={(e) => !revealed && onTypeClass(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canReveal && !revealed) {
+                  e.preventDefault();
+                  onReveal();
+                }
+              }}
+              disabled={revealed}
+              placeholder="type the class name, e.g. ParkingSpot"
+              style={{
+                fontFamily: font.mono,
+                fontSize: 14,
+                fontWeight: 600,
+                padding: "10px 13px",
+                borderRadius: radius.md,
+                border: `1.5px solid ${revealed ? (isCorrect ? color.green : color.red) : color.panelBorder}`,
+                background: revealed ? (isCorrect ? "rgba(130,184,114,0.1)" : "rgba(208,123,110,0.08)") : "rgba(255,255,255,0.02)",
+                color: color.text,
+                outline: "none",
+                transition: `all ${motion.fast}`,
+              }}
+            />
+          </div>
+        )}
 
         <div style={{ display: "grid", gap: 8 }}>
           <Eyebrow>Why do you think so?</Eyebrow>
