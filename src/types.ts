@@ -308,12 +308,40 @@ export interface DesignPatternExample {
   howItShowsUp: string;
 }
 
+/** The pattern this one gets mixed up with, and the one-sentence test that
+ * actually tells them apart. patternId is omitted when the confusable
+ * sibling isn't itself one of the patterns tracked in this list (e.g.
+ * Factory, Mediator) — the comparison is still worth naming even without a
+ * clickable cross-reference. */
+export interface ConfusedWith {
+  patternName: string;
+  patternId?: string;
+  test: string;
+}
+
 export interface DesignPatternEntry {
   id: string;
   name: string;
   /** Plain-English recognition cue: what problem shape makes you reach for this pattern. */
   whenToUse: string;
   examples: DesignPatternExample[];
+  confusedWith?: ConfusedWith;
+}
+
+/** One "spot the pattern" scenario — same {scenario, options[]} shape as
+ * EdgeCase, reusing the exact commit-then-reveal mechanic already proven in
+ * <ClassModeler/>'s edge cases phase. Distractor options are deliberately
+ * the pattern's confusable siblings, not random noise. */
+export interface PatternSpotOption {
+  patternId: string;
+  correct: boolean;
+  feedback: string;
+}
+
+export interface PatternSpotScenario {
+  id: string;
+  scenario: string;
+  options: PatternSpotOption[];
 }
 
 export function isDSA(lesson: Lesson): lesson is DSALesson {
