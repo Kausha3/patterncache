@@ -24,8 +24,8 @@ export function PatternsPage() {
       <header style={{ display: "grid", gap: 8 }}>
         <h1 style={{ fontSize: 27, fontWeight: 700, letterSpacing: "-0.5px" }}>Design Patterns in LLD Interviews</h1>
         <p style={{ color: color.textDim, maxWidth: 640 }}>
-          Not a textbook list — only patterns that actually show up in a design already built here. Each one links
-          to the real class/method it lives in, and names the pattern it's most often mixed up with.
+          Not a textbook list. Just the patterns that actually show up in a design already built here. Each one links
+          to the real class or method it lives in, and names the pattern it's most often mixed up with.
         </p>
       </header>
 
@@ -34,7 +34,7 @@ export function PatternsPage() {
           Learn
         </ModeTab>
         <ModeTab active={mode === "practice"} onClick={() => setMode("practice")}>
-          Practice — Spot the Pattern
+          Practice · Spot the Pattern
         </ModeTab>
       </div>
 
@@ -235,7 +235,7 @@ function PatternSpotGame() {
               setScore({ correct: 0, seen: 0 });
             }}
           >
-            Play again — new shuffle
+            Play again · new shuffle
           </Button>
         </div>
       </Panel>

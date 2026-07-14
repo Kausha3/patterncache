@@ -110,7 +110,7 @@ export function SandboxPractice({
               <span style={{ color: result.solved ? color.green : color.amber }}>
                 <Icon name={result.solved ? "check" : "target"} size={16} />
               </span>
-              <Eyebrow tone={result.solved ? color.green : color.amber}>{result.solved ? "Solved — nicely done" : "Good run"}</Eyebrow>
+              <Eyebrow tone={result.solved ? color.green : color.amber}>{result.solved ? "Solved, nicely done" : "Good run"}</Eyebrow>
             </div>
             <p style={{ margin: 0, color: color.text }}>{result.message}</p>
             {result.note && <p style={{ margin: 0, color: color.textDim, fontSize: 13, fontFamily: font.mono }}>{result.note}</p>}

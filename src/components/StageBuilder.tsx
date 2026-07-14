@@ -185,11 +185,11 @@ export function StageBuilder({
             <span style={{ color: color.text, fontSize: 13.5 }}>
               {saturated
                 ? s < last
-                  ? `Saturated — this design tops out at ${fmt(cap)} req/s and is shedding ${Math.round(dropPct * 100)}% of traffic. Advance a stage to add capacity.`
-                  : `Saturated even at this final stage — beyond ${fmt(cap)} req/s you'd shard or add regions further.`
+                  ? `Saturated. This design tops out at ${fmt(cap)} req/s and is shedding ${Math.round(dropPct * 100)}% of traffic. Advance a stage to add capacity.`
+                  : `Saturated even at this final stage. Beyond ${fmt(cap)} req/s you'd need to shard or add regions.`
                 : strained
-                  ? "Under strain — latency is climbing as the busiest tier approaches its limit."
-                  : "Healthy — comfortable headroom at this load."}
+                  ? "Under strain. Latency is climbing as the busiest tier gets close to its limit."
+                  : "Healthy, comfortable headroom at this load."}
             </span>
           </div>
         </div>

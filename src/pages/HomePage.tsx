@@ -33,9 +33,9 @@ export function HomePage() {
           Learn <span style={{ color: color.amber }}>why</span>, not just what.
         </h1>
         <p style={{ color: color.textDim, fontSize: 16, lineHeight: 1.6 }}>
-          Most prep tools show you a finished answer. This one shows you the reasoning that got there, then
-          takes it away and tests whether you actually absorbed it — on the same problem, and on ones
-          you've never seen. No account, no video to watch on 2x — just you, driving the design.
+          Most prep sites just hand you a finished answer. Here you watch the reasoning happen first, then
+          it gets taken away and you're tested on it. Same problem, then a new one you've never seen. No
+          account, no video to sit through on 2x. Just you, doing the design yourself.
         </p>
         {recLesson && (
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 2 }}>

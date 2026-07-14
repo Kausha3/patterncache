@@ -21,8 +21,8 @@ export function ColdDrillsPage() {
       <header style={{ display: "grid", gap: 8 }}>
         <h1 style={{ fontSize: 27, fontWeight: 700, letterSpacing: "-0.5px" }}>Cold Design Drill</h1>
         <p style={{ color: color.textDim, maxWidth: 640 }}>
-          No hints, no chip-picking, no watching it get built for you. You get a bare prompt and a blank page —
-          name the classes, assign the responsibilities, list the edge cases yourself. Then compare against a
+          No hints, no chip-picking, no watching it get built for you. You get a bare prompt and a blank page.
+          Name the classes, assign the responsibilities, list the edge cases yourself. Then compare against a
           reference design and see what you missed.
         </p>
       </header>
@@ -31,8 +31,8 @@ export function ColdDrillsPage() {
         <div style={{ display: "grid", gap: 4 }}>
           <Eyebrow tone={color.violet}>New to low-level design?</Eyebrow>
           <p style={{ margin: 0, fontSize: 13.5, color: color.textDim, maxWidth: 520 }}>
-            This mode is deliberately the hardest one — no hints, no walkthrough. If you've never designed a class
-            before, start with the guided lessons instead: they watch it get built for you first, then let you try it.
+            This mode is deliberately the hardest one. No hints, no walkthrough. If you've never designed a class
+            before, start with the guided lessons instead. They walk you through the build first, then let you try it.
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -61,8 +61,8 @@ export function ColdDrillsPage() {
 
       <Panel>
         <p style={{ margin: 0, fontSize: 13, color: color.textFaint, lineHeight: 1.6 }}>
-          Small bank on purpose — each one is real content, not a generated placeholder. More prompts land here
-          over time; this list will keep growing.
+          Small bank on purpose. Each one is real content, not a generated placeholder. More prompts land here
+          over time and this list will keep growing.
         </p>
       </Panel>
     </div>

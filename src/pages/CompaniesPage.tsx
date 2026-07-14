@@ -19,8 +19,8 @@ export function CompaniesPage() {
       <header style={{ display: "grid", gap: 8 }}>
         <h1 style={{ fontSize: 27, fontWeight: 700, letterSpacing: "-0.5px" }}>Companies</h1>
         <p style={{ color: color.textDim, maxWidth: 640 }}>
-          Research-backed, company-specific question lists — the same lessons you already know, ranked by what
-          each company actually asks. Every "signal" tag names the evidence behind it; nothing here is a guess.
+          Company-specific question lists, backed by real research. Same lessons you already know, just ranked
+          by what each company actually asks. Every "signal" tag names the evidence behind it. Nothing here is a guess.
         </p>
       </header>
 
@@ -61,9 +61,9 @@ export function CompaniesPage() {
       <Panel>
         <Eyebrow tone={color.amber}>A note on the data</Eyebrow>
         <p style={{ margin: "6px 0 0", fontSize: 13.5, color: color.textDim, lineHeight: 1.6 }}>
-          Question lists are synthesized from public, crowd-sourced interview reports and prep vendors — nobody
-          publishes real frequency counts. "Signal" tags are qualitative tiers, not statistics; hover any of them
-          for the evidence behind that tier. See <code style={{ fontFamily: font.mono }}>docs/AMAZON.md</code> in
+          Question lists are put together from public, crowd-sourced interview reports and prep vendors. Nobody
+          publishes real frequency counts, so "signal" tags are qualitative tiers, not statistics. Hover any of
+          them for the evidence behind that tier. See <code style={{ fontFamily: font.mono }}>docs/AMAZON.md</code> in
           the repo for full sourcing.
         </p>
       </Panel>

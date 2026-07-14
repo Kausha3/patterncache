@@ -76,7 +76,7 @@ export function ClassModeler({ design, prompt, onComplete }: { design: ClassMode
           {watchDone && (
             <div>
               <Button variant="primary" accent={color.violet} iconRight="arrowRight" onClick={() => setPhase("practice")}>
-                Now you design it — place the methods
+                Now you design it, place the methods
               </Button>
             </div>
           )}
@@ -227,9 +227,9 @@ function buildReasoningSteps(design: ClassModelSpec): TraceStep<DiagramState>[] 
     if (e.isEntity) {
       revealedEntities.push(e.id);
       propertyCounts[e.id] = 0;
-      steps.push({ state: snapshot([e.id]), explanation: `${e.name} — ${e.why}`, tag: "class", milestone: true });
+      steps.push({ state: snapshot([e.id]), explanation: `${e.name}: ${e.why}`, tag: "class", milestone: true });
     } else {
-      steps.push({ state: snapshot([]), explanation: `${e.name} — ${e.why}`, tag: "not a class" });
+      steps.push({ state: snapshot([]), explanation: `${e.name}: ${e.why}`, tag: "not a class" });
     }
   }
 
@@ -287,7 +287,7 @@ const REASON_TAGS = [
   { id: "data", label: "Owns the data it touches" },
   { id: "behavior", label: "Owns this responsibility" },
   { id: "role", label: "Matches its real-world role" },
-  { id: "guess", label: "Not sure — best guess" },
+  { id: "guess", label: "Not sure, best guess" },
 ];
 
 function normalizeClassName(s: string): string {
@@ -370,12 +370,12 @@ function PracticePhase({
                 color: color.text,
               }}
             >
-              {owner.name} — the only class in this lesson so far
+              {owner.name} is the only class here so far
             </div>
           </div>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
-            <Eyebrow>Where does this belong? Name the class — no list to pick from.</Eyebrow>
+            <Eyebrow>Where does this belong? Name the class. No list to pick from.</Eyebrow>
             <input
               value={typedClass}
               onChange={(e) => !revealed && onTypeClass(e.target.value)}
@@ -455,7 +455,7 @@ function PracticePhase({
               <Icon name={isCorrect ? "check" : "close"} size={16} color={isCorrect ? color.green : color.red} />
               <div style={{ display: "grid", gap: 4 }}>
                 <span style={{ fontSize: 13, color: color.text, fontWeight: 600 }}>
-                  {isCorrect ? "Right — it belongs on " : `You wrote "${typedClass.trim()}" — it actually belongs on `}
+                  {isCorrect ? "Right, it belongs on " : `You wrote "${typedClass.trim()}", but it actually belongs on `}
                   {owner.name}
                 </span>
                 <span style={{ fontSize: 13, color: color.textDim, lineHeight: 1.55 }}>

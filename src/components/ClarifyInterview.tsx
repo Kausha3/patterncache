@@ -40,7 +40,7 @@ export function ClarifyInterview({ interview, onComplete }: { interview: Intervi
           </div>
         </div>
         <div style={{ marginLeft: 43, fontSize: 13, color: color.textDim, fontStyle: "italic" }}>
-          Don't start drawing boxes. Ask what you need to know first — pick a question below.
+          Don't start drawing boxes. Ask what you need to know first, pick a question below.
         </div>
       </Panel>
 
@@ -135,7 +135,7 @@ function Exchange({ q, branchSel, onBranch }: { q: ClarifyQuestion; branchSel?: 
       {/* Coaching */}
       {premature ? (
         <Coach tone={color.amber} icon="target" label="Judgment call">
-          Too early to ask — note it and come back once scope and scale are nailed. Interviewers read this as knowing the order of operations.
+          Too early to ask. Note it and come back once scope and scale are nailed down. Interviewers read this as knowing the order of operations.
         </Coach>
       ) : (
         q.why && (

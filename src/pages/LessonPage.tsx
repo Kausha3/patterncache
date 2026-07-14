@@ -18,6 +18,13 @@ import { Button, Eyebrow, Panel, InlineCode } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { color, font, radius, trackColor, motion } from "@/theme/tokens";
 
+// A lesson is only "company-only" if it's not reachable from the Path spine
+// at all — not by its track. LLD lessons used to be Companies-exclusive, but
+// now live in the System Design path too, so `track === "lld"` is stale.
+function isInPath(id: string): boolean {
+  return (Object.keys(PATH) as Track[]).some((t) => PATH[t].some((n) => n.id === id));
+}
+
 export function LessonPage() {
   const { id = "" } = useParams();
   const lesson = getLesson(id);
@@ -41,8 +48,8 @@ function ComingSoon({ title, fromCompany }: { title: string; fromCompany?: boole
         <Eyebrow tone={color.amber}>On the roadmap</Eyebrow>
         <h1 style={{ fontSize: 25, fontWeight: 700, letterSpacing: "-0.5px" }}>{title}</h1>
         <p style={{ color: color.textDim }}>
-          This lesson isn't built yet — every lesson is hand-crafted so the reasoning holds up, and we ship depth before
-          breadth. In the meantime, here's one that's ready to run.
+          This lesson isn't built yet. Every lesson here is hand-crafted so the reasoning actually holds up,
+          and depth ships before breadth. In the meantime, here's one that's ready to go.
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Button icon="play" onClick={() => navigate(`/lesson/${RECOMMENDED_FIRST}`)}>Start Sliding Window</Button>
@@ -92,7 +99,7 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
   useEffect(() => { setStatus(lesson.id, "in-progress"); }, [lesson.id, setStatus]);
   const markComplete = () => setStatus(lesson.id, "completed");
 
-  const isCompanyOnly = lesson.track === "lld";
+  const isCompanyOnly = !isInPath(lesson.id);
   const trackLabel = lesson.track === "dsa" ? "DSA" : lesson.track === "lld" ? "Low-Level Design" : "System Design";
 
   return (
@@ -261,7 +268,7 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
   const { get, setConfidence } = useProgress();
   const [dismissedSync, setDismissedSync] = useState(false);
   const chosen = get(lesson.id).confidence;
-  const isCompanyOnly = lesson.track === "lld";
+  const isCompanyOnly = !isInPath(lesson.id);
 
   const nextRec =
     (Object.keys(PATH) as Track[])
@@ -315,7 +322,7 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
 
           {!dismissedSync && (
             <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.02)", border: `1px solid ${color.hairline}`, borderRadius: radius.md, padding: "11px 14px" }}>
-              <span style={{ fontSize: 13, color: color.textDim, flex: 1 }}>Progress is saved on this device. Cross-device sync is coming later — no account needed to keep learning.</span>
+              <span style={{ fontSize: 13, color: color.textDim, flex: 1 }}>Progress is saved on this device. Sync across devices is coming later, but you don't need an account to keep learning right now.</span>
               <button onClick={() => setDismissedSync(true)} style={{ background: "none", border: "none", color: color.textFaint, fontFamily: font.mono, fontSize: 12 }}>dismiss</button>
             </div>
           )}
