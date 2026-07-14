@@ -207,7 +207,7 @@ function PatternSpotGame() {
   const patterns = listDesignPatterns();
   const nameOf = (id: string) => patterns.find((p) => p.id === id)?.name ?? id;
 
-  const [order] = useState<PatternSpotScenario[]>(() => shuffle(listPatternSpotScenarios()));
+  const [order, setOrder] = useState<PatternSpotScenario[]>(() => shuffle(listPatternSpotScenarios()));
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -228,6 +228,7 @@ function PatternSpotGame() {
             variant="primary"
             accent={color.violet}
             onClick={() => {
+              setOrder(shuffle(listPatternSpotScenarios()));
               setIdx(0);
               setPicked(null);
               setRevealed(false);
