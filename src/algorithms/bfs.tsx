@@ -210,7 +210,7 @@ export function runBFS(input: string): TraceStep<BFSState>[] {
     const cur = queue.shift()!;
     if (cur === targetKey) {
       const path = reconstruct(parent, startKey, targetKey);
-      steps.push({ state: snap(cur, path), explanation: `Dequeued the target at distance ${dist[cur]}. Because BFS pulls cells in distance order, this is guaranteed shortest — ${dist[cur]} steps.`, line: 3, tag: "target", milestone: true });
+      steps.push({ state: snap(cur, path), explanation: `Dequeued the target at distance ${dist[cur]}. BFS pulls cells in distance order, so this is guaranteed shortest at ${dist[cur]} steps.`, line: 3, tag: "target", milestone: true });
       return steps;
     }
     const added: string[] = [];
@@ -226,14 +226,14 @@ export function runBFS(input: string): TraceStep<BFSState>[] {
     steps.push({
       state: snap(cur),
       explanation: added.length
-        ? `Dequeue (${cur}) at distance ${dist[cur]}. Enqueue its open, unseen neighbors — ${added.map((k) => `(${k})`).join(", ")} — each at distance ${dist[cur] + 1}.`
-        : `Dequeue (${cur}) at distance ${dist[cur]}. No open, unseen neighbors — nothing to add.`,
+        ? `Dequeue (${cur}) at distance ${dist[cur]}. Enqueue its open, unseen neighbors: ${added.map((k) => `(${k})`).join(", ")}, each at distance ${dist[cur] + 1}.`
+        : `Dequeue (${cur}) at distance ${dist[cur]}. No open, unseen neighbors. Nothing to add.`,
       line: 2,
       tag: "expand",
     });
   }
 
-  steps.push({ state: snap(null), explanation: "The queue drained without reaching the target — it's unreachable.", line: 8, tag: "unreachable" });
+  steps.push({ state: snap(null), explanation: "The queue drained without reaching the target. It's unreachable.", line: 8, tag: "unreachable" });
   return steps;
 }
 
@@ -286,8 +286,8 @@ function processCell(state: BFSState, cur: string): { state: BFSState; added: st
 }
 
 export function applyBFSSandbox(state: BFSState, actionId: string): SandboxOutcome<BFSState> {
-  if (state.path) return { state, valid: false, done: true, message: "Target already reached — the run is over." };
-  if (state.queue.length === 0) return { state, valid: false, done: true, message: "The queue is empty — nowhere left to explore." };
+  if (state.path) return { state, valid: false, done: true, message: "Target already reached. The run is over." };
+  if (state.queue.length === 0) return { state, valid: false, done: true, message: "The queue is empty. Nowhere left to explore." };
 
   const queue = [...state.queue];
   const cur = actionId === "newest" ? queue.pop()! : queue.shift()!;
@@ -296,10 +296,10 @@ export function applyBFSSandbox(state: BFSState, actionId: string): SandboxOutco
 
   if (foundTarget) {
     const path = reconstruct(after.parent, after.startKey, after.targetKey);
-    return { state: { ...after, path }, valid: true, done: true, message: `Reached the target from (${cur}) — path length ${after.dist[after.targetKey]}.` };
+    return { state: { ...after, path }, valid: true, done: true, message: `Reached the target from (${cur}), path length ${after.dist[after.targetKey]}.` };
   }
 
-  const how = actionId === "newest" ? "newest (LIFO — goes deep)" : "oldest (FIFO — stays shallow)";
+  const how = actionId === "newest" ? "newest (LIFO, goes deep)" : "oldest (FIFO, stays shallow)";
   return {
     state: after,
     valid: true,
@@ -318,11 +318,11 @@ export function scoreBFSSandbox(state: BFSState): { solved: boolean; message: st
     return { solved: false, message: "You didn't reach the target. Reset and keep pulling from the queue until T is found." };
   }
   if (found === optimal) {
-    return { solved: true, message: `You reached T in ${found} steps — the shortest possible path.`, note: "Pulling oldest-first (FIFO) is what guarantees shortest paths." };
+    return { solved: true, message: `You reached T in ${found} steps. That's the shortest possible path.`, note: "Pulling oldest-first (FIFO) is what guarantees shortest paths." };
   }
   return {
     solved: false,
-    message: `You reached T in ${found} steps, but the shortest path is ${optimal}. Pulling the newest cell explores deep and can stumble onto T by a longer route — FIFO (oldest-first) is what makes BFS optimal.`,
+    message: `You reached T in ${found} steps, but the shortest path is ${optimal}. Pulling the newest cell explores deep and can stumble onto T by a longer route. FIFO (oldest-first) is what makes BFS optimal.`,
     note: `your path length ${found} · shortest ${optimal}`,
   };
 }

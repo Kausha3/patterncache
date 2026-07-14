@@ -162,7 +162,7 @@ export function runSlidingWindow(input: string): TraceStep<SWState>[] {
       left++;
       push(
         { input, left, right: right - 1, best, bestWindow, touched: { index: left - 1, kind: "drop" } },
-        `'${c}' is already in the window. Shrink from the left — drop '${dropped}' — until the duplicate is gone.`,
+        `'${c}' is already in the window. Shrink from the left, drop '${dropped}', until the duplicate is gone.`,
         LINE_SHRINK,
         "shrink",
       );
@@ -179,7 +179,7 @@ export function runSlidingWindow(input: string): TraceStep<SWState>[] {
     push(
       { input, left, right, best, bestWindow, touched: { index: right, kind: "add" } },
       milestone
-        ? `Add '${c}'. Window is "${input.slice(left, right + 1)}" (length ${len}) — a new best.`
+        ? `Add '${c}'. Window is "${input.slice(left, right + 1)}" (length ${len}), a new best.`
         : `Add '${c}'. Window is "${input.slice(left, right + 1)}" (length ${len}).`,
       LINE_EXPAND,
       "expand",
@@ -190,7 +190,7 @@ export function runSlidingWindow(input: string): TraceStep<SWState>[] {
   if (steps.length === 0) {
     steps.push({
       state: { input, left: 0, right: -1, best: 0, bestWindow: [0, -1] },
-      explanation: "Empty input — the answer is 0.",
+      explanation: "Empty input, so the answer is 0.",
       line: 7,
     });
   }
@@ -224,7 +224,7 @@ export function applySWSandbox(state: SWState, actionId: string): SandboxOutcome
         state,
         valid: false,
         done: true,
-        message: "Right pointer is already at the last character — nothing left to add.",
+        message: "Right pointer is already at the last character. Nothing left to add.",
       };
     }
     const nextRight = state.right + 1;
@@ -235,7 +235,7 @@ export function applySWSandbox(state: SWState, actionId: string): SandboxOutcome
         state,
         valid: false,
         done: state.right >= n - 1,
-        message: `Adding '${c}' would repeat a character already in the window "${win(state)}". A valid window has no repeats — shrink from the left first.`,
+        message: `Adding '${c}' would repeat a character already in the window "${win(state)}". A valid window has no repeats, so shrink from the left first.`,
       };
     }
     const len = nextRight - state.left + 1;
@@ -252,7 +252,7 @@ export function applySWSandbox(state: SWState, actionId: string): SandboxOutcome
       valid: true,
       done: nextRight >= n - 1,
       message: improved
-        ? `Added '${input[nextRight]}'. Window "${win(next)}" is length ${len} — a new best!`
+        ? `Added '${input[nextRight]}'. Window "${win(next)}" is length ${len}, a new best!`
         : `Added '${input[nextRight]}'. Window "${win(next)}" is length ${len}.`,
     };
   }
@@ -266,7 +266,7 @@ export function applySWSandbox(state: SWState, actionId: string): SandboxOutcome
         state,
         valid: false,
         done: atEnd,
-        message: "The window is already empty — expand to bring in the next character.",
+        message: "The window is already empty. Expand to bring in the next character.",
       };
     }
     const dropped = input[state.left];
@@ -281,7 +281,7 @@ export function applySWSandbox(state: SWState, actionId: string): SandboxOutcome
       valid: true,
       done: atEnd,
       message: nowEmpty
-        ? `Dropped '${dropped}'. The window is now empty — expand to slide past the repeat.`
+        ? `Dropped '${dropped}'. The window is now empty. Expand to slide past the repeat.`
         : `Dropped '${dropped}' from the left. Window is now "${win(next)}".`,
     };
   }

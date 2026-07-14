@@ -21,7 +21,7 @@ export function generateClassCode(design: ClassModelSpec): string {
       const parts: string[] = [];
       if (propLines.length) parts.push(propLines.join("\n"));
       if (methodLines.length) parts.push(methodLines.join("\n"));
-      const body = parts.length ? parts.join("\n\n") : "  // no members — identity only";
+      const body = parts.length ? parts.join("\n\n") : "  // no members, identity only";
       return `class ${e.name} {\n${body}\n}`;
     })
     .join("\n\n");

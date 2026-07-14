@@ -11,7 +11,7 @@
 export const LEADERSHIP_PRINCIPLES: Record<string, { name: string; plain: string }> = {
   "customer-obsession": {
     name: "Customer Obsession",
-    plain: "Start from the user's problem, not the tech. Clarifying requirements before designing is graded as this principle — skipping it reads as the opposite.",
+    plain: "Start from the user's problem, not the tech. Clarifying requirements before designing is graded as this principle, so skipping it reads as the opposite.",
   },
   ownership: {
     name: "Ownership",
@@ -19,7 +19,7 @@ export const LEADERSHIP_PRINCIPLES: Record<string, { name: string; plain: string
   },
   frugality: {
     name: "Frugality",
-    plain: "Accomplish more with less. Shown in the design round as cost-aware tradeoffs — e.g. tiering data hot-in-cache, warm-in-DB, cold-in-cheap-storage instead of over-provisioning everything.",
+    plain: "Accomplish more with less. Shown in the design round as cost-aware tradeoffs, like tiering data hot-in-cache, warm-in-DB, cold-in-cheap-storage instead of over-provisioning everything.",
   },
   "dive-deep": {
     name: "Dive Deep",

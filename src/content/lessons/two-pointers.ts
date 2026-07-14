@@ -8,13 +8,13 @@ export const twoPointers: DSALesson = {
   estMinutes: 4,
   concept: {
     bruteForce:
-      "To find two numbers that sum to a target, the obvious move is to try every pair — for each element, scan the rest of the array. Correct, but it ignores everything you know about the data.",
+      "To find two numbers that sum to a target, the obvious move is to try every pair: for each element, scan the rest of the array. It's correct, but it ignores everything you know about the data.",
     bruteForceComplexity: "O(n²)",
     insight:
-      "If the array is sorted, put one pointer at each end. Their sum is too small? The smallest element can never be part of a bigger pair — move left up. Too big? The largest can't help — move right down. Every comparison discards a whole row of the pair grid.",
+      "If the array is sorted, put one pointer at each end. Their sum is too small? The smallest element can never be part of a bigger pair, so move the left one up. Too big? The largest can't help either, so move the right one down. Every comparison discards a whole row of the pair grid.",
     complexity: "O(n)",
     recognize:
-      "Reach for two pointers when the input is sorted (or you can sort it) and you're looking for a pair, a triplet, or a partition — anywhere a comparison at the ends tells you which side to discard.",
+      "Reach for two pointers when the input is sorted (or you can sort it) and you're looking for a pair, a triplet, or a partition, basically anywhere a comparison at the ends tells you which side to discard.",
   },
   trace: {
     input: "2,7,11,15|9",

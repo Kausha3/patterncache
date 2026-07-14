@@ -118,7 +118,7 @@ export function ColdDrillPage() {
           </Panel>
 
           <Panel style={{ display: "grid", gap: 14 }}>
-            <Eyebrow tone={color.violet}>Your classes — name one, then add its fields and methods</Eyebrow>
+            <Eyebrow tone={color.violet}>Your classes: name one, then add its fields and methods</Eyebrow>
             <TextAddRow placeholder="class name, e.g. Order" value={newEntityName} onChange={setNewEntityName} onAdd={addEntity} big />
             {entities.length > 0 && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>

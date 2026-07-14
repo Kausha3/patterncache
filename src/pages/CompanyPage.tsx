@@ -55,7 +55,7 @@ export function CompanyPage() {
             <>
               <Divider />
               <div style={{ display: "grid", gap: 8 }}>
-                <span style={{ fontSize: 12, color: color.textFaint }}>Most-emphasized principles in the design round — hover for what each looks like in practice:</span>
+                <span style={{ fontSize: 12, color: color.textFaint }}>Most-emphasized principles in the design round. Hover for what each looks like in practice:</span>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {company.valuesFocus.map((key) => {
                     const def = LEADERSHIP_PRINCIPLES[key];

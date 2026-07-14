@@ -126,7 +126,7 @@ export function runTwoPointer(input: string): TraceStep<TPState>[] {
     if (sum === target) {
       steps.push({
         state: { nums, target, left, right, found: true },
-        explanation: `a[${left}] + a[${right}] = ${nums[left]} + ${nums[right]} = ${target}. That's the target — done.`,
+        explanation: `a[${left}] + a[${right}] = ${nums[left]} + ${nums[right]} = ${target}. That's the target, done.`,
         line: LINE_MATCH,
         tag: "match",
         milestone: true,
@@ -136,7 +136,7 @@ export function runTwoPointer(input: string): TraceStep<TPState>[] {
     if (sum < target) {
       steps.push({
         state: { nums, target, left, right },
-        explanation: `Sum ${sum} is below ${target}. Everything paired with a[${left}] is too small, so a[${left}] can't be the answer — move L up to grow the sum.`,
+        explanation: `Sum ${sum} is below ${target}. Everything paired with a[${left}] is too small, so a[${left}] can't be the answer. Move L up to grow the sum.`,
         line: LINE_LOW,
         tag: "too small",
       });
@@ -144,7 +144,7 @@ export function runTwoPointer(input: string): TraceStep<TPState>[] {
     } else {
       steps.push({
         state: { nums, target, left, right },
-        explanation: `Sum ${sum} is above ${target}. Everything paired with a[${right}] is too big, so a[${right}] can't be the answer — move R down to shrink the sum.`,
+        explanation: `Sum ${sum} is above ${target}. Everything paired with a[${right}] is too big, so a[${right}] can't be the answer. Move R down to shrink the sum.`,
         line: LINE_HIGH,
         tag: "too big",
       });
@@ -154,7 +154,7 @@ export function runTwoPointer(input: string): TraceStep<TPState>[] {
 
   steps.push({
     state: { nums, target, left, right },
-    explanation: "The pointers met without a match — no pair sums to the target.",
+    explanation: "The pointers met without a match. No pair sums to the target.",
     line: 6,
     tag: "no pair",
   });
@@ -179,7 +179,7 @@ export function applyTPSandbox(state: TPState, actionId: string): SandboxOutcome
   const prevSum = nums[left] + nums[right];
 
   if (left >= right) {
-    return { state, valid: false, done: true, message: "The pointers have already met — the run is over." };
+    return { state, valid: false, done: true, message: "The pointers have already met. The run is over." };
   }
 
   if (actionId === "moveL") {
@@ -189,14 +189,14 @@ export function applyTPSandbox(state: TPState, actionId: string): SandboxOutcome
     }
     const sum = nums[nl] + nums[right];
     const next = { ...state, left: nl, found: sum === target };
-    if (sum === target) return { state: next, valid: true, done: true, message: `a[${nl}] + a[${right}] = ${target} — you found the pair!` };
+    if (sum === target) return { state: next, valid: true, done: true, message: `a[${nl}] + a[${right}] = ${target}. You found the pair!` };
     const misstep = prevSum > target;
     return {
       state: next,
       valid: true,
       done: false,
       message: misstep
-        ? `The sum was already too big (${prevSum} > ${target}); moving L up grew it to ${sum}. That moves away from the target — L should move when the sum is too small.`
+        ? `The sum was already too big (${prevSum} > ${target}); moving L up grew it to ${sum}. That moves away from the target. L should move when the sum is too small.`
         : `Moved L up. New sum ${nums[nl]} + ${nums[right]} = ${sum} ${sum < target ? "< " : "> "}${target}.`,
     };
   }
@@ -208,14 +208,14 @@ export function applyTPSandbox(state: TPState, actionId: string): SandboxOutcome
     }
     const sum = nums[left] + nums[nr];
     const next = { ...state, right: nr, found: sum === target };
-    if (sum === target) return { state: next, valid: true, done: true, message: `a[${left}] + a[${nr}] = ${target} — you found the pair!` };
+    if (sum === target) return { state: next, valid: true, done: true, message: `a[${left}] + a[${nr}] = ${target}. You found the pair!` };
     const misstep = prevSum < target;
     return {
       state: next,
       valid: true,
       done: false,
       message: misstep
-        ? `The sum was already too small (${prevSum} < ${target}); moving R down shrank it to ${sum}. That moves away from the target — R should move when the sum is too big.`
+        ? `The sum was already too small (${prevSum} < ${target}); moving R down shrank it to ${sum}. That moves away from the target. R should move when the sum is too big.`
         : `Moved R down. New sum ${nums[left]} + ${nums[nr]} = ${sum} ${sum < target ? "< " : "> "}${target}.`,
     };
   }

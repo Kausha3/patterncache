@@ -23,7 +23,7 @@ export default function CodeExerciseBlock({ exercise }: { exercise: CodeExercise
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <Divider />
-      <Eyebrow tone={color.teal}>Now write it — {exercise.language}</Eyebrow>
+      <Eyebrow tone={color.teal}>Now write it in {exercise.language}</Eyebrow>
       <div style={{ border: `1px solid ${color.hairline}`, borderRadius: radius.md, overflow: "hidden" }}>
         <CodeMirror
           value={code}
