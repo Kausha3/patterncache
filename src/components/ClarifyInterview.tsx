@@ -176,6 +176,9 @@ function Exchange({ q, branchSel, onBranch }: { q: ClarifyQuestion; branchSel?: 
 }
 
 function Coach({ tone, icon, label, lp, children }: { tone: string; icon: "insight" | "target"; label: string; lp?: string[]; children: React.ReactNode }) {
+  const [activePrinciple, setActivePrinciple] = useState<string | null>(null);
+  const activeDefinition = activePrinciple ? LEADERSHIP_PRINCIPLES[activePrinciple] : undefined;
+
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: `${tone}12`, border: `1px solid ${tone}44`, borderRadius: radius.md, padding: "11px 13px" }}>
       <span style={{ color: tone, marginTop: 1 }}><Icon name={icon} size={15} /></span>
@@ -186,9 +189,10 @@ function Coach({ tone, icon, label, lp, children }: { tone: string; icon: "insig
             const def = LEADERSHIP_PRINCIPLES[key];
             if (!def) return null;
             return (
-              <span
+              <button
                 key={key}
-                title={def.plain}
+                onClick={() => setActivePrinciple((current) => current === key ? null : key)}
+                aria-expanded={activePrinciple === key}
                 style={{
                   fontFamily: font.mono,
                   fontSize: 9.5,
@@ -198,15 +202,31 @@ function Coach({ tone, icon, label, lp, children }: { tone: string; icon: "insig
                   border: `1px solid ${color.amber}55`,
                   borderRadius: radius.pill,
                   padding: "2px 8px",
-                  cursor: "help",
+                  cursor: "pointer",
                 }}
               >
                 {def.name}
-              </span>
+              </button>
             );
           })}
         </div>
         <span style={{ color: color.text, fontSize: 13.5, lineHeight: 1.55 }}>{children}</span>
+        {activeDefinition && (
+          <span
+            role="status"
+            style={{
+              color: color.textDim,
+              fontSize: 12.5,
+              lineHeight: 1.55,
+              background: "rgba(217,169,78,0.07)",
+              border: `1px solid ${color.amber}44`,
+              borderRadius: radius.sm,
+              padding: "7px 9px",
+            }}
+          >
+            {activeDefinition.plain}
+          </span>
+        )}
       </div>
     </div>
   );

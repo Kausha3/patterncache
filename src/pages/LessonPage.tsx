@@ -12,7 +12,8 @@ import { SandboxPractice } from "@/components/SandboxPractice";
 import { StageBuilder } from "@/components/StageBuilder";
 import { ClarifyInterview } from "@/components/ClarifyInterview";
 import { ClassModeler } from "@/components/ClassModeler";
-import { CodeBlock, generateClassCode } from "@/components/CodeBlock";
+import { CodeBlock } from "@/components/CodeBlock";
+import { generateClassCode } from "@/components/generateClassCode";
 import { Glossary } from "@/components/Glossary";
 import { Button, Eyebrow, Panel, InlineCode } from "@/components/ui";
 import { Icon } from "@/components/Icon";
@@ -69,7 +70,7 @@ function ComingSoon({ title, fromCompany }: { title: string; fromCompany?: boole
 // ---------------------------------------------------------------------------
 
 function LessonShell({ lesson }: { lesson: Lesson }) {
-  const { setStatus } = useProgress();
+  const { get, setStatus } = useProgress();
   const steps = isDSA(lesson)
     ? [
         { key: "concept", label: "Concept" },
@@ -92,12 +93,27 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
         ];
 
   const [stepIdx, setStepIdx] = useState(0);
+  const [finishedActivities, setFinishedActivities] = useState<Set<ActivityKey>>(new Set());
   const accent = trackColor[lesson.track];
   const cur = steps[stepIdx];
   const last = steps.length - 1;
 
+  const requiredActivity: ActivityKey = isDSA(lesson)
+    ? "practice"
+    : isLLD(lesson)
+      ? "design"
+      : lesson.stages?.length
+        ? "stages"
+        : lesson.interview
+          ? "clarify"
+          : "overview";
+  const requiredActivityLabel = steps.find((step) => step.key === requiredActivity)?.label ?? "required activity";
+  const requiredActivityComplete = get(lesson.id).status === "completed" || finishedActivities.has(requiredActivity);
+
   useEffect(() => { setStatus(lesson.id, "in-progress"); }, [lesson.id, setStatus]);
-  const markComplete = () => setStatus(lesson.id, "completed");
+  const markActivityComplete = (activity: ActivityKey) => {
+    setFinishedActivities((current) => new Set(current).add(activity));
+  };
 
   const isCompanyOnly = !isInPath(lesson.id);
   const trackLabel = lesson.track === "dsa" ? "DSA" : lesson.track === "lld" ? "Low-Level Design" : "System Design";
@@ -159,7 +175,15 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
         })}
       </div>
 
-      <div><StepContent lesson={lesson} stepKey={cur.key} onStepComplete={markComplete} /></div>
+      <div>
+        <StepContent
+          lesson={lesson}
+          stepKey={cur.key}
+          onActivityComplete={markActivityComplete}
+          requiredActivityComplete={requiredActivityComplete}
+          requiredActivityLabel={requiredActivityLabel}
+        />
+      </div>
 
       {/* Footer nav — every step has an obvious next action */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, borderTop: `1px solid ${color.hairline}`, paddingTop: 18 }}>
@@ -176,7 +200,21 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
   );
 }
 
-function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; stepKey: string; onStepComplete: () => void }) {
+type ActivityKey = "overview" | "clarify" | "practice" | "design" | "stages";
+
+function StepContent({
+  lesson,
+  stepKey,
+  onActivityComplete,
+  requiredActivityComplete,
+  requiredActivityLabel,
+}: {
+  lesson: Lesson;
+  stepKey: string;
+  onActivityComplete: (activity: ActivityKey) => void;
+  requiredActivityComplete: boolean;
+  requiredActivityLabel: string;
+}) {
   if (isDSA(lesson)) {
     const algo = getAlgorithm(lesson.trace.algorithm);
     switch (stepKey) {
@@ -187,9 +225,9 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
         return <TraceVisualizer steps={algo.run(lesson.trace.input)} renderStep={algo.renderStep} pseudocode={algo.pseudocode} goal={lesson.trace.goal} />;
       case "practice":
         if (!algo) return <MissingAlgo name={lesson.trace.algorithm} />;
-        return <SandboxPractice engine={algo.sandbox} input={lesson.practice.input} goal={lesson.practice.goal} onComplete={onStepComplete} />;
+        return <SandboxPractice engine={algo.sandbox} input={lesson.practice.input} goal={lesson.practice.goal} onComplete={() => onActivityComplete("practice")} />;
       case "recap":
-        return <Recap lesson={lesson} />;
+        return <Recap lesson={lesson} canComplete={requiredActivityComplete} requiredActivityLabel={requiredActivityLabel} />;
     }
   } else if (isLLD(lesson)) {
     switch (stepKey) {
@@ -201,11 +239,11 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
           </div>
         );
       case "clarify":
-        return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={onStepComplete} /> : null;
+        return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={() => onActivityComplete("clarify")} /> : null;
       case "design":
-        return <ClassModeler design={lesson.design} prompt={lesson.interview?.prompt} onComplete={onStepComplete} />;
+        return <ClassModeler design={lesson.design} prompt={lesson.interview?.prompt} onComplete={() => onActivityComplete("design")} />;
       case "recap":
-        return <Recap lesson={lesson} />;
+        return <Recap lesson={lesson} canComplete={requiredActivityComplete} requiredActivityLabel={requiredActivityLabel} />;
     }
   } else {
     switch (stepKey) {
@@ -217,13 +255,13 @@ function StepContent({ lesson, stepKey, onStepComplete }: { lesson: Lesson; step
           </div>
         );
       case "clarify":
-        return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={onStepComplete} /> : null;
+        return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={() => onActivityComplete("clarify")} /> : null;
       case "stages":
         return lesson.stages?.length ? (
-          <StageBuilder stages={lesson.stages} prompt={lesson.interview?.prompt} onComplete={onStepComplete} labels={lesson.stageLabels} />
+          <StageBuilder stages={lesson.stages} prompt={lesson.interview?.prompt} onComplete={() => onActivityComplete("stages")} labels={lesson.stageLabels} />
         ) : null;
       case "recap":
-        return <Recap lesson={lesson} />;
+        return <Recap lesson={lesson} canComplete={requiredActivityComplete} requiredActivityLabel={requiredActivityLabel} />;
     }
   }
   return null;
@@ -237,7 +275,7 @@ function MissingAlgo({ name }: { name: string }) {
 // Recap + confidence check-in
 // ---------------------------------------------------------------------------
 
-function Recap({ lesson }: { lesson: Lesson }) {
+function Recap({ lesson, canComplete, requiredActivityLabel }: { lesson: Lesson; canComplete: boolean; requiredActivityLabel: string }) {
   const accent = trackColor[lesson.track];
   return (
     <div style={{ display: "grid", gap: 18 }}>
@@ -258,12 +296,12 @@ function Recap({ lesson }: { lesson: Lesson }) {
           <CodeBlock code={generateClassCode(lesson.design)} label="Class skeleton" />
         </div>
       )}
-      <ConfidenceCheckin lesson={lesson} />
+      <ConfidenceCheckin lesson={lesson} canComplete={canComplete} requiredActivityLabel={requiredActivityLabel} />
     </div>
   );
 }
 
-function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
+function ConfidenceCheckin({ lesson, canComplete, requiredActivityLabel }: { lesson: Lesson; canComplete: boolean; requiredActivityLabel: string }) {
   const navigate = useNavigate();
   const { get, setConfidence } = useProgress();
   const [dismissedSync, setDismissedSync] = useState(false);
@@ -287,6 +325,25 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
         <Eyebrow>How solid does this feel?</Eyebrow>
         <span style={{ fontSize: 13, color: color.textFaint }}>Self-assessment, not a grade. “Shaky” lessons resurface first on your Progress page.</span>
       </div>
+      {!canComplete && (
+        <div
+          role="note"
+          style={{
+            display: "flex",
+            gap: 9,
+            alignItems: "flex-start",
+            color: color.text,
+            background: "rgba(217,169,78,0.08)",
+            border: `1px solid ${color.amber}55`,
+            borderRadius: radius.md,
+            padding: "10px 12px",
+            fontSize: 13,
+          }}
+        >
+          <Icon name="target" size={15} color={color.amber} style={{ marginTop: 1 }} />
+          Finish <strong>{requiredActivityLabel}</strong> before rating confidence. Viewing the recap alone does not complete the lesson.
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {options.map((o) => {
           const active = chosen === o.c;
@@ -294,6 +351,7 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
             <button
               key={o.c}
               onClick={() => setConfidence(lesson.id, o.c)}
+              disabled={!canComplete}
               aria-pressed={active}
               style={{
                 fontFamily: font.mono,
@@ -304,6 +362,8 @@ function ConfidenceCheckin({ lesson }: { lesson: Lesson }) {
                 background: active ? `${o.tone}1e` : "transparent",
                 border: `1px solid ${active ? o.tone : color.panelBorder}`,
                 color: active ? color.text : color.textDim,
+                opacity: canComplete ? 1 : 0.45,
+                cursor: canComplete ? "pointer" : "not-allowed",
                 transition: `all ${motion.fast}`,
               }}
             >

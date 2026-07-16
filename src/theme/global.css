@@ -8,10 +8,11 @@
   --hairline: #23262e;
   --text: #eceae3;
   --text-dim: #9a9ca4;
-  --text-faint: #63666e;
+  --text-faint: #82858f;
   --teal: #5bb0ad;
   --amber: #d9a94e;
   --blue: #6aa6db;
+  --violet: #9a82d4;
   --red: #d07b6e;
   --green: #82b872;
 
@@ -45,6 +46,566 @@ body {
     radial-gradient(1200px 600px at 50% -10%, rgba(91, 176, 173, 0.05), transparent 60%),
     var(--bg);
   background-attachment: fixed;
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.top-nav-shell {
+  min-width: 0;
+}
+
+.top-nav-brand,
+.top-nav-game,
+.top-nav-links {
+  flex-shrink: 0;
+}
+
+.top-nav-game {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px;
+  border: 1px solid rgba(217, 169, 78, 0.28);
+  border-radius: 999px;
+  background: rgba(217, 169, 78, 0.06);
+  font: 700 9.5px var(--mono);
+  letter-spacing: 0.45px;
+}
+
+.top-nav-game-level {
+  color: var(--amber);
+}
+
+.top-nav-game-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-dim);
+}
+
+.game-hud {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto minmax(230px, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(106, 166, 219, 0.34);
+  border-radius: 16px;
+  padding: 18px 20px;
+  background:
+    radial-gradient(420px 180px at 12% 50%, rgba(106, 166, 219, 0.14), transparent 68%),
+    linear-gradient(120deg, rgba(33, 36, 48, 0.96), rgba(27, 29, 35, 0.96));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px rgba(0, 0, 0, 0.22);
+}
+
+.game-hud::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: -55px;
+  top: -85px;
+  width: 230px;
+  height: 230px;
+  border: 1px solid rgba(91, 176, 173, 0.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 32px rgba(91, 176, 173, 0.025), 0 0 0 64px rgba(106, 166, 219, 0.02);
+}
+
+.game-level-node {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  border: 1px solid rgba(106, 166, 219, 0.62);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(106, 166, 219, 0.24), rgba(20, 21, 25, 0.94) 68%);
+  box-shadow: 0 0 24px rgba(106, 166, 219, 0.14), 0 0 0 6px rgba(106, 166, 219, 0.05);
+  font-family: var(--mono);
+}
+
+.game-level-node span {
+  color: var(--text-faint);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.game-level-node strong {
+  color: var(--text);
+  font-size: 27px;
+  line-height: 1.05;
+}
+
+.game-rank-copy {
+  min-width: 0;
+}
+
+.game-rank-copy h2 {
+  margin: 2px 0 9px;
+  font-size: 20px;
+  letter-spacing: -0.35px;
+}
+
+.game-xp-track,
+.boss-battle-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.game-xp-track span,
+.boss-battle-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.game-xp-caption {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-faint);
+  font: 600 10.5px var(--mono);
+}
+
+.game-hud-stats {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 8px;
+}
+
+.game-hud-metric {
+  min-width: 86px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.game-hud-metric div {
+  display: grid;
+}
+
+.game-hud-metric strong {
+  font: 700 14px var(--mono);
+}
+
+.game-hud-metric span {
+  color: var(--text-faint);
+  font-size: 9.5px;
+  white-space: nowrap;
+}
+
+.boss-battle {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 17px;
+  border: 1px solid rgba(208, 123, 110, 0.42);
+  border-radius: 16px;
+  padding: 22px;
+  background:
+    linear-gradient(100deg, rgba(208, 123, 110, 0.075), transparent 42%),
+    var(--panel);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.035) inset, 0 9px 28px rgba(0, 0, 0, 0.2);
+}
+
+.boss-battle-cleared {
+  border-color: rgba(130, 184, 114, 0.48);
+  background: linear-gradient(100deg, rgba(130, 184, 114, 0.08), transparent 42%), var(--panel);
+}
+
+.boss-battle-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.25;
+  background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(255, 255, 255, 0.012) 8px);
+}
+
+.boss-battle-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.boss-battle-header h2 {
+  margin: 4px 0 4px;
+  font-size: 23px;
+  letter-spacing: -0.45px;
+}
+
+.boss-battle-header p {
+  max-width: 650px;
+  color: var(--text-dim);
+  font-size: 13.5px;
+}
+
+.boss-battle-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  color: var(--amber);
+  border: 1px solid rgba(217, 169, 78, 0.3);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(217, 169, 78, 0.07);
+  font: 700 10px var(--mono);
+  letter-spacing: 0.5px;
+}
+
+.boss-checkpoint-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.boss-checkpoint {
+  min-width: 0;
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.boss-checkpoint-complete {
+  border-color: rgba(91, 176, 173, 0.38);
+  background: rgba(91, 176, 173, 0.045);
+}
+
+.boss-checkpoint-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.boss-checkpoint-number {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--panel-border);
+  border-radius: 50%;
+  color: var(--text-faint);
+  font: 700 10px var(--mono);
+}
+
+.boss-checkpoint-xp {
+  color: var(--amber);
+  font: 700 9.5px var(--mono);
+}
+
+.boss-checkpoint h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+
+.boss-checkpoint p {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.achievement-shelf {
+  display: grid;
+  gap: 13px;
+}
+
+.achievement-shelf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.achievement-shelf-header h2 {
+  margin-top: 4px;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+}
+
+.achievement-shelf-header > span {
+  color: var(--text-faint);
+  font: 600 11px var(--mono);
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.achievement-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.achievement-card-unlocked {
+  border-color: rgba(154, 130, 212, 0.42);
+  background: linear-gradient(135deg, rgba(154, 130, 212, 0.1), rgba(91, 176, 173, 0.025));
+}
+
+.achievement-icon {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  border: 1px solid var(--panel-border);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.achievement-card-unlocked .achievement-icon {
+  color: var(--violet, #9a82d4);
+  border-color: rgba(154, 130, 212, 0.48);
+  box-shadow: 0 0 16px rgba(154, 130, 212, 0.14);
+}
+
+.achievement-card h3 {
+  margin: 0 0 3px;
+  font-size: 13px;
+}
+
+.achievement-card p {
+  color: var(--text-faint);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.achievement-state {
+  grid-column: 2;
+  color: var(--text-faint);
+  font: 700 9px var(--mono);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.achievement-card-unlocked .achievement-state {
+  color: var(--teal);
+}
+
+.course-hero,
+.course-day-header,
+.course-task-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.course-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.course-day-header {
+  padding: 22px 22px 4px;
+}
+
+.course-task-row {
+  align-items: center;
+  padding: 16px 22px;
+}
+
+.course-task-row > :nth-child(2) {
+  flex: 1;
+}
+
+.course-task-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.course-day-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.plan-choice-grid,
+.setup-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plan-choice,
+.setup-choice {
+  display: grid;
+  gap: 7px;
+  text-align: left;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px 15px;
+}
+
+.setup-choice.selected {
+  background: rgba(217, 169, 78, 0.07);
+  border-color: rgba(217, 169, 78, 0.45);
+}
+
+.setup-input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 9px 11px;
+  font: 600 13px var(--mono);
+}
+
+@media (max-width: 760px) {
+  .app-main {
+    padding: 22px 16px 48px;
+  }
+
+  .top-nav-shell {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 9px !important;
+    padding: 10px 16px 8px !important;
+  }
+
+  .top-nav-brand {
+    width: fit-content;
+  }
+
+  .top-nav-links {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0 !important;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .top-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .top-nav-link {
+    flex: 0 0 auto;
+  }
+
+  .course-hero,
+  .course-day-header,
+  .course-task-row {
+    display: grid;
+  }
+
+  .course-hero > button {
+    width: fit-content;
+  }
+
+  .course-stat-grid,
+  .plan-choice-grid,
+  .setup-input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-hud {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .game-level-node {
+    width: 62px;
+    height: 62px;
+  }
+
+  .game-level-node strong {
+    font-size: 23px;
+  }
+
+  .game-hud-stats {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .game-hud-metric {
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .boss-battle {
+    padding: 17px;
+  }
+
+  .boss-battle-header {
+    display: grid;
+  }
+
+  .boss-battle-reward {
+    width: fit-content;
+  }
+
+  .boss-checkpoint-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .achievement-shelf-header {
+    display: grid;
+  }
+
+  .achievement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .course-day-header,
+  .course-task-row {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .course-day-header > :last-child {
+    text-align: left !important;
+  }
+
+  .course-task-row {
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .course-task-actions {
+    grid-column: 2;
+    flex-wrap: wrap;
+  }
 }
 
 h1,

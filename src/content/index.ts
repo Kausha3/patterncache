@@ -16,6 +16,8 @@ import { elevatorSystem } from "./lessons/elevator-system";
 import { vendingMachine } from "./lessons/vending-machine";
 import { discountCouponSystem } from "./lessons/discount-coupon-system";
 import { chessGame } from "./lessons/chess-game";
+import { amazonWarehouse } from "./lessons/amazon-warehouse";
+import { amazonCheckout } from "./lessons/amazon-checkout";
 
 /** Fully-built, playable lessons keyed by id. */
 export const LESSONS: Record<string, Lesson> = {
@@ -36,6 +38,8 @@ export const LESSONS: Record<string, Lesson> = {
   [vendingMachine.id]: vendingMachine,
   [discountCouponSystem.id]: discountCouponSystem,
   [chessGame.id]: chessGame,
+  [amazonWarehouse.id]: amazonWarehouse,
+  [amazonCheckout.id]: amazonCheckout,
 };
 
 export function getLesson(id: string): Lesson | undefined {

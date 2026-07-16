@@ -5,7 +5,7 @@ export const discountCouponSystem: LLDLesson = {
   track: "lld",
   title: "Design a Discount / Coupon System",
   blurb: "An Amazon-flavored LLD prompt that covers stacking rules, validity windows, and eligibility.",
-  estMinutes: 8,
+  estMinutes: 35,
   overview:
     "A coupon system looks like a simple percentage-off calculation until you have to handle stacking rules, minimum-spend eligibility, and per-customer redemption limits at the same time. The design payoff is keeping the discount math (DiscountRule) separate from the coupon's metadata (Coupon), and separate again from the orchestration (CouponEngine). Do that and a new discount type never means touching the class that applies it.",
   terms: ["client", "server"],

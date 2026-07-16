@@ -4,7 +4,8 @@ import { color, font, radius, motion } from "@/theme/tokens";
 import { Panel, Button, SectionHeader, Eyebrow, Divider, PromptBanner } from "./ui";
 import { Icon } from "./Icon";
 import { TraceVisualizer } from "./TraceVisualizer";
-import { CodeBlock, RelationshipDiagram, generateClassCode } from "./CodeBlock";
+import { CodeBlock, RelationshipDiagram } from "./CodeBlock";
+import { generateClassCode } from "./generateClassCode";
 
 // CodeMirror + a language grammar are heavy — lazy-load so DSA/SD lessons
 // (which never touch this) don't pay for it on first load.

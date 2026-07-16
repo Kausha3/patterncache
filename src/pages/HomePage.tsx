@@ -5,6 +5,8 @@ import { Icon } from "@/components/Icon";
 import type { IconName } from "@/components/Icon";
 import { PATH, RECOMMENDED_FIRST, getLesson } from "@/content";
 import { useProgress } from "@/hooks/useProgress";
+import { useCoursePlan } from "@/hooks/useCoursePlan";
+import { getCurrentCourseDay } from "@/course/coursePlan";
 import { color, font, radius, trackColor } from "@/theme/tokens";
 import type { Track } from "@/types";
 
@@ -18,6 +20,7 @@ import type { Track } from "@/types";
 export function HomePage() {
   const navigate = useNavigate();
   const { get } = useProgress();
+  const { preferences } = useCoursePlan();
 
   const recommended =
     (Object.keys(PATH) as Track[])
@@ -37,11 +40,23 @@ export function HomePage() {
           it gets taken away and you're tested on it. Same problem, then a new one you've never seen. No
           account, no video to sit through on 2x. Just you, doing the design yourself.
         </p>
-        {recLesson && (
+        {preferences ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 2 }}>
+            <Button icon="play" onClick={() => navigate("/course")}>
+              Continue Amazon sprint · Day {getCurrentCourseDay(preferences.startDate, preferences.length)}
+            </Button>
+            <Button variant="ghost" icon="target" onClick={() => navigate("/arena")}>Enter the Arena</Button>
+            <span style={{ fontFamily: font.mono, fontSize: 12, color: color.textFaint }}>
+              {preferences.level} · {preferences.length} days · saved on this device
+            </span>
+          </div>
+        ) : recLesson && (
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 2 }}>
             <Button icon="play" onClick={() => navigate(`/lesson/${recommended}`)}>
               Start: {recLesson.title} · {recLesson.estMinutes} min
             </Button>
+            <Button variant="ghost" onClick={() => navigate("/course")}>Build a 15/30-day plan</Button>
+            <Button variant="ghost" icon="target" onClick={() => navigate("/arena")}>Try the Arena</Button>
             <span style={{ fontFamily: font.mono, fontSize: 12, color: color.textFaint }}>no account · saved on this device</span>
           </div>
         )}

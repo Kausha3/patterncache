@@ -5,7 +5,7 @@ export const amazonWarehouse: SDLesson = {
   track: "system-design",
   title: "Design Amazon's Warehouse / Fulfillment System",
   blurb: "Inventory, order routing, pick-and-pack at fulfillment-center scale.",
-  estMinutes: 8,
+  estMinutes: 30,
   overview:
     "This is Amazon's single most-cited system-design prompt, and for good reason. It's really three problems bundled into one: which warehouse should fulfill an order, how do you keep stock counts accurate across hundreds of sites without one giant lock, and what happens when the physical pick-and-pack process doesn't go as planned. Every piece of the design traces back to one tension: stock accuracy versus write throughput.",
   terms: ["client", "server", "database", "cache", "loadBalancer", "queue"],

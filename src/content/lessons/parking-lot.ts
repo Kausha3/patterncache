@@ -5,7 +5,7 @@ export const parkingLot: LLDLesson = {
   track: "lld",
   title: "Design a Parking Lot",
   blurb: "The canonical LLD warm-up, covering classes, spot allocation, and edge cases like a full lot.",
-  estMinutes: 8,
+  estMinutes: 35,
   overview:
     "Low-level design isn't about scale. It's about turning a vague prompt into a clean set of classes with the right responsibilities, then defending that model when the interviewer pokes at it with edge cases. A parking lot is the classic warm-up: everyone can picture the domain, so the interview is purely about your object-modeling judgment. Clarify the scope, name the real classes (not every noun in the prompt is one), assign each behavior to the class that actually owns it, and then survive the 'what if' questions.",
   terms: ["client", "server"],

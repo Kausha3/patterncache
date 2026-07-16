@@ -1,49 +1,38 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { ClassModelSpec } from "@/types";
 import { color, font, radius, motion } from "@/theme/tokens";
 import { Icon } from "./Icon";
-
-/**
- * Generates a TS-flavored class-code snippet from a finished class model —
- * the literal artifact a candidate could reference or actually recite in an
- * interview, not just a text description of it.
- */
-export function generateClassCode(design: ClassModelSpec): string {
-  const entities = design.entities.filter((e) => e.isEntity);
-  const relComment = design.relationships.map((r) => `// ${r}`).join("\n");
-  const classes = entities
-    .map((e) => {
-      const props = e.properties ?? [];
-      const methods = design.methods.filter((m) => m.ownerId === e.id);
-      const propLines = props.map((p) => `  ${p.name}: ${p.type}`);
-      const methodLines = methods.map((m) => `  ${m.signature}`);
-      const parts: string[] = [];
-      if (propLines.length) parts.push(propLines.join("\n"));
-      if (methodLines.length) parts.push(methodLines.join("\n"));
-      const body = parts.length ? parts.join("\n\n") : "  // no members, identity only";
-      return `class ${e.name} {\n${body}\n}`;
-    })
-    .join("\n\n");
-  return `${relComment}\n\n${classes}`;
-}
 
 /** A code block with light syntax coloring and a copy button — no syntax
  * highlighting library, just per-line pattern matching, which is plenty for
  * the class-skeleton shape this always renders. */
 export function CodeBlock({ code, label = "Code" }: { code: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "manual">("idle");
+  const resetTimer = useRef<number | undefined>(undefined);
+  const codeRef = useRef<HTMLPreElement>(null);
   const lines = code.split("\n");
+
+  useEffect(() => () => {
+    if (resetTimer.current !== undefined) window.clearTimeout(resetTimer.current);
+  }, []);
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      await writeClipboardText(code);
+      setCopyState("copied");
+      if (resetTimer.current !== undefined) window.clearTimeout(resetTimer.current);
+      resetTimer.current = window.setTimeout(() => setCopyState("idle"), 1600);
     } catch {
-      /* clipboard unavailable in this context — button just won't confirm */
+      if (codeRef.current) selectElementText(codeRef.current);
+      setCopyState("manual");
+      if (resetTimer.current !== undefined) window.clearTimeout(resetTimer.current);
+      resetTimer.current = window.setTimeout(() => setCopyState("idle"), 3200);
     }
   };
+
+  const copied = copyState === "copied";
+  const manual = copyState === "manual";
+  const copyLabel = copied ? "Copied" : manual ? "Press Ctrl/Cmd+C" : "Copy";
 
   return (
     <div style={{ background: "#15171C", border: `1px solid ${color.hairline}`, borderRadius: radius.md, overflow: "hidden" }}>
@@ -52,7 +41,9 @@ export function CodeBlock({ code, label = "Code" }: { code: string; label?: stri
           {label}
         </span>
         <button
+          type="button"
           onClick={copy}
+          aria-live="polite"
           style={{
             display: "flex",
             alignItems: "center",
@@ -60,25 +51,76 @@ export function CodeBlock({ code, label = "Code" }: { code: string; label?: stri
             fontFamily: font.mono,
             fontSize: 10.5,
             fontWeight: 700,
-            color: copied ? color.green : color.textDim,
+            color: copied ? color.green : manual ? color.amber : color.textDim,
             background: "rgba(255,255,255,0.04)",
-            border: `1px solid ${copied ? color.green : color.panelBorder}`,
+            border: `1px solid ${copied ? color.green : manual ? color.amber : color.panelBorder}`,
             borderRadius: radius.sm,
             padding: "4px 9px",
             transition: `all ${motion.fast}`,
           }}
         >
-          <Icon name={copied ? "check" : "layers"} size={12} strokeWidth={2.2} />
-          {copied ? "Copied" : "Copy"}
+          <Icon name={copied ? "check" : manual ? "insight" : "layers"} size={12} strokeWidth={2.2} />
+          {copyLabel}
         </button>
       </div>
-      <pre style={{ margin: 0, padding: "14px 16px", overflowX: "auto", fontFamily: font.mono, fontSize: 12.5, lineHeight: 1.7 }}>
+      <pre ref={codeRef} style={{ margin: 0, padding: "14px 16px", overflowX: "auto", fontFamily: font.mono, fontSize: 12.5, lineHeight: 1.7 }}>
         {lines.map((line, i) => (
           <CodeLine key={i} line={line} />
         ))}
       </pre>
     </div>
   );
+}
+
+function selectElementText(element: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection) return;
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+async function writeClipboardText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await withTimeout(navigator.clipboard.writeText(text), 600);
+      return;
+    } catch {
+      // Permission can be denied in embedded browsers; fall through to the
+      // synchronous selection path supported by older and sandboxed contexts.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  previouslyFocused?.focus();
+  if (!copied) throw new Error("Clipboard is unavailable");
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("Clipboard permission timed out")), timeoutMs);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 function CodeLine({ line }: { line: string }) {

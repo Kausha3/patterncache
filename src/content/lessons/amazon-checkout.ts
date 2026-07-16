@@ -5,7 +5,7 @@ export const amazonCheckout: SDLesson = {
   track: "system-design",
   title: "Design Amazon's Checkout / Cart System",
   blurb: "100M+ users, 10x traffic spikes on sale days, correctness under concurrency.",
-  estMinutes: 8,
+  estMinutes: 30,
   overview:
     "Checkout is a distributed-transaction problem wearing a shopping-cart costume. There are three steps across three services (reserve stock, charge the customer, create the order), and they all have to succeed together or roll back together. On top of that, it has to survive concurrent buyers racing for the last unit and a 10x traffic spike on sale day.",
   terms: ["client", "server", "database", "cache", "consistency", "loadBalancer", "cdn"],

@@ -5,7 +5,7 @@ export const chessGame: LLDLesson = {
   track: "lld",
   title: "Design a Chess Game",
   blurb: "Board state, move validation, and rules as an object model.",
-  estMinutes: 8,
+  estMinutes: 35,
   overview:
     "Chess looks like it's about pieces, but the real design content is legality. A move a piece can normally make isn't the same as a move that's actually legal right now, and that check depends on the whole board, not just one piece. The special rules (castling, en passant, promotion, checkmate vs. stalemate) are where the actual complexity lives. Basic movement is the easy 80%.",
   terms: ["client", "server"],

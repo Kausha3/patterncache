@@ -5,7 +5,7 @@ export const amazonLocker: LLDLesson = {
   track: "lld",
   title: "Design Amazon Locker",
   blurb: "Amazon's own pickup-locker system, where you implement getPackage() and putPackage().",
-  estMinutes: 8,
+  estMinutes: 35,
   overview:
     "Amazon Locker is a real, Amazon-flavored LLD prompt. It's been confirmed asked in an actual L5 loop, framed around implementing getPackage() and putPackage(). It looks like Parking Lot's cousin, but the sizing rule inverts: a package just needs a locker at least as big as itself, not an exact match. That's the opposite constraint from fitting a vehicle into a spot, and that inversion is exactly the kind of detail that separates a candidate who understood the domain from one pattern-matching a memorized template.",
   terms: ["client", "server"],

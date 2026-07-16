@@ -5,7 +5,7 @@ export const elevatorSystem: LLDLesson = {
   track: "lld",
   title: "Design an Elevator System",
   blurb: "Scheduling algorithm, request queuing, multi-elevator coordination.",
-  estMinutes: 8,
+  estMinutes: 35,
   overview:
     "An elevator system looks simple until you separate WHO decides (the dispatcher) from WHAT moves (the elevator itself). That's the same split that made Parking Lot and Amazon Locker click. The real design content isn't 'can it go up and down,' it's the scheduling rule for when to reverse direction, and the edge cases around concurrent and emergency requests that a memorized template never covers.",
   terms: ["client", "server"],

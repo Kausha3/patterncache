@@ -5,7 +5,7 @@ export const vendingMachine: LLDLesson = {
   track: "lld",
   title: "Design a Vending Machine",
   blurb: "State machine modeling for inventory, payment, dispensing, and refunds.",
-  estMinutes: 8,
+  estMinutes: 35,
   overview:
     "A vending machine is the canonical state-machine LLD prompt: a purchase moves through idle → selecting → dispensing, and the interesting design decision is making bad sequences (like starting a second purchase mid-dispense) impossible by construction, not just handled with an if-check after the fact. The edge cases are all about one thing: money and delivery staying in sync.",
   terms: ["client", "server"],

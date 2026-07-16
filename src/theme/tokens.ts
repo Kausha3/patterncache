@@ -13,7 +13,7 @@ export const color = {
   hairline: "#23262E", // subtler dividers
   text: "#ECEAE3",
   textDim: "#9A9CA4",
-  textFaint: "#63666E",
+  textFaint: "#82858F",
   teal: "#5BB0AD", // primary accent — DSA, correct/active, primary CTA
   tealDim: "#2E4A49",
   amber: "#D9A94E", // insight / "why" / progress / shaky

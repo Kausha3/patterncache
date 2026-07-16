@@ -14,7 +14,7 @@ export const lld101: LLDLesson = {
   track: "lld",
   title: "LLD Basics: Classes, Objects, and Responsibility",
   blurb: "Start here if you've never designed a class before. What a class actually is, in plain English.",
-  estMinutes: 5,
+  estMinutes: 15,
   overview:
     "Before any of this makes sense, four words you'll see constantly: CLASS, OBJECT, PROPERTY, METHOD.\n\n" +
     "Think of a dog. \"Dog\" is the blueprint, the category. That's a CLASS. Your actual dog, the one asleep on the couch right now, is one real example of that blueprint. That's an OBJECT (or \"instance\"). Your dog's name and age are PROPERTIES: data it holds. Your dog can bark(), and that's a METHOD, something it can DO.\n\n" +
