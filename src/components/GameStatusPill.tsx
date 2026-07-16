@@ -7,7 +7,7 @@ export function GameStatusPill() {
 
   return (
     <NavLink
-      to="/course"
+      to="/"
       className="top-nav-game"
       aria-label={`Level ${summary.rank.level}, ${summary.rank.name}, ${summary.streak} day streak`}
     >

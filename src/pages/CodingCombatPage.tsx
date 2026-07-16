@@ -25,9 +25,14 @@ export function CodingCombatPage() {
             <Icon name="arrowLeft" size={14} /> Arena
           </button>
           <div>
-            <Eyebrow tone={color.teal}>Arena V2 · executable practice</Eyebrow>
+            <Eyebrow tone={color.teal}>Engineering prototype · JavaScript runner</Eyebrow>
             <h1>Build it. Then defend it.</h1>
             <p>Write a real solution, survive private edge cases, and answer the invariant, complexity, and counterexample follow-ups.</p>
+            <p className="combat-java-note">
+              This lab runs JavaScript, so treat it as the testing loop, not Amazon interview practice.
+              Your Amazon coding work lives on the SDE I board, in Java. In-browser Java execution with
+              compilation errors and hidden tests is the target for this lab.
+            </p>
           </div>
           <div className="combat-lobby-stats">
             <div><strong>{completed}/3</strong><span>missions cleared</span></div>

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
-import { HomePage } from "@/pages/HomePage";
+import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { LibraryPage } from "@/pages/LibraryPage";
+import { PracticeHubPage } from "@/pages/PracticeHubPage";
 import { LessonPage } from "@/pages/LessonPage";
 import { ProgressPage } from "@/pages/ProgressPage";
 import { CompaniesPage } from "@/pages/CompaniesPage";
@@ -25,15 +26,17 @@ export function App() {
       <TopNav />
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<HomePage />} />
           <Route
-            path="/course"
+            path="/"
             element={
               <Suspense fallback={<PageFallback />}>
                 <CoursePage />
               </Suspense>
             }
           />
+          <Route path="/course" element={<Navigate to="/" replace />} />
+          <Route path="/practice" element={<PracticeHubPage />} />
+          <Route path="/library" element={<LibraryPage />} />
           <Route path="/lesson/:id" element={<LessonPage />} />
           <Route
             path="/arena"
@@ -81,7 +84,7 @@ export function App() {
           <Route path="/drill/:id" element={<ColdDrillPage />} />
           <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/progress" element={<ProgressPage />} />
-          <Route path="*" element={<HomePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
@@ -92,15 +95,39 @@ function PageFallback({ label = "Loading your course…" }: { label?: string }) 
   return <p style={{ color: color.textDim, fontFamily: font.mono, fontSize: 13 }}>{label}</p>;
 }
 
+/**
+ * Deep routes highlight the section they belong to: practice modes (arena,
+ * drills, patterns) light up Practice; content (lessons, companies) lights
+ * up Library. Today owns the root and course flow.
+ */
+export function activeSection(pathname: string): string {
+  if (
+    pathname.startsWith("/practice") ||
+    pathname.startsWith("/arena") ||
+    pathname.startsWith("/drill") ||
+    pathname.startsWith("/patterns")
+  ) {
+    return "/practice";
+  }
+  if (
+    pathname.startsWith("/library") ||
+    pathname.startsWith("/lesson") ||
+    pathname.startsWith("/companies")
+  ) {
+    return "/library";
+  }
+  if (pathname.startsWith("/progress")) return "/progress";
+  return "/";
+}
+
 function TopNav() {
+  const { pathname } = useLocation();
+  const section = activeSection(pathname);
   const items = [
-    { to: "/course", label: "Today", end: false },
-    { to: "/arena", label: "Arena", end: false },
-    { to: "/", label: "Path", end: true },
-    { to: "/companies", label: "Companies", end: false },
-    { to: "/drill", label: "Drill", end: false },
-    { to: "/patterns", label: "Patterns", end: false },
-    { to: "/progress", label: "Progress", end: false },
+    { to: "/", label: "Today" },
+    { to: "/practice", label: "Practice" },
+    { to: "/library", label: "Library" },
+    { to: "/progress", label: "Progress" },
   ];
   return (
     <header
@@ -141,25 +168,28 @@ function TopNav() {
         </NavLink>
         <GameStatusPill />
         <nav className="top-nav-links" aria-label="Primary navigation" style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-          {items.map((it) => (
-            <NavLink
-              key={it.to}
-              to={it.to}
-              end={it.end}
-              className="top-nav-link"
-              style={({ isActive }) => ({
-                fontFamily: font.mono,
-                fontSize: 13,
-                fontWeight: 700,
-                padding: "7px 14px",
-                borderRadius: 8,
-                color: isActive ? color.text : color.textDim,
-                background: isActive ? "rgba(255,255,255,0.05)" : "transparent",
-              })}
-            >
-              {it.label}
-            </NavLink>
-          ))}
+          {items.map((it) => {
+            const isActive = section === it.to;
+            return (
+              <NavLink
+                key={it.to}
+                to={it.to}
+                className="top-nav-link"
+                aria-current={isActive ? "page" : undefined}
+                style={{
+                  fontFamily: font.mono,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "7px 14px",
+                  borderRadius: 8,
+                  color: isActive ? color.text : color.textDim,
+                  background: isActive ? "rgba(255,255,255,0.05)" : "transparent",
+                }}
+              >
+                {it.label}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
     </header>

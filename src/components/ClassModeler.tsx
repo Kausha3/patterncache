@@ -3,6 +3,7 @@ import type { ClassModelSpec, EntityCandidate, MethodCandidate, EdgeCase, Proper
 import { color, font, radius, motion } from "@/theme/tokens";
 import { Panel, Button, SectionHeader, Eyebrow, Divider, PromptBanner } from "./ui";
 import { Icon } from "./Icon";
+import { QuickCheckBadge } from "./QuickCheckBadge";
 import { TraceVisualizer } from "./TraceVisualizer";
 import { CodeBlock, RelationshipDiagram } from "./CodeBlock";
 import { generateClassCode } from "./generateClassCode";
@@ -352,6 +353,7 @@ function PracticePhase({
           <Eyebrow tone={color.violet}>
             Method {idx + 1} / {order.length}
           </Eyebrow>
+          <QuickCheckBadge />
         </div>
 
         <InlineSignature signature={method.signature} />
@@ -522,11 +524,12 @@ function EdgesPhase({
 
   return (
     <Panel style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <Icon name="target" size={16} color={color.amber} />
         <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: "0.8px", textTransform: "uppercase", color: color.amber }}>
           Edge case {idx + 1} / {edgeCases.length}
         </span>
+        <span style={{ marginLeft: "auto" }}><QuickCheckBadge /></span>
       </div>
       <p style={{ margin: 0, color: color.text, fontSize: 15 }}>{ec.scenario}</p>
       <div style={{ display: "grid", gap: 8 }}>

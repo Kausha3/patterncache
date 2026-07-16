@@ -44,7 +44,7 @@ function ComingSoon({ title, fromCompany }: { title: string; fromCompany?: boole
   const navigate = useNavigate();
   return (
     <div style={{ display: "grid", gap: 18, maxWidth: 580 }}>
-      <BackLink to={fromCompany ? "/companies" : "/"} label={fromCompany ? "Companies" : "Path"} />
+      <BackLink to={fromCompany ? "/companies" : "/library"} label={fromCompany ? "Companies" : "Library"} />
       <Panel style={{ display: "grid", gap: 14 }}>
         <Eyebrow tone={color.amber}>On the roadmap</Eyebrow>
         <h1 style={{ fontSize: 25, fontWeight: 700, letterSpacing: "-0.5px" }}>{title}</h1>
@@ -57,7 +57,7 @@ function ComingSoon({ title, fromCompany }: { title: string; fromCompany?: boole
           {fromCompany ? (
             <Button variant="ghost" onClick={() => navigate("/companies")}>Back to Companies</Button>
           ) : (
-            <Button variant="ghost" onClick={() => navigate("/")}>See the full path</Button>
+            <Button variant="ghost" onClick={() => navigate("/library")}>Browse the library</Button>
           )}
         </div>
       </Panel>
@@ -120,7 +120,7 @@ function LessonShell({ lesson }: { lesson: Lesson }) {
 
   return (
     <div style={{ display: "grid", gap: 22 }}>
-      <BackLink to={isCompanyOnly ? "/companies" : "/"} label={isCompanyOnly ? "Companies" : "Path"} />
+      <BackLink to={isCompanyOnly ? "/companies" : "/library"} label={isCompanyOnly ? "Companies" : "Library"} />
 
       <header style={{ display: "grid", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
@@ -395,7 +395,7 @@ function ConfidenceCheckin({ lesson, canComplete, requiredActivityLabel }: { les
             ) : (
               <Button accent={trackColor[lesson.track]} iconRight="arrowRight" onClick={() => navigate("/progress")}>See your progress</Button>
             )}
-            <Button variant="ghost" onClick={() => navigate(isCompanyOnly ? "/progress" : "/")}>{isCompanyOnly ? "See your progress" : "Back to path"}</Button>
+            <Button variant="ghost" onClick={() => navigate(isCompanyOnly ? "/progress" : "/library")}>{isCompanyOnly ? "See your progress" : "Back to the library"}</Button>
           </div>
         </div>
       )}
@@ -403,7 +403,7 @@ function ConfidenceCheckin({ lesson, canComplete, requiredActivityLabel }: { les
   );
 }
 
-function BackLink({ to = "/", label = "Path" }: { to?: string; label?: string }) {
+function BackLink({ to = "/library", label = "Library" }: { to?: string; label?: string }) {
   const navigate = useNavigate();
   return (
     <button

@@ -6,6 +6,7 @@ import type { PatternSpotScenario } from "@/types";
 import { color, font, radius, motion } from "@/theme/tokens";
 import { Panel, Button, Eyebrow, Divider } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { QuickCheckBadge } from "@/components/QuickCheckBadge";
 
 /**
  * Design Patterns reference. Two modes:
@@ -247,9 +248,12 @@ function PatternSpotGame() {
 
   return (
     <Panel style={{ display: "grid", gap: 16 }}>
-      <Eyebrow tone={color.violet}>
-        Scenario {idx + 1} / {order.length}
-      </Eyebrow>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+        <Eyebrow tone={color.violet}>
+          Scenario {idx + 1} / {order.length}
+        </Eyebrow>
+        <QuickCheckBadge />
+      </div>
       <p style={{ margin: 0, fontSize: 15, color: color.text, lineHeight: 1.6 }}>{scenario.scenario}</p>
 
       <div style={{ display: "grid", gap: 8 }}>

@@ -52,6 +52,9 @@ interface GameProgressContextValue {
   summary: GameProgressSummary;
   challenge: DailyChallengeView;
   toggleChallengeCheckpoint: (checkpointId: Exclude<ChallengeCheckpointId, "lesson">) => void;
+  /** Raw persisted maps, exposed so the competency ledger can derive evidence. */
+  challengeCheckpoints: Record<string, ChallengeCheckpointId[]>;
+  dailyTargets: Record<string, string>;
   arenaScores: ArenaScores;
   recordArenaRun: (mode: ArenaMode, score: number, maxScore: number) => void;
   codingCombatScores: CodingCombatScores;
@@ -271,6 +274,8 @@ export function GameProgressProvider({ children }: { children: ReactNode }) {
       summary,
       challenge,
       toggleChallengeCheckpoint,
+      challengeCheckpoints: state.challengeCheckpoints,
+      dailyTargets: state.dailyTargets,
       arenaScores: state.arenaScores,
       recordArenaRun,
       codingCombatScores: state.codingCombatScores,
@@ -278,7 +283,7 @@ export function GameProgressProvider({ children }: { children: ReactNode }) {
       lldStudioScores: state.lldStudioScores,
       recordLldStudioRun,
     }),
-    [summary, challenge, toggleChallengeCheckpoint, state.arenaScores, recordArenaRun, state.codingCombatScores, recordCodingCombatRun, state.lldStudioScores, recordLldStudioRun],
+    [summary, challenge, toggleChallengeCheckpoint, state.challengeCheckpoints, state.dailyTargets, state.arenaScores, recordArenaRun, state.codingCombatScores, recordCodingCombatRun, state.lldStudioScores, recordLldStudioRun],
   );
 
   return <GameProgressContext.Provider value={value}>{children}</GameProgressContext.Provider>;

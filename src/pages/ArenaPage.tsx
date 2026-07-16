@@ -133,7 +133,7 @@ export function ArenaPage() {
         <div className="arena-complete-actions">
           <Button icon="reset" onClick={startMission}>Run this simulation again</Button>
           <Button variant="ghost" onClick={() => setStatus("briefing")}>Choose another mode</Button>
-          <Button variant="subtle" onClick={() => navigate("/course")}>Return to campaign</Button>
+          <Button variant="subtle" onClick={() => navigate("/")}>Return to campaign</Button>
         </div>
       </section>
     );
