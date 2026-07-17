@@ -3,6 +3,7 @@ import { PATTERN_GENOME_MISSIONS } from "@/arena/patternGenomeMissions";
 import { CODING_COMBAT_MISSIONS } from "@/arena/codingCombatMissions";
 import { LLD_STUDIO_MISSIONS } from "@/arena/lldStudioMissions";
 import type { PatternGenomeProgress } from "@/hooks/usePatternGenomeProgress";
+import type { GarageProgress } from "@/game/garageProgress";
 import type { ArenaScores, CodingCombatScores, LldStudioScores } from "@/arena/types";
 import { AMAZON_SDE1_QUESTIONS } from "@/content/amazonSde1Prep";
 import type { AmazonPrepRecord } from "@/hooks/useAmazonPrepProgress";
@@ -96,6 +97,8 @@ const FORGE_TRANSFER_STARS = 3;
 
 export interface LedgerInputs {
   patternGenome: PatternGenomeProgress;
+  /** SOLID garage game (System Forge beginner mode) shift records. */
+  garage?: GarageProgress;
   codingCombatScores: CodingCombatScores;
   lldStudioScores: LldStudioScores;
   arenaScores: ArenaScores;
@@ -127,6 +130,53 @@ const arenaTitle = (mode: string): string => ARENA_MODE_LABELS[mode] ?? mode;
  */
 export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
   const entries: EvidenceEntry[] = [];
+
+  // SOLID garage game: one completed shift is the full mastery loop. The
+  // learner ran the manual process into a rush-hour bottleneck, installed
+  // floor-owned search and cleared the same incident on a rerun, repeated
+  // the fix on Floor 2 with hints off, and explained the ownership against
+  // a graded rubric (completion requires 75%+ interview evidence).
+  const shift = inputs.garage?.firstShift;
+  if (shift) {
+    entries.push(
+      {
+        id: "garage-first-shift-observed",
+        kind: "observed-failure",
+        source: "system-forge",
+        refId: "first-shift",
+        label: "Ran the garage's rush hour into the manual-search bottleneck",
+        verified: true,
+        at: shift.completedAt,
+      },
+      {
+        id: "garage-first-shift-repaired",
+        kind: "repaired-design",
+        source: "system-forge",
+        refId: "first-shift",
+        label: "Installed floor-owned search and cleared the same rush on a rerun",
+        verified: true,
+        at: shift.completedAt,
+      },
+      {
+        id: "garage-first-shift-transferred",
+        kind: "transferred",
+        source: "system-forge",
+        refId: "first-shift",
+        label: "Repeated the fix on Floor 2 with hints off",
+        verified: true,
+        at: shift.completedAt,
+      },
+      {
+        id: "garage-first-shift-explained",
+        kind: "explained",
+        source: "system-forge",
+        refId: "first-shift",
+        label: `Explained why findSpot belongs on Level (${shift.bestScore}% interview evidence)`,
+        verified: true,
+        at: shift.completedAt,
+      },
+    );
+  }
 
   // System Forge: the canonical LLD experience. Completing a mission means
   // the learner ran the scenario and saw its failing constraint; higher star

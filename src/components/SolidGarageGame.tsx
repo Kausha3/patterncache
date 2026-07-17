@@ -27,6 +27,7 @@ import {
   getShiftSpotState,
   SHIFT_SPOTS,
 } from "@/arena/firstShiftEngine";
+import { recordFirstShiftCompletion } from "@/game/garageProgress";
 import type {
   FirstShiftInterviewAssessment,
   FirstShiftStage,
@@ -60,6 +61,9 @@ export function SolidGarageGame() {
     const nextAssessment = assessFirstShiftInterview(answer);
     setAssessment(nextAssessment);
     dispatch({ type: "SUBMIT_INTERVIEW", score: nextAssessment.score });
+    if (nextAssessment.score >= 75) {
+      recordFirstShiftCompletion(nextAssessment.score, game.attempts + 1);
+    }
   };
 
   const replay = () => {

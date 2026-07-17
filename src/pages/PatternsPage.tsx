@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listDesignPatterns } from "@/content/designPatterns";
 import { listPatternSpotScenarios } from "@/content/patternSpotScenarios";
+import { listSolidPrinciples } from "@/content/solidPrinciples";
 import type { PatternSpotScenario } from "@/types";
 import { color, font, radius, motion } from "@/theme/tokens";
 import { Panel, Button, Eyebrow, Divider } from "@/components/ui";
@@ -39,8 +40,100 @@ export function PatternsPage() {
         </ModeTab>
       </div>
 
-      {mode === "learn" ? <PatternBrowser /> : <PatternSpotGame />}
+      {mode === "learn" ? (
+        <>
+          <PatternBrowser />
+          <SolidReference />
+        </>
+      ) : (
+        <PatternSpotGame />
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SOLID, with receipts: each principle points at where the learner already
+// used it in this app. ISP says plainly that our coverage there is thin.
+// ---------------------------------------------------------------------------
+
+function SolidReference() {
+  const navigate = useNavigate();
+  const principles = listSolidPrinciples();
+  return (
+    <section style={{ display: "grid", gap: 12, marginTop: 10 }}>
+      <header style={{ display: "grid", gap: 5 }}>
+        <Eyebrow tone={color.teal}>SOLID, with receipts</Eyebrow>
+        <p style={{ margin: 0, fontSize: 13.5, color: color.textDim, maxWidth: 640 }}>
+          Five principles interviewers name-check constantly. Each one below links to the place in this
+          app where you already used it, plus the sentence you'd say in the room.
+        </p>
+      </header>
+      <div style={{ display: "grid", gap: 10 }}>
+        {principles.map((principle) => (
+          <Panel key={principle.id} style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span
+                style={{
+                  fontFamily: font.mono,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: color.teal,
+                  border: `1.5px solid ${color.teal}55`,
+                  borderRadius: radius.md,
+                  width: 30,
+                  height: 30,
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {principle.letter}
+              </span>
+              <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 14.5 }}>{principle.name}</span>
+            </div>
+            <p style={{ margin: 0, fontSize: 13.5, color: color.textDim, lineHeight: 1.6 }}>{principle.plain}</p>
+            <div style={{ display: "grid", gap: 6 }}>
+              {principle.whereYouUsedIt.map((usage) => (
+                <button
+                  key={usage.route + usage.label}
+                  onClick={() => navigate(usage.route)}
+                  style={{
+                    display: "grid",
+                    gap: 3,
+                    textAlign: "left",
+                    padding: "9px 12px",
+                    borderRadius: radius.md,
+                    border: `1px solid ${color.hairline}`,
+                    background: "rgba(255,255,255,0.02)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: color.text, fontFamily: font.mono }}>{usage.label}</span>
+                  <span style={{ fontSize: 12.5, color: color.textDim, lineHeight: 1.5 }}>{usage.note}</span>
+                </button>
+              ))}
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: color.text,
+                lineHeight: 1.55,
+                background: "rgba(91,176,173,0.06)",
+                border: `1px solid ${color.teal}33`,
+                borderRadius: radius.md,
+                padding: "10px 12px",
+              }}
+            >
+              <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: "0.6px", textTransform: "uppercase", color: color.teal, display: "block", marginBottom: 4 }}>
+                Say it in the room
+              </span>
+              {principle.interviewLine}
+            </div>
+          </Panel>
+        ))}
+      </div>
+    </section>
   );
 }
 

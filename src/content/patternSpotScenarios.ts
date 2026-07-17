@@ -95,6 +95,28 @@ export const PATTERN_SPOT_SCENARIOS: PatternSpotScenario[] = [
       { patternId: "strategy", correct: false, feedback: "Nothing is being swapped for an alternative. These are additive layers stacking on top of each other, not one pluggable calculation." },
     ],
   },
+  {
+    id: "coupon-config",
+    scenario:
+      "Your checkout loads coupons from config. Each coupon names its discount type (percentage, fixed amount, free shipping) and the right DiscountRule implementation has to be constructed for it. Callers should never branch on the type string themselves.",
+    options: [
+      { patternId: "factory", correct: true, feedback: "Right. One place owns the which-implementation-do-I-construct decision, and a new discount type means one new class plus one new factory line. That's Factory." },
+      { patternId: "builder", correct: false, feedback: "Nothing optional is accumulating across calls here. One decision picks one subtype in one shot, and that's Factory's territory, not Builder's." },
+      { patternId: "strategy", correct: false, feedback: "Close, and related: the DiscountRules themselves ARE strategies. But the question is who CONSTRUCTS the right one from config, and that creation decision is the Factory's job." },
+      { patternId: "singleton", correct: false, feedback: "Nothing here needs to be a single shared instance. The problem is choosing which type to build, not how many of it exist." },
+    ],
+  },
+  {
+    id: "shared-states",
+    scenario:
+      "A fleet of vending machines all use the same three stateless state objects (idle, has-money, dispensing). Since the states hold no per-machine data, you want exactly one instance of each, shared by every machine, instead of allocating three objects per machine.",
+    options: [
+      { patternId: "singleton", correct: true, feedback: "Right. The states are stateless, so one shared instance of each is safe, and that one-instance-shared-by-all decision is the Singleton shape, justified the only way it should be: by statelessness." },
+      { patternId: "state", correct: false, feedback: "The objects being shared ARE State pattern implementations, but the question asks about the sharing itself. Exactly-one-instance-reused-everywhere is Singleton's territory." },
+      { patternId: "factory", correct: false, feedback: "Nothing is deciding between subtypes at construction time. The question is how many instances exist, not which type to build." },
+      { patternId: "facade", correct: false, feedback: "No subsystem is being hidden behind a simpler front door. This is purely about instance sharing." },
+    ],
+  },
 ];
 
 export function listPatternSpotScenarios(): PatternSpotScenario[] {

@@ -23,7 +23,7 @@ const MASTERY_WORK: PracticeCard[] = [
   {
     title: "System Forge",
     route: "/arena/pattern-genome",
-    blurb: "The canonical LLD experience. Lock the constraint signals, survive the mutation, transfer the idea to a prompt you've never seen.",
+    blurb: "The canonical LLD experience. Run a real garage into a rush-hour failure, repair it, transfer the fix with hints off, and defend it in interview language. Mission 1 teaches Single Responsibility; more SOLID chapters are planned.",
     icon: "layers",
     accent: color.violet,
     tag: "Canonical LLD",

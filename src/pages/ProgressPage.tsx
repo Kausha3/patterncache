@@ -9,6 +9,7 @@ import { useProgress } from "@/hooks/useProgress";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { usePatternGenomeProgress } from "@/hooks/usePatternGenomeProgress";
 import { useAmazonPrepProgress } from "@/hooks/useAmazonPrepProgress";
+import { loadGarageProgress } from "@/game/garageProgress";
 import {
   deriveLedger,
   summarizeLedger,
@@ -40,10 +41,12 @@ export function ProgressPage() {
     return titles;
   }, [game.dailyTargets]);
 
+  const garageProgress = useMemo(() => loadGarageProgress(), []);
   const ledger = useMemo(
     () =>
       deriveLedger({
         patternGenome: forgeProgress,
+        garage: garageProgress,
         codingCombatScores: game.codingCombatScores,
         lldStudioScores: game.lldStudioScores,
         arenaScores: game.arenaScores,
@@ -51,7 +54,7 @@ export function ProgressPage() {
         dailyTargets: dailyTargetTitles,
         amazonPrepRecords: amazonRecords,
       }),
-    [forgeProgress, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
+    [forgeProgress, garageProgress, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
   );
   const summary = useMemo(() => summarizeLedger(ledger), [ledger]);
   const recent = ledger.slice(0, 8);

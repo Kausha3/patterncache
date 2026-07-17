@@ -91,7 +91,8 @@ export const DESIGN_PATTERNS: DesignPatternEntry[] = [
       },
     ],
     confusedWith: {
-      patternName: "Factory",
+      patternName: "Factory Pattern",
+      patternId: "factory",
       test: "Factory creates ONE object in ONE call, usually deciding WHICH concrete type to hand back. Builder assembles ONE object across SEVERAL calls, accumulating optional pieces before a final build() commits it. Ask 'which subtype should this be?' → Factory. Ask 'what's been chosen so far?' → Builder.",
     },
   },
@@ -172,6 +173,43 @@ export const DESIGN_PATTERNS: DesignPatternEntry[] = [
       patternName: "Composite Pattern",
       patternId: "composite",
       test: "Decorator wraps exactly ONE thing to add behavior on top of it. A decorated pizza is still exactly one pizza, just with layers added. Composite holds MANY children to aggregate them: a folder can have any number of files inside it. Ask 'what is this one thing gaining?' → Decorator. Ask 'how many children does this hold?' → Composite.",
+    },
+  },
+  {
+    id: "factory",
+    name: "Factory Pattern",
+    whenToUse:
+      "Reach for this when SOMETHING has to decide which concrete implementation to construct, and you don't want that decision copied into every caller as an if/else on a type string. Put the construction decision in one place. A new variant then means one new class plus one new line in the factory, and no caller changes at all.",
+    examples: [
+      {
+        refId: "discount-coupon-system",
+        title: "Where DiscountRules come from",
+        howItShowsUp:
+          "The lesson keeps CouponEngine free of discount-type branching: a new discount ships as a new DiscountRule implementation. Follow that thread one step further and a question appears the lesson leaves open: when a coupon is loaded from config, WHAT constructs the right DiscountRule for it? That constructor-picker is a Factory, whether or not you name it. Naming it in an interview shows you see where creation decisions live.",
+      },
+    ],
+    confusedWith: {
+      patternName: "Builder Pattern",
+      patternId: "builder",
+      test: "Factory answers 'WHICH type should this be?' in one call and hands back a finished object. Builder answers 'what has been chosen so far?' across several calls before one final build(). If the decision is between subtypes, that's Factory. If the work is accumulating optional parts of one object, that's Builder.",
+    },
+  },
+  {
+    id: "singleton",
+    name: "Singleton Pattern",
+    whenToUse:
+      "Reach for this when exactly one shared instance genuinely makes sense, which is rarer than interviews make it look. The honest use here: stateless objects that many owners can safely share. The honest warning: a Singleton holding mutable state is a global variable wearing a pattern name, and interviewers often offer it as bait to see whether you'll take it.",
+    examples: [
+      {
+        refId: "vending-machine",
+        title: "Stateless VendingMachineStates could be shared instances",
+        howItShowsUp:
+          "Each state object (idle, has-money, dispensing) gates actions but holds no per-machine data of its own; the machine holds the money and inventory. Because the states are stateless, one shared instance of each could serve every machine in a fleet. The lesson doesn't name this, and that's the honest lesson: Singleton is a sharing decision you justify with statelessness, not a default.",
+      },
+    ],
+    confusedWith: {
+      patternName: "a static utility class",
+      test: "A Singleton is still an OBJECT: it can implement an interface, be passed as a dependency, and be swapped for a fake in tests. A class of static methods can't do any of that. If you need substitutability, you want the (carefully justified) Singleton. If it's pure stateless functions nobody ever swaps, statics are simpler and more honest.",
     },
   },
 ];

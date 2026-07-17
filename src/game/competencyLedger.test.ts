@@ -116,6 +116,24 @@ describe("competency ledger derivation", () => {
   });
 });
 
+describe("garage shift evidence", () => {
+  it("derives the full mastery loop from one completed shift", () => {
+    const inputs = emptyInputs();
+    inputs.garage = { firstShift: { bestScore: 100, attempts: 1, completedAt: 5000, completions: 1 } };
+    const entries = deriveLedger(inputs);
+    const kinds = entries.map((entry) => entry.kind).sort();
+    expect(kinds).toEqual(["explained", "observed-failure", "repaired-design", "transferred"]);
+    expect(entries.every((entry) => entry.verified)).toBe(true);
+    expect(entries.find((entry) => entry.kind === "explained")?.label).toContain("100%");
+  });
+
+  it("derives nothing from an empty garage record", () => {
+    const inputs = emptyInputs();
+    inputs.garage = {};
+    expect(deriveLedger(inputs)).toHaveLength(0);
+  });
+});
+
 describe("competency summary", () => {
   it("separates verified from self-attested evidence and never counts recall as mastery", () => {
     const summary = summarizeLedger([
