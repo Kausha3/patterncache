@@ -28,7 +28,9 @@ export type IconName =
   | "flame"
   | "trophy"
   | "shield"
-  | "code";
+  | "code"
+  | "microphone"
+  | "volume";
 
 const FILLED: Partial<Record<IconName, string>> = {
   play: "M7 4.5v15l12-7.5-12-7.5Z",
@@ -56,6 +58,8 @@ const STROKE: Partial<Record<IconName, string>> = {
   trophy: "M8 4h8v4c0 3-1.8 5-4 5s-4-2-4-5V4ZM8 6H4v1c0 2.2 1.8 4 4 4M16 6h4v1c0 2.2-1.8 4-4 4M12 13v4M8 21h8M9 17h6",
   shield: "M12 3 5 6v5c0 4.5 2.7 7.7 7 10 4.3-2.3 7-5.5 7-10V6l-7-3Z",
   code: "M9 6 3 12l6 6M15 6l6 6-6 6M13.5 4 10.5 20",
+  microphone: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3ZM5.5 11.5v.5a6.5 6.5 0 0 0 13 0v-.5M12 18.5V22M8.5 22h7",
+  volume: "M5 10v4h3l4 4V6L8 10H5ZM16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11",
 };
 
 export function Icon({

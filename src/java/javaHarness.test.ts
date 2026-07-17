@@ -46,8 +46,19 @@ describe("javaLiteral", () => {
     expect(javaLiteral("String", 'a"b')).toBe('"a\\"b"');
     expect(javaLiteral("int[]", [1, 2, 3])).toBe("new int[] { 1, 2, 3 }");
     expect(javaLiteral("int[]", [])).toBe("new int[] {  }");
+    expect(javaLiteral("int[][]", [[1, 2], [], [-3]])).toBe(
+      "new int[][] { new int[] { 1, 2 }, new int[] {  }, new int[] { -3 } }",
+    );
+    expect(javaLiteral("int[][]", [])).toBe("new int[][] {  }");
     expect(javaLiteral("String[]", ["x"])).toBe('new String[] { "x" }');
     expect(javaLiteral("double[]", [1, 2.5])).toBe("new double[] { 1.0, 2.5 }");
+    expect(javaLiteral("TreeNode", [3, 9, 20, null, null, 15, 7])).toBe(
+      "tree(new Integer[] { 3, 9, 20, null, null, 15, 7 })",
+    );
+    expect(javaLiteral("ListNode", [1, 2, 3])).toBe("list(new int[] { 1, 2, 3 }, -1)");
+    expect(javaLiteral("ListNode", { values: [3, 2, 0, -4], cycleAt: 1 })).toBe(
+      "list(new int[] { 3, 2, 0, -4 }, 1)",
+    );
   });
 
   it("emits adjacency maps as key-then-values rows", () => {
@@ -63,8 +74,14 @@ describe("javaLiteral", () => {
     expect(() => javaLiteral("double", Number.NaN)).toThrow(/does not fit/);
     expect(() => javaLiteral("String", 3)).toThrow(/does not fit/);
     expect(() => javaLiteral("int[]", [1, "2"])).toThrow(/does not fit/);
+    expect(() => javaLiteral("int[][]", [[1], ["2"]])).toThrow(/does not fit/);
+    expect(() => javaLiteral("int[][]", [1, 2])).toThrow(/does not fit/);
     expect(() => javaLiteral("Map<String,List<String>>", { A: [1] })).toThrow(/does not fit/);
     expect(() => javaLiteral("Map<String,List<String>>", ["A"])).toThrow(/does not fit/);
+    expect(() => javaLiteral("TreeNode", [null, 1])).toThrow(/does not fit/);
+    expect(() => javaLiteral("TreeNode", [1, "2"])).toThrow(/does not fit/);
+    expect(() => javaLiteral("ListNode", { values: [1, 2], cycleAt: 2 })).toThrow(/does not fit/);
+    expect(() => javaLiteral("ListNode", { values: [1, "2"], cycleAt: -1 })).toThrow(/does not fit/);
   });
 });
 
@@ -72,6 +89,9 @@ describe("javaTypeName", () => {
   it("fully qualifies the map type for generated code", () => {
     expect(javaTypeName("Map<String,List<String>>")).toBe("java.util.Map<String, java.util.List<String>>");
     expect(javaTypeName("int[]")).toBe("int[]");
+    expect(javaTypeName("int[][]")).toBe("int[][]");
+    expect(javaTypeName("TreeNode")).toBe("TreeNode");
+    expect(javaTypeName("ListNode")).toBe("ListNode");
   });
 });
 
@@ -112,6 +132,137 @@ describe("generateTestMain", () => {
     expect(() =>
       generateTestMain(SAMPLE_SPEC, [{ id: "bad", label: "bad", args: [["x"], "a"], expected: 1 }]),
     ).toThrow(/do not fit/);
+  });
+
+  it("uses deep equality and readable output for ordered int matrices", () => {
+    const source = generateTestMain(
+      {
+        methodName: "matrix",
+        signature: "public int[][] matrix(int[][] value)",
+        argTypes: ["int[][]"],
+        returnType: "int[][]",
+        starterCode: "",
+      },
+      [{ id: "matrix", label: "matrix", args: [[[1, 2], [3, 4]]], expected: [[1, 2], [3, 4]] }],
+    );
+    expect(source).toContain("java.util.Arrays.deepEquals(expected, returned)");
+    expect(source).toContain("java.util.Arrays.deepToString(returned)");
+  });
+
+  it("supports row-order-insensitive int matrix results only when explicitly declared", () => {
+    const source = generateTestMain(
+      {
+        methodName: "choose",
+        signature: "public int[][] choose(int[][] value)",
+        argTypes: ["int[][]"],
+        returnType: "int[][]",
+        comparison: "unordered-rows",
+        starterCode: "",
+      },
+      [{ id: "matrix", label: "matrix", args: [[[1, 2], [3, 4]]], expected: [[3, 4], [1, 2]] }],
+    );
+    expect(source).toContain("unorderedIntMatrixEquals(expected, returned)");
+    expect(source).toContain("java.util.Map<String, Integer> remaining");
+    expect(validateJavaSpec(
+      {
+        methodName: "bad",
+        signature: "public int bad(int value)",
+        argTypes: ["int"],
+        returnType: "int",
+        comparison: "unordered-rows",
+        starterCode: "",
+      },
+      [{ id: "bad", label: "bad", args: [1], expected: 1 }],
+    )).toContain("The unordered-rows comparison is only supported for int[][] results.");
+  });
+
+  it("builds tree and cyclic-list fixtures only when a combat spec needs them", () => {
+    const treeSource = generateTestMain(
+      {
+        methodName: "identity",
+        signature: "public TreeNode identity(TreeNode root)",
+        argTypes: ["TreeNode"],
+        returnType: "TreeNode",
+        starterCode: "",
+      },
+      [{ id: "tree", label: "tree", args: [[2, 1, 3]], expected: [2, 1, 3] }],
+    );
+    expect(treeSource).toContain("class TreeNode");
+    expect(treeSource).toContain("private static TreeNode tree(Integer[] values)");
+    expect(treeSource).toContain("treeView(expected).equals(treeView(returned))");
+
+    const listSource = generateTestMain(
+      {
+        methodName: "hasCycle",
+        signature: "public boolean hasCycle(ListNode head)",
+        argTypes: ["ListNode"],
+        returnType: "boolean",
+        starterCode: "",
+      },
+      [{ id: "cycle", label: "cycle", args: [{ values: [1, 2], cycleAt: 0 }], expected: true }],
+    );
+    expect(listSource).toContain("class ListNode");
+    expect(listSource).toContain("nodes[nodes.length - 1].next = nodes[cycleAt]");
+    expect(generateTestMain(SAMPLE_SPEC, tests)).not.toContain("class TreeNode");
+    expect(generateTestMain(SAMPLE_SPEC, tests)).not.toContain("class ListNode");
+  });
+
+  it("observes an in-place void method and a returned node property without changing their Java signatures", () => {
+    const mutationSource = generateTestMain(
+      {
+        methodName: "reorderList",
+        signature: "public void reorderList(ListNode head)",
+        argTypes: ["ListNode"],
+        methodReturnType: "void",
+        resultFromArg: 0,
+        returnType: "ListNode",
+        starterCode: "",
+      },
+      [{ id: "reorder", label: "reorder", args: [[1, 2, 3]], expected: [1, 3, 2] }],
+    );
+    expect(mutationSource).toContain("solution.reorderList(arg0);");
+    expect(mutationSource).toContain("ListNode returned = arg0;");
+
+    const nodePropertySource = generateTestMain(
+      {
+        methodName: "find",
+        signature: "public TreeNode find(TreeNode root)",
+        argTypes: ["TreeNode"],
+        methodReturnType: "TreeNode",
+        resultProperty: "val",
+        returnType: "int",
+        starterCode: "",
+      },
+      [{ id: "node", label: "node", args: [[7]], expected: 7 }],
+    );
+    expect(nodePropertySource).toContain("TreeNode rawReturned = solution.find(arg0);");
+    expect(nodePropertySource).toContain("int returned = rawReturned.val;");
+  });
+
+  it("validates unordered element comparisons and observable mutation contracts", () => {
+    const unordered = generateTestMain(
+      {
+        methodName: "values",
+        signature: "public int[] values(int[] input)",
+        argTypes: ["int[]"],
+        returnType: "int[]",
+        comparison: "unordered-elements",
+        starterCode: "",
+      },
+      [{ id: "unordered", label: "unordered", args: [[1, 2]], expected: [2, 1] }],
+    );
+    expect(unordered).toContain("unorderedIntArrayEquals(expected, returned)");
+    expect(validateJavaSpec(
+      {
+        methodName: "bad",
+        signature: "public void bad(ListNode head)",
+        argTypes: ["ListNode"],
+        methodReturnType: "void",
+        returnType: "ListNode",
+        starterCode: "",
+      },
+      [{ id: "bad", label: "bad", args: [[]], expected: [] }],
+    )).toContain("A void method must declare a valid resultFromArg index for its observable post-state.");
   });
 });
 

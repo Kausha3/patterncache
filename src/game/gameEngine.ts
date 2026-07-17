@@ -274,7 +274,7 @@ export function calculateGameProgress({
     { id: "model-defender", name: "Model Defender", description: "Score at least 70% in Model Defense.", unlocked: arenaScoreRatio(arenaScores.lld) >= 0.7 },
     { id: "full-loop", name: "Full Loop", description: "Clear all three Arena simulations.", unlocked: arenaClears === 3 },
     { id: "code-author", name: "Code Author", description: "Pass every visible and hidden test in a Coding Combat mission.", unlocked: codingCombatClears >= 1 },
-    { id: "combat-engineer", name: "Combat Engineer", description: "Build and defend solutions for all three Coding Combat missions.", unlocked: codingCombatClears >= 3 },
+    { id: "combat-engineer", name: "Combat Engineer", description: "Build and defend six Coding Combat missions across distinct patterns.", unlocked: codingCombatClears >= 6 },
     { id: "model-builder", name: "Model Builder", description: "Complete a responsibility model in the LLD Design Studio.", unlocked: lldStudioClears >= 1 },
     { id: "change-proof", name: "Change Proof", description: "Defend all three LLD Studio models against requirement mutations.", unlocked: lldStudioClears >= 3 },
   ];

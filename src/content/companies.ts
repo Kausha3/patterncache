@@ -3,8 +3,8 @@ import type { Company, CompanyQuestion } from "@/types";
 /**
  * Company-wise interview-prep data. This is the "Companies" lens on top of
  * the DSA/System-Design tracks — same lessons, filtered and ranked by what a
- * specific company actually asks. Sourced from docs/AMAZON.md (multi-source
- * web research, adversarially verified; see that file for full citations and
+ * specific company actually asks. Sourced from the company dossiers in docs/
+ * (multi-source web research, adversarially verified; see those files for citations and
  * the honesty caveats this data respects).
  *
  * `frequency` is a qualitative signal tier, NOT a real count — no source
@@ -180,6 +180,63 @@ const amazonLLD: CompanyQuestion[] = [
   },
 ];
 
+const googleHLD: CompanyQuestion[] = [
+  {
+    lessonId: "google-image-hosting",
+    title: "Design an Image and Short-Video Hosting Service",
+    blurb: "Upload media, store metadata and binaries, transform formats asynchronously, and serve globally under changing requirements.",
+    bucket: "hld",
+    frequency: "high",
+    signalNote: "Repeated in two independent L5 reports from 2024-2025. Both describe an image or media host and follow-ups about processing, scale, and evolving requirements.",
+    levels: ["L5", "L6"],
+  },
+  {
+    lessonId: "google-inventory",
+    title: "Design an Inventory Management System",
+    blurb: "Model stock updates, consistency, concurrency, and synchronization between systems.",
+    bucket: "hld",
+    frequency: "medium",
+    signalNote: "One detailed 2025 L5 candidate report names inventory management, followed by a deeper concurrency and scalability round. Treat it as a recent report, not a frequency claim.",
+    levels: ["L5", "L6"],
+  },
+  {
+    lessonId: "google-drive",
+    title: "Design Cloud File Storage and Sync",
+    blurb: "Chunked uploads, metadata, cross-device sync, conflict handling, versioning, and sharing permissions.",
+    bucket: "hld",
+    frequency: "emerging",
+    signalNote: "A transferable Google-scale coverage anchor found across established system-design curricula, not a verified recent Google interview frequency signal.",
+    levels: ["L5", "L6"],
+  },
+  {
+    lessonId: "google-autocomplete",
+    title: "Design Search Autocomplete",
+    blurb: "Top-K suggestions under a tight latency budget, with freshness, ranking, and abuse controls.",
+    bucket: "hld",
+    frequency: "emerging",
+    signalNote: "A canonical Google-flavored coverage anchor in established design curricula. We did not find enough recent first-person reports to claim repeat frequency.",
+    levels: ["L5", "L6"],
+  },
+  {
+    lessonId: "cache-layer",
+    title: "Design a Distributed Cache",
+    blurb: "Sharding, replication, eviction, hot keys, cache stampedes, and failure recovery.",
+    bucket: "hld",
+    frequency: "emerging",
+    signalNote: "Included as a reusable distributed-systems transfer drill, not as a claim that Google repeatedly asks this exact prompt.",
+    levels: ["L5", "L6"],
+  },
+  {
+    lessonId: "chat-app",
+    title: "Design Real-Time Messaging",
+    blurb: "Persistent connections, presence, delivery ordering, offline fan-out, and multi-device state.",
+    bucket: "hld",
+    frequency: "emerging",
+    signalNote: "Included as a broad architecture coverage anchor. The underlying trade-offs transfer even when Google uses a custom product prompt.",
+    levels: ["L5", "L6"],
+  },
+];
+
 export const COMPANIES: Record<string, Company> = {
   amazon: {
     id: "amazon",
@@ -195,6 +252,25 @@ export const COMPANIES: Record<string, Company> = {
     valuesFocus: ["customer-obsession", "ownership", "frugality", "dive-deep"],
     hld: amazonHLD,
     lld: amazonLLD,
+  },
+  google: {
+    id: "google",
+    name: "Google",
+    blurb: "A reasoning-first loop. Early-career reports are dominated by coding and Googleyness; system design becomes a dedicated signal at senior levels. Clarifying an underspecified prompt, explaining trade-offs, dry-running, and adapting to follow-ups matter more than recognizing a memorized title.",
+    status: "available",
+    loopNotes: [
+      "L3 / early career: recent reports describe several DSA rounds plus a Googleyness and leadership conversation. Prepare to solve custom or underspecified problems aloud, without relying on a compiler.",
+      "L4: recent reports still lean heavily toward coding, problem decomposition, clean code, and communication. A design round can vary by role and recruiter packet, so confirm your exact loop instead of assuming one.",
+      "L5+: recent first-person reports consistently add a dedicated system-design round. Strong candidates drive requirements, estimate scale, propose a high-level design, then absorb new constraints without rebuilding everything.",
+      "Across levels, the transferable behavior is the same: ask what is ambiguous, state an approach before coding, test with your own examples, give time and space complexity, and respond constructively when the interviewer changes the problem.",
+      "Googleyness is not a vocabulary quiz. Candidate reports describe evidence about collaboration, handling conflict, learning, ambiguity, inclusion, and leadership without authority.",
+    ],
+    bucketNotes: {
+      hld: "These prompts are for L5+ design preparation. Only the top items have recent first-person Google reports; the rest are labeled transfer drills rather than fake frequency claims.",
+      lld: "No dedicated LLD list is promoted here. The recent SWE reports we found emphasize coding at L3/L4 and distributed system design at L5. If your recruiter names an object-design round, use the LLD library, but do not make it your default Google priority.",
+    },
+    hld: googleHLD,
+    lld: [],
   },
 };
 

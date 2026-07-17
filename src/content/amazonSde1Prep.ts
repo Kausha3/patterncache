@@ -1,3 +1,5 @@
+import type { CodingCombatMissionId } from "@/arena/types";
+
 export type AmazonPrepTier = "must" | "good" | "stretch";
 export type AmazonPrepTrack = "dsa" | "lld";
 export type AmazonPrepSignal = "repeated-report" | "recent-report" | "coverage-anchor";
@@ -207,6 +209,29 @@ export const AMAZON_PREP_SIGNAL_LABELS: Record<AmazonPrepSignal, string> = {
   "recent-report": "Recent reported signal",
   "coverage-anchor": "Core coverage",
 };
+
+/** Exact problem-to-mission bridges; near matches are deliberately omitted. */
+export const AMAZON_COMBAT_MISSION_BY_QUESTION: Partial<Record<string, CodingCombatMissionId>> = {
+  "dsa-two-sum": "pair-sum-map",
+  "dsa-longest-substring": "unique-window",
+  "dsa-merge-intervals": "merge-intervals",
+  "dsa-insert-interval": "insert-interval",
+  "dsa-k-closest": "k-closest-points",
+  "dsa-number-islands": "number-of-islands",
+  "dsa-rotting-oranges": "rotting-oranges",
+  "dsa-unique-paths-ii": "unique-paths-obstacles",
+  "dsa-search-rotated": "rotated-search",
+  "dsa-reorder-list": "reorder-list",
+  "dsa-level-order": "tree-level-order",
+  "dsa-validate-bst": "validate-bst",
+  "dsa-lca": "lowest-common-ancestor",
+  "dsa-distance-k": "distance-k-tree",
+  "dsa-path-sum": "path-sum-tree",
+};
+
+export function getAmazonCombatMissionId(questionId: string): CodingCombatMissionId | undefined {
+  return AMAZON_COMBAT_MISSION_BY_QUESTION[questionId];
+}
 
 export function getAmazonPrepQuestion(id: string): AmazonPrepQuestion | undefined {
   return AMAZON_SDE1_QUESTIONS.find((question) => question.id === id);

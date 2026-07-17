@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Divider, Eyebrow, Panel } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { InterviewSpeechControls } from "@/components/InterviewSpeechControls";
 import { COMPANY_PROFILES, getCompanyProfile } from "@/interview/companyProfiles";
 import { computeFit, parseJobDescription, parseResume } from "@/interview/resumeParser";
 import type { FitReport, ResumeFacts } from "@/interview/resumeParser";
@@ -13,10 +14,9 @@ import { saveMockSession } from "@/interview/mockSessionStore";
 import { color, font, radius } from "@/theme/tokens";
 
 /**
- * Resume-based mock interview. Everything runs on this device: the resume
- * and job description are parsed in the browser, questions come from the
- * selected company's real evaluation culture, and answers are coached by
- * deterministic heuristics that say exactly what they can and cannot judge.
+ * Resume-based mock interview. Resume parsing, question generation, answer
+ * coaching, and persistence stay on this device. Optional speech recognition
+ * is browser-provided and has a separate disclosure before microphone access.
  */
 
 type Step = "setup" | "review" | "interview" | "debrief";
@@ -107,14 +107,15 @@ export function MockInterviewPage() {
   return (
     <div style={{ display: "grid", gap: 24 }}>
       <header style={{ display: "grid", gap: 8 }}>
-        <Eyebrow tone={color.violet}>Mock interview · resume based · on this device only</Eyebrow>
+        <Eyebrow tone={color.violet}>Mock interview · resume parsing stays on this device</Eyebrow>
         <h1 style={{ fontSize: 27, fontWeight: 700, letterSpacing: "-0.5px" }}>
           {step === "debrief" ? "The debrief" : "Interview like they interview"}
         </h1>
         <p style={{ color: color.textDim, maxWidth: 700 }}>
           Paste the job description and the resume you submitted. Your interview is built from what interviewers
           actually mine: your quantified claims, the gaps between the JD and your resume, and the company's own
-          evaluation culture. Nothing you paste leaves this browser.
+          evaluation culture. Nothing you paste leaves this browser. Optional speaking mode explains the browser's
+          voice-processing behavior before it asks for microphone access.
         </p>
       </header>
 
@@ -433,6 +434,13 @@ function InterviewStep({
 
       <Panel style={{ display: "grid", gap: 12 }} raised>
         <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.6, color: color.text, fontWeight: 600 }}>{question.text}</p>
+        <InterviewSpeechControls
+          questionId={question.id}
+          question={question.text}
+          answer={answer}
+          onAnswerChange={onAnswer}
+          disabled={!!assessment}
+        />
         <textarea
           style={{ ...AREA_STYLE, minHeight: 150 }}
           value={answer}

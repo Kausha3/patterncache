@@ -1,5 +1,7 @@
 import type { CodingCombatMissionId } from "./types";
 import type { JavaCombatSpec } from "@/java/javaHarness";
+import { CODING_COMBAT_WAVE_ONE_MISSIONS } from "./codingCombatWaveOneMissions";
+import { CODING_COMBAT_WAVE_TWO_MISSIONS } from "./codingCombatWaveTwoMissions";
 
 export interface CodingCombatTestCase {
   id: string;
@@ -44,7 +46,7 @@ export interface CodingCombatMission {
   defense: CodingCombatDefenseQuestion[];
 }
 
-export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
+const CODING_COMBAT_CORE_MISSIONS: CodingCombatMission[] = [
   {
     id: "target-pair",
     title: "Target Pair Intercept",
@@ -561,6 +563,12 @@ public class Solution {
       },
     ],
   },
+];
+
+export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
+  ...CODING_COMBAT_CORE_MISSIONS,
+  ...CODING_COMBAT_WAVE_ONE_MISSIONS,
+  ...CODING_COMBAT_WAVE_TWO_MISSIONS,
 ];
 
 export function getCodingCombatMission(id: string): CodingCombatMission | undefined {

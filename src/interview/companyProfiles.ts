@@ -320,7 +320,137 @@ const AMAZON: CompanyInterviewProfile = {
   ],
 };
 
-export const COMPANY_PROFILES: CompanyInterviewProfile[] = [GENERAL, AMAZON];
+// ---------------------------------------------------------------------------
+// Google: recent SWE reports repeatedly reward visible reasoning over fast
+// recognition. The behavioral pack combines structured problem solving,
+// collaboration, learning, and leadership without authority. It never tries
+// to infer a hiring decision from these surface signals.
+// ---------------------------------------------------------------------------
+
+const GOOGLE: CompanyInterviewProfile = {
+  id: "google",
+  name: "Google",
+  rubricName: "Googleyness and role-related leadership",
+  howTheyJudge:
+    "Google interview reports consistently reward the reasoning an interviewer can observe: clarify an ambiguous situation, compare options, invite missing context, and change direction without getting defensive. Googleyness and leadership answers need real examples of collaboration, learning, inclusion, and influence without authority. The goal is not to sound clever. It is to make a good decision process easy to inspect.",
+  dimensions: [
+    {
+      id: "structured-reasoning",
+      name: "Structured reasoning",
+      plain: "You turn an ambiguous situation into clear assumptions, options, trade-offs, and a decision.",
+      signals: [
+        ["clarified", "asked", "assumption", "what was ambiguous", "missing context", "constraints"],
+        ["options", "alternatives", "trade-off", "pros and cons", "compared", "criteria"],
+        ["because", "evidence", "data", "tested", "experiment", "validated"],
+      ],
+      antiSignals: ["i just knew", "there was only one option", "i started coding immediately"],
+      probes: ["What was still ambiguous, and which question changed your decision?", "Which alternative did you reject, and on what evidence?"],
+    },
+    {
+      id: "collaboration",
+      name: "Collaborative problem solving",
+      plain: "You make the group smarter by listening, sharing context, and resolving disagreement without erasing it.",
+      signals: [
+        ["listened", "their perspective", "asked them", "understood why", "invited", "feedback"],
+        ["aligned", "working agreement", "shared context", "documented", "paired", "collaborated"],
+        ["disagreed", "conflict", "different view", "changed my mind", "compromise", "resolved"],
+      ],
+      antiSignals: ["they did not understand", "i went around them", "i won the argument"],
+      probes: ["What was the other person's strongest point?", "How did your approach make the next disagreement easier?"],
+    },
+    {
+      id: "leadership",
+      name: "Leadership without authority",
+      plain: "You create direction, unblock people, and own an outcome even when nobody reports to you.",
+      signals: [
+        ["i proposed", "i led", "i organized", "i volunteered", "i took ownership", "i initiated"],
+        ["unblocked", "brought together", "got alignment", "influenced", "mentored", "helped the team"],
+        ["followed through", "shipped", "adopted", "result", "measured", "afterward"],
+      ],
+      antiSignals: ["i waited for my manager", "not my responsibility", "someone should have"],
+      probes: ["Why did anyone follow your lead when you had no authority?", "Who became more effective because of what you did?"],
+    },
+    {
+      id: "learning",
+      name: "Learning and intellectual humility",
+      plain: "You notice when your model is wrong, learn quickly, and make the learning change future behavior.",
+      signals: [
+        ["i was wrong", "did not know", "missed", "my assumption failed", "feedback changed", "mistake"],
+        ["learned", "studied", "asked for help", "experimented", "read", "practiced"],
+        ["since then", "changed how", "now i", "next time", "made a checklist", "shared the learning"],
+      ],
+      antiSignals: ["i already knew", "it was their mistake", "nothing i would change"],
+      probes: ["What belief did you have to update?", "What can you point to that changed after you learned it?"],
+    },
+    {
+      id: "inclusive-impact",
+      name: "Inclusive impact",
+      plain: "You notice who is missing or blocked and improve the outcome without speaking over them.",
+      signals: [
+        ["included", "made space", "asked quieter", "accessible", "different background", "left out"],
+        ["stood up for", "advocated", "gave credit", "removed a barrier", "supported", "sponsorship"],
+        ["team outcome", "participation", "adoption", "feedback", "retention", "result"],
+      ],
+      antiSignals: ["culture fit", "they needed me to speak for them", "everyone is treated exactly the same"],
+      probes: ["How did you know the person wanted your help?", "What changed for the group, not just for you?"],
+    },
+    {
+      id: "technical-depth",
+      name: "Role-related technical depth",
+      plain: "You understand the mechanisms behind your work and can reason through a new constraint aloud.",
+      signals: [
+        ["root cause", "mechanism", "traced", "profiled", "debugged", "under the hood"],
+        ["latency", "complexity", "memory", "scale", "failure mode", "bottleneck", "trade-off"],
+        ["tested", "dry run", "edge case", "monitoring", "metric", "verified"],
+      ],
+      antiSignals: ["the framework handled it", "i do not remember the details", "it just worked"],
+      probes: ["Walk me through the mechanism one layer deeper.", "Which edge case or failure mode changed your design?"],
+    },
+  ],
+  loop: [
+    {
+      id: "recruiter-screen",
+      kind: "hr",
+      title: "Recruiter and motivation screen",
+      purpose: "Can you connect your experience to the role and explain why this problem space matters to you?",
+      dimensionIds: ["structured-reasoning", "technical-depth"],
+      questionCount: 3,
+    },
+    {
+      id: "googleyness-leadership",
+      kind: "behavioral",
+      title: "Googleyness and leadership",
+      purpose: "How you handle ambiguity, conflict, learning, inclusion, and influence without authority.",
+      dimensionIds: ["structured-reasoning", "collaboration", "leadership", "learning", "inclusive-impact"],
+      questionCount: 5,
+    },
+    {
+      id: "technical-story",
+      kind: "technical-story",
+      title: "Role-related knowledge deep dive",
+      purpose: "Can you defend the mechanisms and trade-offs behind work on your own resume?",
+      dimensionIds: ["technical-depth", "structured-reasoning", "learning"],
+      questionCount: 4,
+    },
+  ],
+  archetypes: [
+    { id: "walkthrough", kind: "hr", dimensionIds: ["structured-reasoning"], template: "Walk me through your background, focusing on the two decisions that best explain why this role at Google is the next step.", followUps: ["Why this role instead of another strong engineering role?"] },
+    { id: "why-google", kind: "hr", dimensionIds: ["structured-reasoning"], template: "Why Google specifically, and which product or engineering problem would you genuinely want to understand from the inside?", followUps: ["What evidence have you gathered beyond the company name?"] },
+    { id: "proudest", kind: "hr", dimensionIds: ["technical-depth", "leadership"], template: "Which piece of work best shows how you think as an engineer, and what was only possible because of your contribution?", followUps: ["What would your closest teammate say you contributed?"] },
+    { id: "ambiguous", kind: "behavioral", dimensionIds: ["structured-reasoning", "leadership"], template: "Tell me about a time the goal was ambiguous and nobody could give you a complete specification. How did you create enough clarity to move?", followUps: ["Which assumption turned out to be wrong?"] },
+    { id: "conflict", kind: "behavioral", dimensionIds: ["collaboration", "learning"], template: "Tell me about a disagreement where the other person had a genuinely strong argument. How did the decision get made?", followUps: ["What part of their view changed your own?"] },
+    { id: "stand-up", kind: "behavioral", dimensionIds: ["inclusive-impact", "leadership"], template: "Tell me about a time you stood up for a teammate or made space for a perspective the group was overlooking.", followUps: ["How did you check that your help was actually wanted?"] },
+    { id: "changed-mind", kind: "behavioral", dimensionIds: ["learning", "structured-reasoning"], template: "Tell me about a technical decision where new evidence made you change your mind after you had already argued for the first approach.", followUps: ["How did you communicate the reversal?"] },
+    { id: "lead-without-authority", kind: "behavioral", dimensionIds: ["leadership", "collaboration"], template: "Tell me about a result you led without having authority over the people involved.", followUps: ["Why did they choose to follow your direction?"] },
+    { id: "failure-learning", kind: "behavioral", dimensionIds: ["learning"], template: "Tell me about a failure that changed a repeatable part of how you work, not just how you felt.", followUps: ["Show me the mechanism you changed afterward."] },
+    { id: "hardest-problem", kind: "technical-story", dimensionIds: ["technical-depth", "structured-reasoning"], template: "Take {project}. What was the hardest technical constraint, what alternatives did you compare, and why did your final choice win?", followUps: ["Now change one requirement. Which part breaks first?"] },
+    { id: "debugging", kind: "technical-story", dimensionIds: ["technical-depth", "learning"], template: "In {project}, describe a bug or failure where the first theory was wrong. Dry-run the investigation from symptom to root cause.", followUps: ["Which observation killed the first theory?"] },
+    { id: "scale-change", kind: "technical-story", dimensionIds: ["technical-depth", "structured-reasoning"], template: "Suppose {project} suddenly had one hundred times the traffic or data. What would fail first, and how would you prove it before redesigning anything?", followUps: ["What is the smallest experiment that tests your bottleneck theory?"] },
+    { id: "code-quality", kind: "technical-story", dimensionIds: ["technical-depth", "collaboration"], template: "Tell me about code you made easier for another engineer to understand, test, or extend. What exactly changed?", followUps: ["How did you measure that it became easier to work with?"] },
+  ],
+};
+
+export const COMPANY_PROFILES: CompanyInterviewProfile[] = [GENERAL, AMAZON, GOOGLE];
 
 export function getCompanyProfile(id: string): CompanyInterviewProfile | undefined {
   return COMPANY_PROFILES.find((profile) => profile.id === id);

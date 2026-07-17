@@ -348,7 +348,9 @@
 .amazon-memory-test p { margin: 4px 0 10px; }
 .amazon-memory-test ul { display: grid; gap: 3px; margin: 4px 0 0; padding-left: 18px; }
 .amazon-question-actions { display: grid; gap: 10px; margin-top: auto; }
+.amazon-practice-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .amazon-practice-link { width: fit-content; display: inline-flex; gap: 7px; align-items: center; color: var(--track-tone); font: 700 11px var(--mono); }
+.amazon-reference-link { color: var(--text-dim); font: 600 10px var(--mono); text-decoration: underline; text-underline-offset: 3px; }
 .amazon-status-control { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .amazon-status-control button { min-width: 0; padding: 7px 4px; border: 1px solid var(--panel-border); border-radius: 6px; background: transparent; color: var(--text-faint); font: 650 8.5px var(--mono); }
 .amazon-status-control button[aria-pressed="true"] { border-color: var(--track-tone); background: color-mix(in srgb, var(--track-tone) 10%, transparent); color: var(--text); }

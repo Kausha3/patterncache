@@ -151,12 +151,14 @@ export function CompanyPage() {
 
       <section style={{ display: "grid", gap: 14 }}>
         <SectionHeader eyebrow="System design (HLD)" tone={color.blue} meta={`${visibleHld.length} shown · ${playableHld} / ${hld.length} playable`} />
+        {company.bucketNotes?.hld && <BucketNote>{company.bucketNotes.hld}</BucketNote>}
         <QuestionGrid questions={visibleHld} onOpen={(lessonId) => navigate(`/lesson/${lessonId}`)} />
       </section>
 
       <section style={{ display: "grid", gap: 14 }}>
         <SectionHeader eyebrow="Low-level design (LLD)" tone={color.violet} meta={`${visibleLld.length} shown · ${playableLld} / ${lld.length} playable`} />
-        <QuestionGrid questions={visibleLld} onOpen={(lessonId) => navigate(`/lesson/${lessonId}`)} />
+        {company.bucketNotes?.lld && <BucketNote>{company.bucketNotes.lld}</BucketNote>}
+        {lld.length > 0 && <QuestionGrid questions={visibleLld} onOpen={(lessonId) => navigate(`/lesson/${lessonId}`)} />}
       </section>
     </div>
   );
@@ -225,13 +227,21 @@ function FilterBar({
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Eyebrow>Level</Eyebrow>
-        {(["all", "L4", "L5", "L6"] as const).map((value) => (
+        {(["all", "L3", "L4", "L5", "L6"] as const).map((value) => (
           <FilterButton key={value} active={level === value} onClick={() => onLevel(value)}>
             {value === "all" ? "All" : value}
           </FilterButton>
         ))}
       </div>
     </Panel>
+  );
+}
+
+function BucketNote({ children }: { children: string }) {
+  return (
+    <p style={{ margin: 0, maxWidth: 820, color: color.textDim, fontSize: 12.5, lineHeight: 1.6 }}>
+      {children}
+    </p>
   );
 }
 

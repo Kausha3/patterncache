@@ -399,7 +399,7 @@ export interface NodeDef {
 // ---------------------------------------------------------------------------
 
 export type QuestionBucket = "hld" | "lld";
-export type SdeLevel = "L4" | "L5" | "L6";
+export type SdeLevel = "L3" | "L4" | "L5" | "L6";
 
 /**
  * Qualitative signal strength, NOT a hard frequency count — no source we
@@ -429,6 +429,8 @@ export interface Company {
   loopNotes?: string[];
   /** Leadership-Principle-style keys most emphasized (company-specific; empty if N/A). */
   valuesFocus?: string[];
+  /** Honest context for a bucket, including when the evidence says not to prioritize it. */
+  bucketNotes?: Partial<Record<QuestionBucket, string>>;
   hld: CompanyQuestion[];
   lld: CompanyQuestion[];
 }

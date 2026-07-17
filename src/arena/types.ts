@@ -46,6 +46,20 @@ export const CODING_COMBAT_MISSION_IDS = [
   "pair-sum-map",
   "rotated-search",
   "balanced-brackets",
+  "merge-intervals",
+  "insert-interval",
+  "k-closest-points",
+  "number-of-islands",
+  "rotting-oranges",
+  "unique-paths-obstacles",
+  "validate-bst",
+  "tree-level-order",
+  "lowest-common-ancestor",
+  "path-sum-tree",
+  "distance-k-tree",
+  "reorder-list",
+  "reverse-linked-list",
+  "linked-list-cycle",
 ] as const;
 export type CodingCombatMissionId = (typeof CODING_COMBAT_MISSION_IDS)[number];
 export type CodingCombatScores = Partial<Record<CodingCombatMissionId, ArenaScoreRecord>>;

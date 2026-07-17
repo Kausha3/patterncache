@@ -46,8 +46,8 @@ Preferred:
 `;
 
 describe("company profiles", () => {
-  it("ships General first (the default) and Amazon second", () => {
-    expect(COMPANY_PROFILES.map((profile) => profile.id)).toEqual(["general", "amazon"]);
+  it("ships General first, followed by the researched Amazon and Google packs", () => {
+    expect(COMPANY_PROFILES.map((profile) => profile.id)).toEqual(["general", "amazon", "google"]);
   });
 
   it("gives every dimension signals, a probe, and archetype coverage for every round kind", () => {
@@ -76,6 +76,21 @@ describe("company profiles", () => {
 
   it("keeps every user-facing string free of em-dashes", () => {
     expect(JSON.stringify(COMPANY_PROFILES).includes("—")).toBe(false);
+  });
+
+  it("models Google as visible reasoning, collaboration, leadership, and technical depth", () => {
+    const google = getCompanyProfile("google")!;
+    expect(google.rubricName).toContain("Googleyness");
+    expect(google.dimensions.map((dimension) => dimension.id)).toEqual(expect.arrayContaining([
+      "structured-reasoning",
+      "collaboration",
+      "leadership",
+      "learning",
+      "inclusive-impact",
+      "technical-depth",
+    ]));
+    expect(google.archetypes.some((question) => question.id === "stand-up")).toBe(true);
+    expect(google.archetypes.some((question) => question.id === "ambiguous")).toBe(true);
   });
 });
 
@@ -128,6 +143,15 @@ describe("question generator", () => {
   const fit = computeFit(resume, job);
   const amazon = getCompanyProfile("amazon")!;
   const plan = generateInterviewPlan(amazon, resume, fit);
+
+  it("fills every Google round without changing the interview engine", () => {
+    const google = getCompanyProfile("google")!;
+    const googlePlan = generateInterviewPlan(google, resume, fit);
+    expect(googlePlan.companyId).toBe("google");
+    for (const planned of googlePlan.rounds) {
+      expect(planned.questions, planned.round.id).toHaveLength(planned.round.questionCount);
+    }
+  });
 
   it("plans every round at its declared question count", () => {
     expect(plan.rounds.map((planned) => planned.round.id)).toEqual(amazon.loop.map((round) => round.id));

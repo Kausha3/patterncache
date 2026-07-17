@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CODING_COMBAT_MISSIONS } from "@/arena/codingCombatMissions";
 import { CodingCombatWorkbench } from "@/components/CodingCombatWorkbench";
 import { Button, Eyebrow } from "@/components/ui";
@@ -17,9 +17,10 @@ const TOTAL_TEST_CASES = CODING_COMBAT_MISSIONS.reduce(
 
 export function CodingCombatPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { codingCombatScores, recordCodingCombatRun } = useGameProgress();
-  const [activeMissionId, setActiveMissionId] = useState<CodingCombatMissionId>();
   const [runVersion, setRunVersion] = useState(0);
+  const activeMissionId = resolveCodingCombatMissionId(searchParams.get("mission"));
   const mission = CODING_COMBAT_MISSIONS.find((candidate) => candidate.id === activeMissionId);
 
   if (!mission) {
@@ -64,7 +65,7 @@ export function CodingCombatPage() {
               return (
                 <article className={record ? "combat-mission-card complete" : "combat-mission-card"} key={candidate.id}>
                   <header>
-                    <span>0{index + 1}</span>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
                     <small>{record ? `BEST ${record.bestScore}/${record.maxScore}` : candidate.difficulty}</small>
                   </header>
                   <div className="combat-mission-icon"><Icon name={MISSION_ICONS[index % MISSION_ICONS.length]} size={21} /></div>
@@ -78,7 +79,7 @@ export function CodingCombatPage() {
                   <Button
                     icon="code"
                     aria-label={`${record ? "Replay" : "Start"} ${candidate.title}`}
-                    onClick={() => setActiveMissionId(candidate.id)}
+                    onClick={() => setSearchParams({ mission: candidate.id })}
                   >
                     {record ? "Replay build" : "Start build"}
                   </Button>
@@ -93,7 +94,7 @@ export function CodingCombatPage() {
 
   const missionIndex = CODING_COMBAT_MISSIONS.findIndex((candidate) => candidate.id === mission.id);
   const nextMission = CODING_COMBAT_MISSIONS[missionIndex + 1];
-  const exitToLobby = () => setActiveMissionId(undefined);
+  const exitToLobby = () => setSearchParams({}, { replace: true });
 
   return (
     <CodingCombatWorkbench
@@ -106,10 +107,14 @@ export function CodingCombatPage() {
       hasNext={!!nextMission}
       onNext={() => {
         if (nextMission) {
-          setActiveMissionId(nextMission.id);
+          setSearchParams({ mission: nextMission.id });
           setRunVersion((current) => current + 1);
         }
       }}
     />
   );
+}
+
+export function resolveCodingCombatMissionId(value: string | null): CodingCombatMissionId | undefined {
+  return CODING_COMBAT_MISSIONS.find((mission) => mission.id === value)?.id;
 }

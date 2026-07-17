@@ -24,6 +24,28 @@ describe("content registry", () => {
     expect(playable).toHaveLength(7);
   });
 
+  it("keeps the Google pack level-honest instead of inventing an L3 design round", () => {
+    const google = getCompany("google");
+    expect(google?.status).toBe("available");
+    expect(google?.hld.length).toBeGreaterThan(0);
+    expect(google?.hld.every((question) => !question.levels.includes("L3"))).toBe(true);
+    expect(google?.lld).toEqual([]);
+    expect(google?.bucketNotes?.lld).toContain("No dedicated LLD list");
+  });
+
+  it("gives every company question an evidence note, level, and unique bucket id", () => {
+    for (const companyId of ["amazon", "google"]) {
+      const company = getCompany(companyId)!;
+      for (const questions of [company.hld, company.lld]) {
+        expect(new Set(questions.map((question) => question.lessonId)).size).toBe(questions.length);
+        for (const question of questions) {
+          expect(question.signalNote.trim().length, `${companyId}:${question.lessonId} evidence`).toBeGreaterThan(30);
+          expect(question.levels.length, `${companyId}:${question.lessonId} levels`).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
   it("covers the interview-staple patterns including Factory and Singleton", () => {
     const ids = listDesignPatterns().map((pattern) => pattern.id);
     for (const required of ["state", "strategy", "facade", "builder", "observer", "composite", "command", "decorator", "factory", "singleton"]) {

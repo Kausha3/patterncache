@@ -3,11 +3,14 @@ import {
   AMAZON_SDE1_15_DAY_PLAN,
   AMAZON_SDE1_QUESTIONS,
   AMAZON_SDE1_RESEARCH_SOURCES,
+  AMAZON_COMBAT_MISSION_BY_QUESTION,
+  getAmazonCombatMissionId,
   getAmazonPrepQuestion,
   isExternalPrepHref,
 } from "./amazonSde1Prep";
 import { getLesson } from "@/content";
 import { getColdDrill } from "@/content/coldDrills";
+import { getCodingCombatMission } from "@/arena/codingCombatMissions";
 
 describe("Amazon SDE-I preparation curriculum", () => {
   it("keeps stable, unique question ids and complete learning metadata", () => {
@@ -73,6 +76,15 @@ describe("Amazon SDE-I preparation curriculum", () => {
       if (kind === "lesson") expect(getLesson(id), question.href).toBeDefined();
       else if (kind === "drill") expect(getColdDrill(id), question.href).toBeDefined();
       else throw new Error(`Unsupported Amazon prep route: ${question.href}`);
+    }
+  });
+
+  it("deep-links every declared executable board problem to an exact Coding Combat mission", () => {
+    expect(Object.keys(AMAZON_COMBAT_MISSION_BY_QUESTION).length).toBeGreaterThanOrEqual(15);
+    for (const [questionId, missionId] of Object.entries(AMAZON_COMBAT_MISSION_BY_QUESTION)) {
+      expect(getAmazonPrepQuestion(questionId), questionId).toBeDefined();
+      expect(getCodingCombatMission(missionId!), `${questionId} -> ${missionId}`).toBeDefined();
+      expect(getAmazonCombatMissionId(questionId)).toBe(missionId);
     }
   });
 });

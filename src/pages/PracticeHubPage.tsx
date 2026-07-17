@@ -60,10 +60,10 @@ const INTERVIEW_WORK: PracticeCard[] = [
   {
     title: "Mock interview",
     route: "/interview",
-    blurb: "Paste the JD and the resume you submitted. Get the questions interviewers mine from them, judged the way that company judges, with honest heuristic coaching. Everything stays on this device.",
+    blurb: "Paste the JD and resume you submitted. Parsing and coaching stay on this device. Optional speaking mode reads each question and transcribes your answer after an explicit browser-audio disclosure.",
     icon: "insight",
     accent: color.violet,
-    tag: "Resume based · on device",
+    tag: "Resume based · optional voice",
     tagTone: color.violet,
   },
 ];

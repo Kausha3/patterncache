@@ -20,9 +20,14 @@ export type JavaType =
   | "boolean"
   | "String"
   | "int[]"
+  | "int[][]"
   | "String[]"
   | "double[]"
+  | "TreeNode"
+  | "ListNode"
   | "Map<String,List<String>>";
+
+export type JavaComparison = "ordered" | "unordered-rows" | "unordered-elements";
 
 export interface JavaCombatSpec {
   /** The method PcTestMain calls on the learner's Solution class. */
@@ -30,7 +35,16 @@ export interface JavaCombatSpec {
   /** Java signature shown in the mission brief. */
   signature: string;
   argTypes: JavaType[];
+  /** Actual Java return type. Defaults to `returnType`. Use void for in-place problems. */
+  methodReturnType?: JavaType | "void";
+  /** Argument to inspect after a void method mutates it. */
+  resultFromArg?: number;
+  /** Property observed from a returned node while preserving the interview signature. */
+  resultProperty?: "val";
+  /** Type of the observable value the harness compares with `expected`. */
   returnType: JavaType;
+  /** Optional semantic comparison for results whose row order is irrelevant. */
+  comparison?: JavaComparison;
   /** The full Solution.java the learner starts from and edits. */
   starterCode: string;
 }
@@ -92,6 +106,48 @@ function arrayLiteral(type: JavaType, value: unknown, element: (item: unknown) =
   return `new ${elementType}[] { ${value.map(element).join(", ")} }`;
 }
 
+function intMatrixLiteral(value: unknown): string {
+  if (!Array.isArray(value)) fail("int[][]", value);
+  const rows = value.map((row) => arrayLiteral("int[]", row, (item) => intLiteral(item, "int")));
+  return `new int[][] { ${rows.join(", ")} }`;
+}
+
+function integerArrayValues(type: JavaType, value: unknown): number[] {
+  if (!Array.isArray(value)) fail(type, value);
+  value.forEach((item) => intLiteral(item, "int"));
+  return value as number[];
+}
+
+function treeLiteral(value: unknown): string {
+  if (!Array.isArray(value)) fail("TreeNode", value);
+  const cells = value.map((item) => {
+    if (item === null) return "null";
+    return intLiteral(item, "int");
+  });
+  if (cells.length > 1 && cells[0] === "null" && cells.slice(1).some((cell) => cell !== "null")) {
+    fail("TreeNode", value);
+  }
+  return `tree(new Integer[] { ${cells.join(", ")} })`;
+}
+
+function listLiteral(value: unknown): string {
+  let values: number[];
+  let cycleAt = -1;
+  if (Array.isArray(value)) {
+    values = integerArrayValues("ListNode", value);
+  } else {
+    if (!value || typeof value !== "object") fail("ListNode", value);
+    const candidate = value as Record<string, unknown>;
+    if (!Object.prototype.hasOwnProperty.call(candidate, "values") || !Object.prototype.hasOwnProperty.call(candidate, "cycleAt")) fail("ListNode", value);
+    values = integerArrayValues("ListNode", candidate.values);
+    if (typeof candidate.cycleAt !== "number" || !Number.isInteger(candidate.cycleAt)) fail("ListNode", value);
+    cycleAt = candidate.cycleAt;
+    if (cycleAt < -1 || cycleAt >= values.length) fail("ListNode", value);
+  }
+  const cells = values.map((item) => intLiteral(item, "int"));
+  return `list(new int[] { ${cells.join(", ")} }, ${cycleAt})`;
+}
+
 function mapLiteral(value: unknown): string {
   if (!value || typeof value !== "object" || Array.isArray(value)) fail("Map<String,List<String>>", value);
   const rows = Object.entries(value as Record<string, unknown>).map(([key, list]) => {
@@ -119,10 +175,16 @@ export function javaLiteral(type: JavaType, value: unknown): string {
       return stringLiteral(value);
     case "int[]":
       return arrayLiteral(type, value, (item) => intLiteral(item, "int"));
+    case "int[][]":
+      return intMatrixLiteral(value);
     case "String[]":
       return arrayLiteral(type, value, (item) => stringLiteral(item));
     case "double[]":
       return arrayLiteral(type, value, (item) => doubleLiteral(item));
+    case "TreeNode":
+      return treeLiteral(value);
+    case "ListNode":
+      return listLiteral(value);
     case "Map<String,List<String>>":
       return mapLiteral(value);
     default: {
@@ -139,7 +201,12 @@ export function javaTypeName(type: JavaType): string {
     : type;
 }
 
-function javaEquality(type: JavaType, expected: string, actual: string): string {
+function javaEquality(
+  type: JavaType,
+  expected: string,
+  actual: string,
+  comparison: JavaComparison = "ordered",
+): string {
   switch (type) {
     case "int":
     case "long":
@@ -151,9 +218,20 @@ function javaEquality(type: JavaType, expected: string, actual: string): string 
     case "Map<String,List<String>>":
       return `java.util.Objects.equals(${expected}, ${actual})`;
     case "int[]":
+      return comparison === "unordered-elements"
+        ? `unorderedIntArrayEquals(${expected}, ${actual})`
+        : `java.util.Arrays.equals(${expected}, ${actual})`;
     case "String[]":
     case "double[]":
       return `java.util.Arrays.equals(${expected}, ${actual})`;
+    case "int[][]":
+      return comparison === "unordered-rows"
+        ? `unorderedIntMatrixEquals(${expected}, ${actual})`
+        : `java.util.Arrays.deepEquals(${expected}, ${actual})`;
+    case "TreeNode":
+      return `treeView(${expected}).equals(treeView(${actual}))`;
+    case "ListNode":
+      return `listView(${expected}).equals(listView(${actual}))`;
     default: {
       const exhausted: never = type;
       throw new Error(`Unsupported Java type ${String(exhausted)}.`);
@@ -162,10 +240,13 @@ function javaEquality(type: JavaType, expected: string, actual: string): string 
 }
 
 function javaDisplay(type: JavaType, expression: string): string {
+  if (type === "int[][]") return `java.util.Arrays.deepToString(${expression})`;
   if (type === "int[]" || type === "String[]" || type === "double[]") {
     return `java.util.Arrays.toString(${expression})`;
   }
   if (type === "String") return `quote(${expression})`;
+  if (type === "TreeNode") return `treeView(${expression})`;
+  if (type === "ListNode") return `listView(${expression})`;
   return `String.valueOf(${expression})`;
 }
 
@@ -178,6 +259,34 @@ export function validateJavaSpec(
   tests: CodingCombatTestCase[],
 ): string[] {
   const problems: string[] = [];
+  if (spec.comparison === "unordered-rows" && spec.returnType !== "int[][]") {
+    problems.push("The unordered-rows comparison is only supported for int[][] results.");
+  }
+  if (spec.comparison === "unordered-elements" && spec.returnType !== "int[]") {
+    problems.push("The unordered-elements comparison is only supported for int[] results.");
+  }
+  const methodReturnType = spec.methodReturnType ?? spec.returnType;
+  if (methodReturnType === "void") {
+    if (spec.resultProperty !== undefined) {
+      problems.push("resultProperty is only supported for non-void node returns.");
+    }
+    if (!Number.isInteger(spec.resultFromArg) || spec.resultFromArg! < 0 || spec.resultFromArg! >= spec.argTypes.length) {
+      problems.push("A void method must declare a valid resultFromArg index for its observable post-state.");
+    } else if (spec.argTypes[spec.resultFromArg!] !== spec.returnType) {
+      problems.push("The resultFromArg type must match the observable returnType.");
+    }
+  } else {
+    if (spec.resultFromArg !== undefined) {
+      problems.push("resultFromArg is only supported for void methods.");
+    }
+    if (spec.resultProperty === "val") {
+      if ((methodReturnType !== "TreeNode" && methodReturnType !== "ListNode") || spec.returnType !== "int") {
+        problems.push("The val resultProperty requires a TreeNode or ListNode method return and an int observable returnType.");
+      }
+    } else if (methodReturnType !== spec.returnType) {
+      problems.push("A non-void methodReturnType must match returnType.");
+    }
+  }
   for (const test of tests) {
     if (test.args.length !== spec.argTypes.length) {
       problems.push(`Test ${test.id} passes ${test.args.length} arguments but the spec declares ${spec.argTypes.length}.`);
@@ -231,12 +340,18 @@ function combatTestInner(spec: JavaCombatSpec, test: CodingCombatTestCase): stri
     .join("\n");
   const argList = test.args.map((_, argIndex) => `arg${argIndex}`).join(", ");
   const returnDecl = javaTypeName(spec.returnType);
+  const methodReturnType = spec.methodReturnType ?? spec.returnType;
+  const invocation = methodReturnType === "void"
+    ? `solution.${spec.methodName}(${argList});\n      ${returnDecl} returned = arg${spec.resultFromArg};`
+    : spec.resultProperty === "val"
+      ? `${javaTypeName(methodReturnType)} rawReturned = solution.${spec.methodName}(${argList});\n      ${returnDecl} returned = rawReturned.val;`
+      : `${returnDecl} returned = solution.${spec.methodName}(${argList});`;
   return `${argDecls}
       ${returnDecl} expected = ${javaLiteral(spec.returnType, test.expected)};
       expectedText = ${javaDisplay(spec.returnType, "expected")};
       Solution solution = new Solution();
-      ${returnDecl} returned = solution.${spec.methodName}(${argList});
-      passed = ${javaEquality(spec.returnType, "expected", "returned")};
+      ${invocation}
+      passed = ${javaEquality(spec.returnType, "expected", "returned", spec.comparison)};
       actualText = ${javaDisplay(spec.returnType, "returned")};`;
 }
 
@@ -253,7 +368,7 @@ export function generateTestMain(spec: JavaCombatSpec, tests: CodingCombatTestCa
     .map((test, index) => testMethodShell(test.id, index, combatTestInner(spec, test)))
     .join("\n\n");
   const calls = tests.map((_, index) => `    test${index}();`).join("\n");
-  return mainShell("PcTestMain", methods, calls);
+  return mainShell("PcTestMain", methods, calls, nodeSupport(spec));
 }
 
 /**
@@ -285,11 +400,113 @@ export function generateExerciseMain(tests: JavaExerciseTest[]): string {
   return mainShell("PcExerciseMain", methods, calls);
 }
 
-function mainShell(className: string, methods: string, calls: string): string {
+interface NodeSupport {
+  declarations: string;
+  helpers: string;
+}
+
+function nodeSupport(spec: JavaCombatSpec): NodeSupport {
+  const types = [...spec.argTypes, spec.returnType, spec.methodReturnType].filter(Boolean);
+  const needsTree = types.includes("TreeNode");
+  const needsList = types.includes("ListNode");
+  const declarations = [
+    needsTree ? `class TreeNode {
+  int val;
+  TreeNode left;
+  TreeNode right;
+
+  TreeNode(int val) { this.val = val; }
+}` : "",
+    needsList ? `class ListNode {
+  int val;
+  ListNode next;
+
+  ListNode(int val) { this.val = val; }
+}` : "",
+  ].filter(Boolean).join("\n\n");
+  const helpers = [
+    needsTree ? `  private static TreeNode tree(Integer[] values) {
+    if (values.length == 0 || values[0] == null) return null;
+    TreeNode root = new TreeNode(values[0]);
+    java.util.Deque<TreeNode> parents = new java.util.ArrayDeque<TreeNode>();
+    parents.add(root);
+    int index = 1;
+    while (index < values.length && !parents.isEmpty()) {
+      TreeNode parent = parents.remove();
+      if (values[index] != null) {
+        parent.left = new TreeNode(values[index]);
+        parents.add(parent.left);
+      }
+      index += 1;
+      if (index < values.length && values[index] != null) {
+        parent.right = new TreeNode(values[index]);
+        parents.add(parent.right);
+      }
+      index += 1;
+    }
+    return root;
+  }
+
+  private static String treeView(TreeNode root) {
+    StringBuilder out = new StringBuilder();
+    treeView(root, out, new java.util.IdentityHashMap<TreeNode, Integer>());
+    return out.toString();
+  }
+
+  private static void treeView(TreeNode node, StringBuilder out, java.util.IdentityHashMap<TreeNode, Integer> seen) {
+    if (node == null) {
+      out.append("#");
+      return;
+    }
+    Integer prior = seen.get(node);
+    if (prior != null) {
+      out.append("cycle@").append(prior);
+      return;
+    }
+    seen.put(node, seen.size());
+    out.append(node.val).append("(");
+    treeView(node.left, out, seen);
+    out.append(",");
+    treeView(node.right, out, seen);
+    out.append(")");
+  }` : "",
+    needsList ? `  private static ListNode list(int[] values, int cycleAt) {
+    if (values.length == 0) return null;
+    ListNode[] nodes = new ListNode[values.length];
+    for (int index = 0; index < values.length; index += 1) nodes[index] = new ListNode(values[index]);
+    for (int index = 1; index < values.length; index += 1) nodes[index - 1].next = nodes[index];
+    if (cycleAt >= 0) nodes[nodes.length - 1].next = nodes[cycleAt];
+    return nodes[0];
+  }
+
+  private static String listView(ListNode head) {
+    StringBuilder out = new StringBuilder("[");
+    java.util.IdentityHashMap<ListNode, Integer> seen = new java.util.IdentityHashMap<ListNode, Integer>();
+    ListNode cursor = head;
+    int index = 0;
+    while (cursor != null) {
+      Integer cycleAt = seen.get(cursor);
+      if (cycleAt != null) {
+        out.append("] -> cycle@").append(cycleAt);
+        return out.toString();
+      }
+      seen.put(cursor, index);
+      if (index > 0) out.append(", ");
+      out.append(cursor.val);
+      cursor = cursor.next;
+      index += 1;
+    }
+    return out.append("]").toString();
+  }` : "",
+  ].filter(Boolean).join("\n\n");
+  return { declarations, helpers };
+}
+
+function mainShell(className: string, methods: string, calls: string, support: NodeSupport = { declarations: "", helpers: "" }): string {
   return `import java.io.FileWriter;
 import java.io.PrintWriter;
 
-public final class ${className} {
+${support.declarations}${support.declarations ? "\n\n" : ""}public final class ${className} {
   private static final StringBuilder OUT = new StringBuilder();
   private static boolean first = true;
 
@@ -336,7 +553,36 @@ ${methods}
     return value == null ? "null" : "\\"" + value + "\\"";
   }
 
-  private static String str(String value) {
+  private static boolean unorderedIntMatrixEquals(int[][] expected, int[][] actual) {
+    if (expected == actual) return true;
+    if (expected == null || actual == null || expected.length != actual.length) return false;
+    java.util.Map<String, Integer> remaining = new java.util.HashMap<String, Integer>();
+    for (int[] row : expected) {
+      String key = java.util.Arrays.toString(row);
+      Integer count = remaining.get(key);
+      remaining.put(key, count == null ? 1 : count + 1);
+    }
+    for (int[] row : actual) {
+      String key = java.util.Arrays.toString(row);
+      Integer count = remaining.get(key);
+      if (count == null) return false;
+      if (count == 1) remaining.remove(key);
+      else remaining.put(key, count - 1);
+    }
+    return remaining.isEmpty();
+  }
+
+  private static boolean unorderedIntArrayEquals(int[] expected, int[] actual) {
+    if (expected == actual) return true;
+    if (expected == null || actual == null || expected.length != actual.length) return false;
+    int[] expectedCopy = expected.clone();
+    int[] actualCopy = actual.clone();
+    java.util.Arrays.sort(expectedCopy);
+    java.util.Arrays.sort(actualCopy);
+    return java.util.Arrays.equals(expectedCopy, actualCopy);
+  }
+
+${support.helpers}${support.helpers ? "\n\n" : ""}  private static String str(String value) {
     if (value == null) return "null";
     StringBuilder out = new StringBuilder("\\"");
     for (int index = 0; index < value.length(); index += 1) {

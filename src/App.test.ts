@@ -14,7 +14,7 @@ describe("top-nav section resolution", () => {
   });
 
   it("groups content under Library, including company filters", () => {
-    for (const path of ["/library", "/lesson/parking-lot", "/companies", "/companies/amazon", "/companies/amazon/sde1"]) {
+    for (const path of ["/library", "/lesson/parking-lot", "/companies", "/companies/amazon", "/companies/amazon/sde1", "/companies/google"]) {
       expect(activeSection(path)).toBe("/library");
     }
   });

@@ -10,7 +10,7 @@ import { useProgress } from "@/hooks/useProgress";
 import { color, font, radius, trackColor } from "@/theme/tokens";
 import type { Track } from "@/types";
 
-type CompanyFilter = "all" | "amazon";
+type CompanyFilter = "all" | "amazon" | "google";
 
 /**
  * The Library: every lesson, pattern, and reference in one place. Companies
@@ -27,15 +27,16 @@ export function LibraryPage() {
       .flatMap((t) => PATH[t])
       .find((n) => n.status === "available" && get(n.id).status !== "completed")?.id ?? RECOMMENDED_FIRST;
 
-  const amazon = getCompany("amazon");
-  const amazonAsked = useMemo(() => {
-    if (!amazon) return new Map<string, string>();
+  const selectedCompany = company === "all" ? undefined : getCompany(company);
+  const companyAsked = useMemo(() => {
+    if (!selectedCompany) return new Map<string, string>();
     const asked = new Map<string, string>();
-    for (const q of [...amazon.hld, ...amazon.lld]) {
+    for (const q of [...selectedCompany.hld, ...selectedCompany.lld]) {
       if (getLesson(q.lessonId)) asked.set(q.lessonId, q.frequency);
     }
     return asked;
-  }, [amazon]);
+  }, [selectedCompany]);
+  const companyAccent = company === "amazon" ? color.amber : color.blue;
 
   return (
     <div style={{ display: "grid", gap: 26 }}>
@@ -72,35 +73,45 @@ export function LibraryPage() {
         <span style={{ fontFamily: font.mono, fontSize: 11.5, color: color.textFaint, textTransform: "uppercase", letterSpacing: "0.6px" }}>
           Preparing for
         </span>
-        <FilterChip active={company === "all"} onClick={() => setCompany("all")}>
+        <FilterChip active={company === "all"} onClick={() => setCompany("all")} accent={color.teal}>
           Everything
         </FilterChip>
-        <FilterChip active={company === "amazon"} onClick={() => setCompany("amazon")}>
+        <FilterChip active={company === "amazon"} onClick={() => setCompany("amazon")} accent={color.amber}>
           Amazon
+        </FilterChip>
+        <FilterChip active={company === "google"} onClick={() => setCompany("google")} accent={color.blue}>
+          Google
         </FilterChip>
       </div>
 
-      {company === "amazon" && amazon && (
-        <Panel style={{ display: "grid", gap: 12, borderColor: `${color.amber}44` }}>
+      {company !== "all" && selectedCompany && (
+        <Panel style={{ display: "grid", gap: 12, borderColor: `${companyAccent}44` }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div style={{ display: "grid", gap: 4 }}>
-              <Eyebrow tone={color.amber}>Amazon lens</Eyebrow>
+              <Eyebrow tone={companyAccent}>{selectedCompany.name} lens</Eyebrow>
               <span style={{ fontSize: 13.5, color: color.textDim }}>
-                {amazonAsked.size} lessons below map to reported Amazon questions. The SDE I board holds
-                the exact problem list, evidence tiers, and spaced reviews.
+                {company === "amazon"
+                  ? `${companyAsked.size} lessons below map to reported Amazon questions. The SDE I board holds the exact problem list, evidence tiers, and spaced reviews.`
+                  : `${companyAsked.size} current lessons transfer to Google design preparation. For L3 and L4, prioritize Coding Combat and the Google mock; senior HLD is level-gated on the question page.`}
               </span>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button accent={color.amber} iconRight="arrowRight" onClick={() => navigate("/companies/amazon/sde1")}>
-                SDE I mission board
-              </Button>
-              <Button variant="ghost" onClick={() => navigate("/companies/amazon")}>
+              {company === "amazon" ? (
+                <Button accent={color.amber} iconRight="arrowRight" onClick={() => navigate("/companies/amazon/sde1")}>
+                  SDE I mission board
+                </Button>
+              ) : (
+                <Button accent={color.blue} iconRight="arrowRight" onClick={() => navigate("/interview")}>
+                  Practice Google mock
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => navigate(`/companies/${company}`)}>
                 Question list
               </Button>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[...amazonAsked.keys()].map((lessonId) => {
+            {[...companyAsked.keys()].map((lessonId) => {
               const lesson = getLesson(lessonId);
               if (!lesson) return null;
               return (
@@ -112,8 +123,8 @@ export function LibraryPage() {
                     fontSize: 11.5,
                     fontWeight: 600,
                     color: color.text,
-                    background: "rgba(217,169,78,0.08)",
-                    border: `1px solid ${color.amber}44`,
+                    background: `${companyAccent}14`,
+                    border: `1px solid ${companyAccent}44`,
                     borderRadius: radius.pill,
                     padding: "5px 11px",
                     cursor: "pointer",
@@ -147,7 +158,7 @@ export function LibraryPage() {
   );
 }
 
-function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
+function FilterChip({ active, onClick, children, accent }: { active: boolean; onClick: () => void; children: string; accent: string }) {
   return (
     <button
       onClick={onClick}
@@ -158,8 +169,8 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
         fontWeight: 700,
         padding: "6px 14px",
         borderRadius: radius.pill,
-        border: `1px solid ${active ? color.amber : color.panelBorder}`,
-        background: active ? "rgba(217,169,78,0.12)" : "transparent",
+        border: `1px solid ${active ? accent : color.panelBorder}`,
+        background: active ? `${accent}1f` : "transparent",
         color: active ? color.text : color.textDim,
         cursor: "pointer",
       }}

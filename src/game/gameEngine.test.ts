@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { buildCoursePlan } from "@/course/coursePlan";
 import type { CourseDay } from "@/course/coursePlan";
 import type { ProgressMap } from "@/types";
+import { CODING_COMBAT_MISSION_IDS } from "@/arena/types";
+import type { CodingCombatScores } from "@/arena/types";
 import {
   calculateGameProgress,
   calculateStreak,
@@ -106,6 +108,27 @@ describe("game engine", () => {
     expect(summary.xp).toBe(700);
     expect(summary.achievements.find((achievement) => achievement.id === "code-author")?.unlocked).toBe(true);
     expect(summary.achievements.find((achievement) => achievement.id === "combat-engineer")?.unlocked).toBe(false);
+  });
+
+  it("reserves Combat Engineer for six distinct completed patterns", () => {
+    const codingCombatScores = Object.fromEntries(
+      CODING_COMBAT_MISSION_IDS.slice(0, 6).map((missionId, index) => [
+        missionId,
+        { bestScore: 500, maxScore: 500, completedAt: index + 1, attempts: 1 },
+      ]),
+    ) as CodingCombatScores;
+    const summary = calculateGameProgress({
+      plan: [],
+      completedTaskIds: [],
+      completedTaskDates: {},
+      progress: {},
+      dailyTargets: {},
+      challengeCheckpoints: {},
+      codingCombatScores,
+      now: new Date("2026-07-15T18:00:00"),
+    });
+
+    expect(summary.achievements.find((achievement) => achievement.id === "combat-engineer")?.unlocked).toBe(true);
   });
 
   it("banks LLD Studio XP from best records without multiplying it by attempts", () => {

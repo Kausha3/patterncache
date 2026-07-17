@@ -6,6 +6,7 @@ import {
   AMAZON_SDE1_15_DAY_PLAN,
   AMAZON_SDE1_QUESTIONS,
   AMAZON_SDE1_RESEARCH_SOURCES,
+  getAmazonCombatMissionId,
   getAmazonPrepQuestion,
   isExternalPrepHref,
   type AmazonPrepQuestion,
@@ -271,11 +272,22 @@ function QuestionCard({
   onStatus: (status: AmazonPrepStatus) => void;
   onReview: () => void;
 }) {
-  const action = isExternalPrepHref(question.href) ? (
+  const combatMissionId = getAmazonCombatMissionId(question.id);
+  const originalAction = isExternalPrepHref(question.href) ? (
     <a className="amazon-practice-link" href={question.href} target="_blank" rel="noreferrer">Open problem <Icon name="arrowRight" size={13} /></a>
   ) : (
     <Link className="amazon-practice-link" to={question.href}>Open lesson <Icon name="arrowRight" size={13} /></Link>
   );
+  const action = combatMissionId ? (
+    <div className="amazon-practice-links">
+      <Link className="amazon-practice-link" to={`/arena/coding-lab?mission=${combatMissionId}`}>
+        Solve in Java <Icon name="code" size={13} />
+      </Link>
+      {isExternalPrepHref(question.href) ? (
+        <a className="amazon-reference-link" href={question.href} target="_blank" rel="noreferrer">Original statement</a>
+      ) : null}
+    </div>
+  ) : originalAction;
 
   return (
     <article id={`prep-${question.id}`} className={`amazon-question-card track-${question.track} status-${status}`}>
