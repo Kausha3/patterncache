@@ -1,5 +1,28 @@
 import type { LLDLesson } from "@/types";
 
+// Compilable domain model shared by this lesson's runnable Java exercises.
+// Each string is a complete file; the exercise runner writes them next to
+// the learner's class and compiles everything together in the browser.
+
+const MONEY_JAVA = `public class Money {
+    private final int cents;
+
+    public Money(int cents) {
+        this.cents = cents;
+    }
+
+    public int getCents() { return cents; }
+    public boolean isLessThan(Money other) { return cents < other.cents; }
+    public Money subtract(Money other) { return new Money(cents - other.cents); }
+    public Money add(Money other) { return new Money(cents + other.cents); }
+}
+`;
+
+const STATE_NAME_JAVA = `public enum StateName {
+    IDLE, SELECTING, DISPENSING, REFUNDING;
+}
+`;
+
 export const vendingMachine: LLDLesson = {
   id: "vending-machine",
   track: "lld",
@@ -183,6 +206,111 @@ export const vendingMachine: LLDLesson = {
             "Doesn't mutate amountInserted as a side effect, since computing change is separate from resetting the payment",
             "Bonus (L5+, not required here): if change can't be made in available denominations, that failure needs to surface here too",
           ],
+          java: {
+            editClassName: "Payment",
+            starterFile: `public class Payment {
+    private Money amountInserted;
+
+    public Payment() {
+        this.amountInserted = new Money(0);
+    }
+
+    public Money getAmountInserted() { return amountInserted; }
+
+    public void insertMoney(Money amount) {
+        this.amountInserted = amountInserted.add(amount);
+    }
+
+    public Money computeChange(Money price) {
+        // Compare what was inserted against the price, then return the difference.
+        // Underpayment must fail loudly, and computing change must not reset the total.
+        return null;
+    }
+}
+`,
+            referenceFile: `public class Payment {
+    private Money amountInserted;
+
+    public Payment() {
+        this.amountInserted = new Money(0);
+    }
+
+    public Money getAmountInserted() { return amountInserted; }
+
+    public void insertMoney(Money amount) {
+        this.amountInserted = amountInserted.add(amount);
+    }
+
+    public Money computeChange(Money price) {
+        if (amountInserted.isLessThan(price)) {
+            throw new IllegalStateException("Insufficient payment");
+        }
+        return amountInserted.subtract(price);
+    }
+}
+`,
+            support: [{ className: "Money", source: MONEY_JAVA }],
+            tests: [
+              {
+                id: "exact-payment-zero-change",
+                label: "paying the exact price yields zero change",
+                body: `Payment payment = new Payment();
+payment.insertMoney(new Money(150));
+Money change = payment.computeChange(new Money(150));
+expectedText = "0 cents change";
+actualText = change == null ? "null instead of a Money" : change.getCents() + " cents change";
+passed = change != null && change.getCents() == 0;`,
+              },
+              {
+                id: "overpay-gives-difference",
+                label: "inserting 200 cents for a 165-cent product returns 35 cents",
+                body: `Payment payment = new Payment();
+payment.insertMoney(new Money(200));
+Money change = payment.computeChange(new Money(165));
+expectedText = "35 cents change";
+actualText = change == null ? "null instead of a Money" : change.getCents() + " cents change";
+passed = change != null && change.getCents() == 35;`,
+              },
+              {
+                id: "insufficient-fails-loudly",
+                label: "underpayment fails loudly instead of returning negative change",
+                body: `Payment payment = new Payment();
+payment.insertMoney(new Money(100));
+expectedText = "IllegalStateException for underpayment";
+try {
+    Money change = payment.computeChange(new Money(150));
+    actualText = change == null ? "no exception, returned null" : "no exception, returned " + change.getCents() + " cents";
+    passed = false;
+} catch (IllegalStateException expectedFailure) {
+    actualText = "IllegalStateException for underpayment";
+    passed = true;
+}`,
+              },
+              {
+                id: "compute-keeps-total",
+                label: "computing change must not reset the inserted total",
+                body: `Payment payment = new Payment();
+payment.insertMoney(new Money(200));
+payment.computeChange(new Money(165));
+expectedText = "200 cents still recorded as inserted";
+int recorded = payment.getAmountInserted() == null ? -1 : payment.getAmountInserted().getCents();
+actualText = recorded == 200 ? "200 cents still recorded as inserted" : recorded + " cents recorded as inserted";
+passed = recorded == 200;`,
+              },
+              {
+                id: "accumulated-inserts",
+                label: "change is computed from the whole accumulated total, coin by coin",
+                body: `Payment payment = new Payment();
+payment.insertMoney(new Money(100));
+payment.insertMoney(new Money(25));
+payment.insertMoney(new Money(25));
+Money change = payment.computeChange(new Money(125));
+expectedText = "25 cents change from 150 inserted across three coins";
+actualText = change == null ? "null instead of a Money" : (change.getCents() == 25 ? "25 cents change from 150 inserted across three coins" : change.getCents() + " cents change");
+passed = change != null && change.getCents() == 25;`,
+              },
+            ],
+          },
         },
       },
       {
@@ -207,6 +335,130 @@ export const vendingMachine: LLDLesson = {
             "Fails loudly (exception) rather than silently ignoring an invalid transition request",
             "Bonus (L5+, not required here): needs to be atomic if selectSlot()/dispenseProduct() can be triggered concurrently, not just correct in isolation",
           ],
+          java: {
+            editClassName: "VendingMachineState",
+            starterFile: `public class VendingMachineState {
+    private StateName name;
+
+    public VendingMachineState(StateName name) {
+        this.name = name;
+    }
+
+    public StateName getName() { return name; }
+
+    public void transitionTo(StateName newState) {
+        // Check the move is legal from the current state before touching the field.
+        // An illegal transition must fail loudly, not be silently accepted.
+    }
+}
+`,
+            referenceFile: `public class VendingMachineState {
+    private StateName name;
+
+    public VendingMachineState(StateName name) {
+        this.name = name;
+    }
+
+    public StateName getName() { return name; }
+
+    public void transitionTo(StateName newState) {
+        boolean valid;
+        switch (name) {
+            case IDLE:
+                valid = newState == StateName.SELECTING;
+                break;
+            case SELECTING:
+                valid = newState == StateName.DISPENSING || newState == StateName.IDLE;
+                break;
+            case DISPENSING:
+                valid = newState == StateName.IDLE || newState == StateName.REFUNDING;
+                break;
+            case REFUNDING:
+                valid = newState == StateName.IDLE;
+                break;
+            default:
+                valid = false;
+                break;
+        }
+        if (!valid) {
+            throw new IllegalStateException("Cannot transition from " + name + " to " + newState);
+        }
+        this.name = newState;
+    }
+}
+`,
+            support: [{ className: "StateName", source: STATE_NAME_JAVA }],
+            tests: [
+              {
+                id: "idle-to-selecting",
+                label: "a legal transition actually updates the state",
+                body: `VendingMachineState state = new VendingMachineState(StateName.IDLE);
+state.transitionTo(StateName.SELECTING);
+expectedText = "SELECTING after a legal transition";
+actualText = state.getName() == StateName.SELECTING ? "SELECTING after a legal transition" : "state is still " + state.getName();
+passed = state.getName() == StateName.SELECTING;`,
+              },
+              {
+                id: "dispensing-blocks-reselect",
+                label: "a new selection mid-dispense fails loudly instead of being accepted",
+                body: `VendingMachineState state = new VendingMachineState(StateName.DISPENSING);
+expectedText = "IllegalStateException for DISPENSING to SELECTING";
+try {
+    state.transitionTo(StateName.SELECTING);
+    actualText = "no exception, the illegal jump was accepted";
+    passed = false;
+} catch (IllegalStateException expectedFailure) {
+    actualText = "IllegalStateException for DISPENSING to SELECTING";
+    passed = true;
+}`,
+              },
+              {
+                id: "rejected-keeps-state",
+                label: "a rejected transition leaves the current state untouched",
+                body: `VendingMachineState state = new VendingMachineState(StateName.DISPENSING);
+try {
+    state.transitionTo(StateName.SELECTING);
+} catch (IllegalStateException expectedFailure) {
+    // The guard fired; the current state must be untouched.
+}
+expectedText = "still DISPENSING after the rejected request";
+actualText = state.getName() == StateName.DISPENSING ? "still DISPENSING after the rejected request" : "state changed to " + state.getName();
+passed = state.getName() == StateName.DISPENSING;`,
+              },
+              {
+                id: "cancel-returns-to-idle",
+                label: "cancelling mid-selection goes back to idle",
+                body: `VendingMachineState state = new VendingMachineState(StateName.SELECTING);
+state.transitionTo(StateName.IDLE);
+expectedText = "IDLE after the customer cancels mid-selection";
+actualText = state.getName() == StateName.IDLE ? "IDLE after the customer cancels mid-selection" : "state is still " + state.getName();
+passed = state.getName() == StateName.IDLE;`,
+              },
+              {
+                id: "jam-goes-to-refunding",
+                label: "a failed dispense can move to the refunding state",
+                body: `VendingMachineState state = new VendingMachineState(StateName.DISPENSING);
+state.transitionTo(StateName.REFUNDING);
+expectedText = "REFUNDING after a failed dispense";
+actualText = state.getName() == StateName.REFUNDING ? "REFUNDING after a failed dispense" : "state is still " + state.getName();
+passed = state.getName() == StateName.REFUNDING;`,
+              },
+              {
+                id: "cannot-skip-selecting",
+                label: "the machine cannot jump from idle straight to dispensing",
+                body: `VendingMachineState state = new VendingMachineState(StateName.IDLE);
+expectedText = "IllegalStateException for IDLE straight to DISPENSING";
+try {
+    state.transitionTo(StateName.DISPENSING);
+    actualText = "no exception, the machine skipped selection";
+    passed = false;
+} catch (IllegalStateException expectedFailure) {
+    actualText = "IllegalStateException for IDLE straight to DISPENSING";
+    passed = true;
+}`,
+              },
+            ],
+          },
         },
       },
     ],

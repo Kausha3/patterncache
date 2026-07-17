@@ -1,5 +1,173 @@
 import type { LLDLesson } from "@/types";
 
+// Compilable domain model shared by this lesson's runnable Java exercises.
+// Each string is a complete file; the exercise runner writes them next to
+// the learner's class and compiles everything together in the browser.
+// The model is deliberately small: only the piece types the exercises place
+// (king, rook, knight, pawn), because that is all the references need.
+
+const COLOR_JAVA = `public enum Color {
+    WHITE, BLACK;
+}
+`;
+
+const PIECE_TYPE_JAVA = `public enum PieceType {
+    KING, ROOK, KNIGHT, PAWN;
+}
+`;
+
+const MOVE_JAVA = `public class Move {
+    private final String fromSquare;
+    private final String toSquare;
+
+    public Move(String fromSquare, String toSquare) {
+        this.fromSquare = fromSquare;
+        this.toSquare = toSquare;
+    }
+
+    public String getFromSquare() { return fromSquare; }
+    public String getToSquare() { return toSquare; }
+}
+`;
+
+const PIECE_JAVA = `import java.util.ArrayList;
+import java.util.List;
+
+public class Piece {
+    private final PieceType type;
+    private final Color color;
+    private final String square;
+
+    public Piece(PieceType type, Color color, String square) {
+        this.type = type;
+        this.color = color;
+        this.square = square;
+    }
+
+    public PieceType getType() { return type; }
+    public Color getColor() { return color; }
+    public String getSquare() { return square; }
+
+    // Raw movement pattern for the piece types this lesson's exercises place:
+    // king, rook, knight, and pawn. Sliding stops at the first occupied square.
+    public List<Move> getLegalMoves(Board board) {
+        List<Move> moves = new ArrayList<Move>();
+        int file = square.charAt(0) - 'a';
+        int rank = square.charAt(1) - '1';
+        if (type == PieceType.ROOK) {
+            int[][] directions = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+            for (int[] direction : directions) {
+                int f = file + direction[0];
+                int r = rank + direction[1];
+                while (onBoard(f, r)) {
+                    Piece occupant = board.getPieceAt(squareName(f, r));
+                    if (occupant == null) {
+                        moves.add(new Move(square, squareName(f, r)));
+                    } else {
+                        if (occupant.getColor() != color) {
+                            moves.add(new Move(square, squareName(f, r)));
+                        }
+                        break;
+                    }
+                    f = f + direction[0];
+                    r = r + direction[1];
+                }
+            }
+        } else if (type == PieceType.KNIGHT) {
+            int[][] jumps = { { 1, 2 }, { 2, 1 }, { 2, -1 }, { 1, -2 }, { -1, -2 }, { -2, -1 }, { -2, 1 }, { -1, 2 } };
+            for (int[] jump : jumps) {
+                addIfLandable(moves, board, file + jump[0], rank + jump[1]);
+            }
+        } else if (type == PieceType.KING) {
+            for (int df = -1; df <= 1; df = df + 1) {
+                for (int dr = -1; dr <= 1; dr = dr + 1) {
+                    if (df != 0 || dr != 0) {
+                        addIfLandable(moves, board, file + df, rank + dr);
+                    }
+                }
+            }
+        } else if (type == PieceType.PAWN) {
+            int forward = (color == Color.WHITE) ? 1 : -1;
+            if (onBoard(file, rank + forward) && board.getPieceAt(squareName(file, rank + forward)) == null) {
+                moves.add(new Move(square, squareName(file, rank + forward)));
+            }
+            int[] captureFiles = { file - 1, file + 1 };
+            for (int captureFile : captureFiles) {
+                if (onBoard(captureFile, rank + forward)) {
+                    Piece occupant = board.getPieceAt(squareName(captureFile, rank + forward));
+                    if (occupant != null && occupant.getColor() != color) {
+                        moves.add(new Move(square, squareName(captureFile, rank + forward)));
+                    }
+                }
+            }
+        }
+        return moves;
+    }
+
+    private void addIfLandable(List<Move> moves, Board board, int f, int r) {
+        if (!onBoard(f, r)) {
+            return;
+        }
+        Piece occupant = board.getPieceAt(squareName(f, r));
+        if (occupant == null || occupant.getColor() != color) {
+            moves.add(new Move(square, squareName(f, r)));
+        }
+    }
+
+    private boolean onBoard(int f, int r) {
+        return f >= 0 && f < 8 && r >= 0 && r < 8;
+    }
+
+    private String squareName(int f, int r) {
+        return "" + (char) ('a' + f) + (char) ('1' + r);
+    }
+}
+`;
+
+// Fully implemented Board. Doubles as the reference file for the
+// isSquareUnderAttack exercise and as a support class for isCheck, where the
+// board is not the class under edit. placePiece exists so tests can set up
+// positions in one readable line per piece.
+const BOARD_JAVA = `import java.util.HashMap;
+import java.util.Map;
+
+public class Board {
+    private final Map<String, Piece> grid = new HashMap<String, Piece>();
+
+    public Piece getPieceAt(String square) {
+        return grid.get(square);
+    }
+
+    public void placePiece(String square, PieceType type, Color color) {
+        grid.put(square, new Piece(type, color, square));
+    }
+
+    public String findKingSquare(Color color) {
+        for (Map.Entry<String, Piece> entry : grid.entrySet()) {
+            Piece piece = entry.getValue();
+            if (piece.getType() == PieceType.KING && piece.getColor() == color) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    public boolean isSquareUnderAttack(String square, Color attackerColor) {
+        for (Piece piece : grid.values()) {
+            if (piece.getColor() != attackerColor) {
+                continue;
+            }
+            boolean canReach = piece.getLegalMoves(this).stream()
+                .anyMatch(move -> move.getToSquare().equals(square));
+            if (canReach) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+`;
+
 export const chessGame: LLDLesson = {
   id: "chess-game",
   track: "lld",
@@ -154,6 +322,125 @@ export const chessGame: LLDLesson = {
             "Returns true as soon as any piece can reach the square, without needlessly scanning the rest",
             "Works even when the target square is empty. Attack detection can't require a piece to already be standing there (needed for castling's 'king's path must not pass through check' rule)",
           ],
+          java: {
+            editClassName: "Board",
+            starterFile: `import java.util.HashMap;
+import java.util.Map;
+
+public class Board {
+    private final Map<String, Piece> grid = new HashMap<String, Piece>();
+
+    public Piece getPieceAt(String square) {
+        return grid.get(square);
+    }
+
+    public void placePiece(String square, PieceType type, Color color) {
+        grid.put(square, new Piece(type, color, square));
+    }
+
+    public String findKingSquare(Color color) {
+        for (Map.Entry<String, Piece> entry : grid.entrySet()) {
+            Piece piece = entry.getValue();
+            if (piece.getType() == PieceType.KING && piece.getColor() == color) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    public boolean isSquareUnderAttack(String square, Color attackerColor) {
+        // Scan every piece of the attacking color and ask whether any of its
+        // legal moves lands on this square. Return false when none can reach it.
+        return false;
+    }
+}
+`,
+            referenceFile: BOARD_JAVA,
+            support: [
+              { className: "Color", source: COLOR_JAVA },
+              { className: "PieceType", source: PIECE_TYPE_JAVA },
+              { className: "Move", source: MOVE_JAVA },
+              { className: "Piece", source: PIECE_JAVA },
+            ],
+            tests: [
+              {
+                id: "rook-open-file",
+                label: "a rook attacks an empty square down an open file",
+                body: `Board board = new Board();
+board.placePiece("e1", PieceType.ROOK, Color.WHITE);
+boolean attacked = board.isSquareUnderAttack("e4", Color.WHITE);
+expectedText = "e4 attacked by the rook on e1";
+actualText = attacked ? "e4 attacked by the rook on e1" : "e4 reported as safe";
+passed = attacked;`,
+              },
+              {
+                id: "rook-blocked-by-pawn",
+                label: "an intervening pawn blocks the rook's line of attack",
+                body: `Board board = new Board();
+board.placePiece("e1", PieceType.ROOK, Color.WHITE);
+board.placePiece("e2", PieceType.PAWN, Color.WHITE);
+boolean attacked = board.isSquareUnderAttack("e4", Color.WHITE);
+expectedText = "e4 safe, the pawn on e2 blocks the rook on e1";
+actualText = attacked ? "e4 reported as attacked through the blocker" : "e4 safe, the pawn on e2 blocks the rook on e1";
+passed = !attacked;`,
+              },
+              {
+                id: "knight-jumps-blockers",
+                label: "a knight boxed in by its own pawns still attacks over them",
+                body: `Board board = new Board();
+board.placePiece("g1", PieceType.KNIGHT, Color.WHITE);
+board.placePiece("f2", PieceType.PAWN, Color.WHITE);
+board.placePiece("g2", PieceType.PAWN, Color.WHITE);
+board.placePiece("h2", PieceType.PAWN, Color.WHITE);
+boolean attacked = board.isSquareUnderAttack("e2", Color.WHITE);
+expectedText = "e2 attacked by the knight on g1, jumping the pawns";
+actualText = attacked ? "e2 attacked by the knight on g1, jumping the pawns" : "e2 reported as safe";
+passed = attacked;`,
+              },
+              {
+                id: "attacker-color-only",
+                label: "only pieces of the attacking color count",
+                body: `Board board = new Board();
+board.placePiece("e1", PieceType.ROOK, Color.WHITE);
+boolean attacked = board.isSquareUnderAttack("e4", Color.BLACK);
+expectedText = "e4 not attacked by black, only a white rook is on the board";
+actualText = attacked ? "the white rook was counted as a black attacker" : "e4 not attacked by black, only a white rook is on the board";
+passed = !attacked;`,
+              },
+              {
+                id: "own-piece-not-attacked",
+                label: "a square holding a friendly piece is defended, not attacked",
+                body: `Board board = new Board();
+board.placePiece("e1", PieceType.ROOK, Color.WHITE);
+board.placePiece("e4", PieceType.KNIGHT, Color.WHITE);
+boolean attacked = board.isSquareUnderAttack("e4", Color.WHITE);
+expectedText = "e4 not attacked, the rook cannot land on its own knight";
+actualText = attacked ? "e4 reported as attacked by its own side" : "e4 not attacked, the rook cannot land on its own knight";
+passed = !attacked;`,
+              },
+              {
+                id: "pawn-attacks-forward-only",
+                label: "a pawn attacks diagonally forward, never backward",
+                body: `Board forward = new Board();
+forward.placePiece("e5", PieceType.PAWN, Color.BLACK);
+forward.placePiece("d4", PieceType.KNIGHT, Color.WHITE);
+boolean blackPawnHits = forward.isSquareUnderAttack("d4", Color.BLACK);
+Board backward = new Board();
+backward.placePiece("e5", PieceType.PAWN, Color.WHITE);
+backward.placePiece("d4", PieceType.KNIGHT, Color.BLACK);
+boolean whitePawnHits = backward.isSquareUnderAttack("d4", Color.WHITE);
+expectedText = "black pawn on e5 attacks d4, white pawn on e5 does not";
+if (blackPawnHits && !whitePawnHits) {
+    actualText = "black pawn on e5 attacks d4, white pawn on e5 does not";
+} else if (!blackPawnHits) {
+    actualText = "black pawn on e5 was not counted as attacking d4";
+} else {
+    actualText = "white pawn on e5 was counted as attacking d4 behind it";
+}
+passed = blackPawnHits && !whitePawnHits;`,
+              },
+            ],
+          },
         },
       },
       {
@@ -190,6 +477,144 @@ export const chessGame: LLDLesson = {
             "Reuses isSquareUnderAttack() rather than re-scanning pieces itself, since check is a special case of the same board-wide attack question",
             "Handles a missing/not-found king square defensively instead of crashing on a null lookup",
           ],
+          java: {
+            editClassName: "Game",
+            starterFile: `public class Game {
+    private final Board board;
+
+    public Game(Board board) {
+        this.board = board;
+    }
+
+    public boolean isCheck(Color color) {
+        // Find this color's king (findKingSquare is a small Board helper), then
+        // ask the board whether the OPPONENT's color attacks that square.
+        return false;
+    }
+}
+`,
+            referenceFile: `public class Game {
+    private final Board board;
+
+    public Game(Board board) {
+        this.board = board;
+    }
+
+    public boolean isCheck(Color color) {
+        // findKingSquare is a small Board helper that scans the grid for this color's King
+        String kingSquare = board.findKingSquare(color);
+        if (kingSquare == null) {
+            return false;
+        }
+        Color attackerColor = (color == Color.WHITE) ? Color.BLACK : Color.WHITE;
+        return board.isSquareUnderAttack(kingSquare, attackerColor);
+    }
+}
+`,
+            support: [
+              { className: "Color", source: COLOR_JAVA },
+              { className: "PieceType", source: PIECE_TYPE_JAVA },
+              { className: "Move", source: MOVE_JAVA },
+              { className: "Piece", source: PIECE_JAVA },
+              { className: "Board", source: BOARD_JAVA },
+            ],
+            tests: [
+              {
+                id: "rook-checks-king",
+                label: "a rook on an open file puts the enemy king in check",
+                body: `Board board = new Board();
+board.placePiece("e8", PieceType.KING, Color.BLACK);
+board.placePiece("e1", PieceType.ROOK, Color.WHITE);
+Game game = new Game(board);
+boolean check = game.isCheck(Color.BLACK);
+expectedText = "black in check, the rook on e1 sees the king on e8";
+actualText = check ? "black in check, the rook on e1 sees the king on e8" : "no check reported for black";
+passed = check;`,
+              },
+              {
+                id: "blocker-stops-check",
+                label: "a pawn shielding the king means no check",
+                body: `Board board = new Board();
+board.placePiece("e8", PieceType.KING, Color.BLACK);
+board.placePiece("e5", PieceType.PAWN, Color.BLACK);
+board.placePiece("e1", PieceType.ROOK, Color.WHITE);
+Game game = new Game(board);
+boolean check = game.isCheck(Color.BLACK);
+expectedText = "no check, the pawn on e5 blocks the rook on e1";
+actualText = check ? "check reported through the blocking pawn" : "no check, the pawn on e5 blocks the rook on e1";
+passed = !check;`,
+              },
+              {
+                id: "knight-check-over-pawns",
+                label: "a knight checks the king over the pawns in front of it",
+                body: `Board board = new Board();
+board.placePiece("g1", PieceType.KING, Color.WHITE);
+board.placePiece("f2", PieceType.PAWN, Color.WHITE);
+board.placePiece("g2", PieceType.PAWN, Color.WHITE);
+board.placePiece("h2", PieceType.PAWN, Color.WHITE);
+board.placePiece("f3", PieceType.KNIGHT, Color.BLACK);
+Game game = new Game(board);
+boolean check = game.isCheck(Color.WHITE);
+expectedText = "white in check, the knight on f3 jumps the pawn shield";
+actualText = check ? "white in check, the knight on f3 jumps the pawn shield" : "no check reported for white";
+passed = check;`,
+              },
+              {
+                id: "pawn-check-direction",
+                label: "a pawn only checks the king it is facing",
+                body: `Board board = new Board();
+board.placePiece("e5", PieceType.KING, Color.BLACK);
+board.placePiece("d4", PieceType.PAWN, Color.WHITE);
+Game game = new Game(board);
+boolean check = game.isCheck(Color.BLACK);
+Board reversed = new Board();
+reversed.placePiece("e5", PieceType.KING, Color.WHITE);
+reversed.placePiece("d4", PieceType.PAWN, Color.BLACK);
+Game second = new Game(reversed);
+boolean wrongWay = second.isCheck(Color.WHITE);
+expectedText = "white pawn on d4 checks the king on e5, black pawn on d4 does not";
+if (check && !wrongWay) {
+    actualText = "white pawn on d4 checks the king on e5, black pawn on d4 does not";
+} else if (!check) {
+    actualText = "the white pawn's check on e5 was missed";
+} else {
+    actualText = "a black pawn on d4 was counted as checking the king behind it";
+}
+passed = check && !wrongWay;`,
+              },
+              {
+                id: "no-check-quiet-board",
+                label: "a quiet position reports no check for either side",
+                body: `Board board = new Board();
+board.placePiece("e1", PieceType.KING, Color.WHITE);
+board.placePiece("e8", PieceType.KING, Color.BLACK);
+board.placePiece("a8", PieceType.ROOK, Color.BLACK);
+Game game = new Game(board);
+boolean whiteCheck = game.isCheck(Color.WHITE);
+boolean blackCheck = game.isCheck(Color.BLACK);
+expectedText = "no check for white or black";
+if (!whiteCheck && !blackCheck) {
+    actualText = "no check for white or black";
+} else if (whiteCheck) {
+    actualText = "white reported in check by a rook that never sees e1";
+} else {
+    actualText = "black reported in check with no attacker on the board";
+}
+passed = !whiteCheck && !blackCheck;`,
+              },
+              {
+                id: "missing-king-no-crash",
+                label: "a board with no king for that color returns false, not a crash",
+                body: `Board board = new Board();
+board.placePiece("a8", PieceType.ROOK, Color.BLACK);
+Game game = new Game(board);
+boolean check = game.isCheck(Color.WHITE);
+expectedText = "false, there is no white king on the board";
+actualText = check ? "check reported with no king present" : "false, there is no white king on the board";
+passed = !check;`,
+              },
+            ],
+          },
         },
       },
       {

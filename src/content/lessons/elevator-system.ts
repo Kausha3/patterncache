@@ -1,5 +1,59 @@
 import type { LLDLesson } from "@/types";
 
+// Compilable domain model shared by this lesson's runnable Java exercises.
+// Each string is a complete file; the exercise runner writes them next to
+// the learner's class and compiles everything together in the browser.
+
+const DIRECTION_JAVA = `public enum Direction {
+    UP, DOWN;
+}
+`;
+
+const REQUEST_JAVA = `public class Request {
+    private final String id;
+    private final int floor;
+    private final Direction direction;
+
+    public Request(String id, int floor, Direction direction) {
+        this.id = id;
+        this.floor = floor;
+        this.direction = direction;
+    }
+
+    public String getId() { return id; }
+    public int getFloor() { return floor; }
+    public Direction getDirection() { return direction; }
+}
+`;
+
+// Support version of Elevator for the assignElevator exercise, where the
+// elevator itself is not the class under edit. addStop() exists so tests can
+// set up an already-busy car, and isAvailable() derives from the stops queue.
+const ELEVATOR_SUPPORT_JAVA = `import java.util.ArrayList;
+import java.util.List;
+
+public class Elevator {
+    private final String id;
+    private int currentFloor;
+    private Direction direction;
+    private final List<Integer> stops;
+
+    public Elevator(String id, int currentFloor, Direction direction) {
+        this.id = id;
+        this.currentFloor = currentFloor;
+        this.direction = direction;
+        this.stops = new ArrayList<Integer>();
+    }
+
+    public String getId() { return id; }
+    public int getCurrentFloor() { return currentFloor; }
+    public Direction getDirection() { return direction; }
+    public List<Integer> getStops() { return stops; }
+    public boolean isAvailable() { return stops.isEmpty(); }
+    public void addStop(int floor) { stops.add(floor); }
+}
+`;
+
 export const elevatorSystem: LLDLesson = {
   id: "elevator-system",
   track: "lld",
@@ -144,6 +198,125 @@ export const elevatorSystem: LLDLesson = {
             "Returns null (or otherwise signals no match) instead of crashing when every elevator is unavailable. enqueueRequest() is what retries later, per the all-busy edge case",
             "Bonus (L5+, not required here): factoring in each elevator's current direction, not just distance, for a smarter match",
           ],
+          java: {
+            editClassName: "Dispatcher",
+            starterFile: `import java.util.List;
+
+public class Dispatcher {
+    private final List<Elevator> elevators;
+
+    public Dispatcher(List<Elevator> elevators) {
+        this.elevators = elevators;
+    }
+
+    public Elevator assignElevator(Request request) {
+        // Scan the bank for the available elevator nearest the request's floor.
+        // Return null when every elevator is busy, so the request can be queued.
+        return null;
+    }
+}
+`,
+            referenceFile: `import java.util.List;
+
+public class Dispatcher {
+    private final List<Elevator> elevators;
+
+    public Dispatcher(List<Elevator> elevators) {
+        this.elevators = elevators;
+    }
+
+    public Elevator assignElevator(Request request) {
+        Elevator best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (Elevator elevator : elevators) {
+            if (!elevator.isAvailable()) {
+                continue;
+            }
+            int distance = Math.abs(elevator.getCurrentFloor() - request.getFloor());
+            if (distance < bestDistance) {
+                best = elevator;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+}
+`,
+            support: [
+              { className: "Direction", source: DIRECTION_JAVA },
+              { className: "Request", source: REQUEST_JAVA },
+              { className: "Elevator", source: ELEVATOR_SUPPORT_JAVA },
+            ],
+            tests: [
+              {
+                id: "nearest-idle-wins",
+                label: "picks the nearest idle elevator, not just the first in the bank",
+                body: `Elevator a = new Elevator("A", 0, Direction.UP);
+Elevator b = new Elevator("B", 5, Direction.UP);
+Elevator c = new Elevator("C", 9, Direction.UP);
+Dispatcher dispatcher = new Dispatcher(java.util.Arrays.asList(a, b, c));
+Elevator picked = dispatcher.assignElevator(new Request("r1", 6, Direction.UP));
+expectedText = "elevator B, one floor from the call";
+actualText = picked == null ? "no elevator assigned" : "elevator " + picked.getId();
+passed = picked == b;`,
+              },
+              {
+                id: "skips-busy-elevator",
+                label: "never assigns a car that is already busy with other stops",
+                body: `Elevator busy = new Elevator("A", 5, Direction.UP);
+busy.addStop(9);
+Elevator idle = new Elevator("B", 1, Direction.UP);
+Dispatcher dispatcher = new Dispatcher(java.util.Arrays.asList(busy, idle));
+Elevator picked = dispatcher.assignElevator(new Request("r2", 5, Direction.UP));
+expectedText = "elevator B, the only idle car";
+actualText = picked == null ? "no elevator assigned" : "elevator " + picked.getId();
+passed = picked == idle;`,
+              },
+              {
+                id: "distance-tie-first-wins",
+                label: "a distance tie keeps the earlier elevator in the bank",
+                body: `Elevator a = new Elevator("A", 2, Direction.UP);
+Elevator b = new Elevator("B", 8, Direction.DOWN);
+Dispatcher dispatcher = new Dispatcher(java.util.Arrays.asList(a, b));
+Elevator picked = dispatcher.assignElevator(new Request("r3", 5, Direction.UP));
+expectedText = "elevator A, first of the two equally distant cars";
+actualText = picked == null ? "no elevator assigned" : "elevator " + picked.getId();
+passed = picked == a;`,
+              },
+              {
+                id: "all-busy-returns-null",
+                label: "returns null instead of crashing when every elevator is busy",
+                body: `Elevator a = new Elevator("A", 2, Direction.UP);
+a.addStop(4);
+Elevator b = new Elevator("B", 7, Direction.DOWN);
+b.addStop(1);
+Dispatcher dispatcher = new Dispatcher(java.util.Arrays.asList(a, b));
+Elevator picked = dispatcher.assignElevator(new Request("r4", 3, Direction.UP));
+expectedText = "null, so the request can be queued and retried";
+actualText = picked == null ? "null, so the request can be queued and retried" : "elevator " + picked.getId();
+passed = picked == null;`,
+              },
+              {
+                id: "empty-bank-returns-null",
+                label: "an empty elevator bank returns null instead of crashing",
+                body: `Dispatcher dispatcher = new Dispatcher(java.util.Collections.<Elevator>emptyList());
+Elevator picked = dispatcher.assignElevator(new Request("r5", 3, Direction.UP));
+expectedText = "null";
+actualText = picked == null ? "null" : "elevator " + picked.getId();
+passed = picked == null;`,
+              },
+              {
+                id: "assign-does-not-add-stop",
+                label: "assigning must not push the stop onto the elevator yet",
+                body: `Elevator a = new Elevator("A", 3, Direction.UP);
+Dispatcher dispatcher = new Dispatcher(java.util.Arrays.asList(a));
+dispatcher.assignElevator(new Request("r6", 7, Direction.UP));
+expectedText = "elevator A still has an empty stops queue";
+actualText = a.getStops().isEmpty() ? "elevator A still has an empty stops queue" : "assignElevator pushed a stop onto elevator A";
+passed = a.getStops().isEmpty();`,
+              },
+            ],
+          },
         },
       },
       {
@@ -168,6 +341,153 @@ export const elevatorSystem: LLDLesson = {
             "Removes a stop from the queue once it's been served, so the elevator doesn't stop at the same floor twice",
             "Handles an empty stops list without crashing, since there's nothing to move toward",
           ],
+          java: {
+            editClassName: "Elevator",
+            starterFile: `import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Elevator {
+    private final String id;
+    private int currentFloor;
+    private Direction direction;
+    private final List<Integer> stops;
+
+    public Elevator(String id, int currentFloor, Direction direction) {
+        this.id = id;
+        this.currentFloor = currentFloor;
+        this.direction = direction;
+        this.stops = new ArrayList<Integer>();
+    }
+
+    public String getId() { return id; }
+    public int getCurrentFloor() { return currentFloor; }
+    public Direction getDirection() { return direction; }
+    public List<Integer> getStops() { return stops; }
+    public boolean isAvailable() { return stops.isEmpty(); }
+    public void addStop(int floor) { stops.add(floor); }
+
+    public void moveToNextStop() {
+        // Move to the nearest stop ahead in the current direction and remove it.
+        // Reverse only when nothing is ahead; an empty queue means stay put.
+    }
+}
+`,
+            referenceFile: `import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Elevator {
+    private final String id;
+    private int currentFloor;
+    private Direction direction;
+    private final List<Integer> stops;
+
+    public Elevator(String id, int currentFloor, Direction direction) {
+        this.id = id;
+        this.currentFloor = currentFloor;
+        this.direction = direction;
+        this.stops = new ArrayList<Integer>();
+    }
+
+    public String getId() { return id; }
+    public int getCurrentFloor() { return currentFloor; }
+    public Direction getDirection() { return direction; }
+    public List<Integer> getStops() { return stops; }
+    public boolean isAvailable() { return stops.isEmpty(); }
+    public void addStop(int floor) { stops.add(floor); }
+
+    public void moveToNextStop() {
+        List<Integer> ahead = new ArrayList<Integer>();
+        for (int floor : stops) {
+            boolean isAhead = direction == Direction.UP ? floor > currentFloor : floor < currentFloor;
+            if (isAhead) ahead.add(floor);
+        }
+        if (ahead.isEmpty() && !stops.isEmpty()) {
+            direction = direction == Direction.UP ? Direction.DOWN : Direction.UP;
+            moveToNextStop();
+            return;
+        }
+        if (!ahead.isEmpty()) {
+            int next = direction == Direction.UP ? Collections.min(ahead) : Collections.max(ahead);
+            currentFloor = next;
+            stops.remove(Integer.valueOf(next));
+        }
+    }
+}
+`,
+            support: [{ className: "Direction", source: DIRECTION_JAVA }],
+            tests: [
+              {
+                id: "serves-nearest-stop-ahead",
+                label: "moves to the nearest stop ahead, not the farthest or the first added",
+                body: `Elevator lift = new Elevator("A", 3, Direction.UP);
+lift.addStop(7);
+lift.addStop(5);
+lift.moveToNextStop();
+expectedText = "at floor 5, the nearest stop ahead";
+actualText = "at floor " + lift.getCurrentFloor();
+passed = lift.getCurrentFloor() == 5;`,
+              },
+              {
+                id: "removes-served-stop",
+                label: "removes a stop from the queue once it has been served",
+                body: `Elevator lift = new Elevator("A", 3, Direction.UP);
+lift.addStop(5);
+lift.addStop(7);
+lift.moveToNextStop();
+boolean servedGone = !lift.getStops().contains(5);
+boolean laterKept = lift.getStops().contains(7);
+expectedText = "floor 5 out of the queue, floor 7 still waiting";
+actualText = servedGone ? (laterKept ? "floor 5 out of the queue, floor 7 still waiting" : "floor 7 vanished without being served") : "floor 5 still sitting in the queue";
+passed = servedGone && laterKept;`,
+              },
+              {
+                id: "down-sweep-nearest",
+                label: "a downward elevator serves the nearest stop below first",
+                body: `Elevator lift = new Elevator("B", 8, Direction.DOWN);
+lift.addStop(2);
+lift.addStop(6);
+lift.moveToNextStop();
+expectedText = "at floor 6, the nearest stop below";
+actualText = "at floor " + lift.getCurrentFloor();
+passed = lift.getCurrentFloor() == 6;`,
+              },
+              {
+                id: "flips-after-sweep",
+                label: "reverses direction only after the current sweep has no stops ahead",
+                body: `Elevator lift = new Elevator("A", 4, Direction.UP);
+lift.addStop(6);
+lift.addStop(2);
+lift.moveToNextStop();
+int firstFloor = lift.getCurrentFloor();
+lift.moveToNextStop();
+int secondFloor = lift.getCurrentFloor();
+expectedText = "floor 6 first, then floor 2 heading DOWN";
+actualText = "floor " + firstFloor + " first, then floor " + secondFloor + " heading " + lift.getDirection();
+passed = firstFloor == 6 && secondFloor == 2 && lift.getDirection() == Direction.DOWN;`,
+              },
+              {
+                id: "goes-idle-after-last-stop",
+                label: "an elevator with no stops left reports itself available again",
+                body: `Elevator lift = new Elevator("C", 1, Direction.UP);
+lift.addStop(4);
+lift.moveToNextStop();
+expectedText = "at floor 4 with an empty queue, available again";
+actualText = "at floor " + lift.getCurrentFloor() + (lift.isAvailable() ? " with an empty queue, available again" : " still holding stops");
+passed = lift.getCurrentFloor() == 4 && lift.isAvailable();`,
+              },
+              {
+                id: "empty-queue-does-nothing",
+                label: "an empty stops queue leaves the elevator where it is, no crash",
+                body: `Elevator lift = new Elevator("B", 5, Direction.UP);
+lift.moveToNextStop();
+expectedText = "still parked at floor 5";
+actualText = lift.getCurrentFloor() == 5 ? "still parked at floor 5" : "moved to floor " + lift.getCurrentFloor();
+passed = lift.getCurrentFloor() == 5;`,
+              },
+            ],
+          },
         },
       },
       {

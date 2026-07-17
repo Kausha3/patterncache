@@ -1,5 +1,108 @@
 import type { LLDLesson } from "@/types";
 
+// Compilable domain model shared by this lesson's runnable Java exercises.
+// Each string is a complete file; the exercise runner writes them next to
+// the learner's class and compiles everything together in the browser.
+// Money is backed by int cents so discount math never touches raw doubles.
+
+const DISCOUNT_TYPE_JAVA = `public enum DiscountType {
+    PERCENTAGE, FIXED_AMOUNT;
+}
+`;
+
+const MONEY_JAVA = `public class Money {
+    private final int cents;
+
+    private Money(int cents) {
+        this.cents = cents;
+    }
+
+    public static Money ofCents(int cents) { return new Money(cents); }
+
+    public static Money of(double amount) { return new Money((int) Math.round(amount * 100.0)); }
+
+    public static Money min(Money a, Money b) { return a.cents <= b.cents ? a : b; }
+
+    public int getCents() { return cents; }
+
+    public Money multiply(double factor) { return new Money((int) Math.round(cents * factor)); }
+
+    public boolean isLessThan(Money other) { return cents < other.cents; }
+}
+`;
+
+const CART_ITEM_JAVA = `public class CartItem {
+    private final String name;
+    private final String category;
+    private final Money price;
+
+    public CartItem(String name, String category, Money price) {
+        this.name = name;
+        this.category = category;
+        this.price = price;
+    }
+
+    public String getName() { return name; }
+    public String getCategory() { return category; }
+    public Money getPrice() { return price; }
+}
+`;
+
+const CART_JAVA = `import java.util.ArrayList;
+import java.util.List;
+
+public class Cart {
+    private final String id;
+    private final List<CartItem> items;
+
+    public Cart(String id) {
+        this.id = id;
+        this.items = new ArrayList<CartItem>();
+    }
+
+    public String getId() { return id; }
+
+    public void addItem(CartItem item) { items.add(item); }
+
+    public Money getSubtotal() {
+        int totalCents = 0;
+        for (CartItem item : items) {
+            totalCents += item.getPrice().getCents();
+        }
+        return Money.ofCents(totalCents);
+    }
+
+    public boolean containsAnyCategory(List<String> categories) {
+        for (CartItem item : items) {
+            if (categories.contains(item.getCategory())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+`;
+
+// Support version of Customer for the isEligible exercise. recordRedemption()
+// exists so tests can seed a customer who has already used coupons.
+const CUSTOMER_JAVA = `import java.util.ArrayList;
+import java.util.List;
+
+public class Customer {
+    private final String id;
+    private final List<String> redeemedCouponIds;
+
+    public Customer(String id) {
+        this.id = id;
+        this.redeemedCouponIds = new ArrayList<String>();
+    }
+
+    public String getId() { return id; }
+    public List<String> getRedeemedCouponIds() { return redeemedCouponIds; }
+    public void recordRedemption(String couponId) { redeemedCouponIds.add(couponId); }
+}
+`;
+
 export const discountCouponSystem: LLDLesson = {
   id: "discount-coupon-system",
   track: "lld",
@@ -157,6 +260,122 @@ export const discountCouponSystem: LLDLesson = {
             "Doesn't silently return zero or null for an unrecognized discount type, and fails loudly instead",
             "Bonus (L5+, not required here): notes that currency rounding needs a defined rule, not raw floating-point math",
           ],
+          java: {
+            editClassName: "DiscountRule",
+            starterFile: `public class DiscountRule {
+    private final String id;
+    private final DiscountType type;
+    private final double value;
+
+    public DiscountRule(String id, DiscountType type, double value) {
+        this.id = id;
+        this.type = type;
+        this.value = value;
+    }
+
+    public String getId() { return id; }
+    public DiscountType getType() { return type; }
+    public double getValue() { return value; }
+
+    public Money apply(Cart cart) {
+        // Compute what this rule is worth against the cart's subtotal.
+        // PERCENTAGE treats value as a percent; FIXED_AMOUNT must never exceed the subtotal.
+        return null;
+    }
+}
+`,
+            referenceFile: `public class DiscountRule {
+    private final String id;
+    private final DiscountType type;
+    private final double value;
+
+    public DiscountRule(String id, DiscountType type, double value) {
+        this.id = id;
+        this.type = type;
+        this.value = value;
+    }
+
+    public String getId() { return id; }
+    public DiscountType getType() { return type; }
+    public double getValue() { return value; }
+
+    public Money apply(Cart cart) {
+        Money subtotal = cart.getSubtotal();
+        if (type == DiscountType.PERCENTAGE) {
+            return subtotal.multiply(value / 100.0);
+        }
+        if (type == DiscountType.FIXED_AMOUNT) {
+            return Money.min(subtotal, Money.of(value));
+        }
+        throw new IllegalStateException("Unknown discount type: " + type);
+    }
+}
+`,
+            support: [
+              { className: "DiscountType", source: DISCOUNT_TYPE_JAVA },
+              { className: "Money", source: MONEY_JAVA },
+              { className: "CartItem", source: CART_ITEM_JAVA },
+              { className: "Cart", source: CART_JAVA },
+            ],
+            tests: [
+              {
+                id: "twenty-percent-off",
+                label: "20 percent off a 5000-cent cart is 1000 cents off",
+                body: `Cart cart = new Cart("c1");
+cart.addItem(new CartItem("headphones", "electronics", Money.ofCents(5000)));
+DiscountRule rule = new DiscountRule("r1", DiscountType.PERCENTAGE, 20.0);
+Money discount = rule.apply(cart);
+expectedText = "1000 cents off";
+actualText = discount == null ? "null" : discount.getCents() + " cents off";
+passed = discount != null && discount.getCents() == 1000;`,
+              },
+              {
+                id: "percentage-uses-full-subtotal",
+                label: "a percentage rule discounts the whole subtotal, not just one item",
+                body: `Cart cart = new Cart("c2");
+cart.addItem(new CartItem("keyboard", "electronics", Money.ofCents(2000)));
+cart.addItem(new CartItem("novel", "books", Money.ofCents(3000)));
+DiscountRule rule = new DiscountRule("r2", DiscountType.PERCENTAGE, 10.0);
+Money discount = rule.apply(cart);
+expectedText = "500 cents off the 5000-cent subtotal";
+actualText = discount == null ? "null" : discount.getCents() + " cents off the 5000-cent subtotal";
+passed = discount != null && discount.getCents() == 500;`,
+              },
+              {
+                id: "fixed-amount-off",
+                label: "a 15 dollar fixed coupon takes 1500 cents off a bigger cart",
+                body: `Cart cart = new Cart("c3");
+cart.addItem(new CartItem("blender", "kitchen", Money.ofCents(6000)));
+DiscountRule rule = new DiscountRule("r3", DiscountType.FIXED_AMOUNT, 15.0);
+Money discount = rule.apply(cart);
+expectedText = "1500 cents off";
+actualText = discount == null ? "null" : discount.getCents() + " cents off";
+passed = discount != null && discount.getCents() == 1500;`,
+              },
+              {
+                id: "fixed-never-exceeds-subtotal",
+                label: "a 25 dollar coupon on a 10 dollar cart caps at the subtotal, never negative",
+                body: `Cart cart = new Cart("c4");
+cart.addItem(new CartItem("mug", "kitchen", Money.ofCents(1000)));
+DiscountRule rule = new DiscountRule("r4", DiscountType.FIXED_AMOUNT, 25.0);
+Money discount = rule.apply(cart);
+expectedText = "1000 cents off, capped at the subtotal";
+actualText = discount == null ? "null" : discount.getCents() + " cents off";
+passed = discount != null && discount.getCents() == 1000;`,
+              },
+              {
+                id: "fixed-covers-whole-cart",
+                label: "a fixed coupon exactly equal to the subtotal makes the cart free, not negative",
+                body: `Cart cart = new Cart("c5");
+cart.addItem(new CartItem("poster", "home", Money.ofCents(3000)));
+DiscountRule rule = new DiscountRule("r5", DiscountType.FIXED_AMOUNT, 30.0);
+Money discount = rule.apply(cart);
+expectedText = "3000 cents off, the whole cart";
+actualText = discount == null ? "null" : discount.getCents() + " cents off";
+passed = discount != null && discount.getCents() == 3000;`,
+              },
+            ],
+          },
         },
       },
       {
@@ -187,6 +406,146 @@ export const discountCouponSystem: LLDLesson = {
             "Compares the customer's redemption count against perCustomerLimit, not just checking if it's zero",
             "Returns false rather than throwing when a rule isn't met, since ineligibility isn't an error condition",
           ],
+          java: {
+            editClassName: "EligibilityPolicy",
+            starterFile: `import java.util.List;
+
+public class EligibilityPolicy {
+    private final String id;
+    private final Money minSpend;
+    private final List<String> allowedCategories;
+    private final int perCustomerLimit;
+
+    public EligibilityPolicy(String id, Money minSpend, List<String> allowedCategories, int perCustomerLimit) {
+        this.id = id;
+        this.minSpend = minSpend;
+        this.allowedCategories = allowedCategories;
+        this.perCustomerLimit = perCustomerLimit;
+    }
+
+    public String getId() { return id; }
+    public Money getMinSpend() { return minSpend; }
+    public List<String> getAllowedCategories() { return allowedCategories; }
+    public int getPerCustomerLimit() { return perCustomerLimit; }
+
+    public boolean isEligible(Cart cart, Customer customer) {
+        // Gate on min spend, category restriction, and the per-customer limit.
+        // An empty allowedCategories list means no category restriction at all.
+        return false;
+    }
+}
+`,
+            referenceFile: `import java.util.List;
+
+public class EligibilityPolicy {
+    private final String id;
+    private final Money minSpend;
+    private final List<String> allowedCategories;
+    private final int perCustomerLimit;
+
+    public EligibilityPolicy(String id, Money minSpend, List<String> allowedCategories, int perCustomerLimit) {
+        this.id = id;
+        this.minSpend = minSpend;
+        this.allowedCategories = allowedCategories;
+        this.perCustomerLimit = perCustomerLimit;
+    }
+
+    public String getId() { return id; }
+    public Money getMinSpend() { return minSpend; }
+    public List<String> getAllowedCategories() { return allowedCategories; }
+    public int getPerCustomerLimit() { return perCustomerLimit; }
+
+    public boolean isEligible(Cart cart, Customer customer) {
+        if (cart.getSubtotal().isLessThan(minSpend)) {
+            return false;
+        }
+        if (!allowedCategories.isEmpty() && !cart.containsAnyCategory(allowedCategories)) {
+            return false;
+        }
+        return customer.getRedeemedCouponIds().size() < perCustomerLimit;
+    }
+}
+`,
+            support: [
+              { className: "Money", source: MONEY_JAVA },
+              { className: "CartItem", source: CART_ITEM_JAVA },
+              { className: "Cart", source: CART_JAVA },
+              { className: "Customer", source: CUSTOMER_JAVA },
+            ],
+            tests: [
+              {
+                id: "exactly-at-min-spend",
+                label: "a cart exactly at the minimum spend qualifies",
+                body: `Cart cart = new Cart("c1");
+cart.addItem(new CartItem("headphones", "electronics", Money.ofCents(5000)));
+EligibilityPolicy policy = new EligibilityPolicy("p1", Money.ofCents(5000), java.util.Collections.<String>emptyList(), 1);
+boolean eligible = policy.isEligible(cart, new Customer("u1"));
+expectedText = "eligible, 5000 cents meets a 5000-cent minimum";
+actualText = eligible ? "eligible, 5000 cents meets a 5000-cent minimum" : "rejected at exactly the minimum";
+passed = eligible;`,
+              },
+              {
+                id: "just-below-min-spend",
+                label: "a cart one cent under the minimum spend is rejected",
+                body: `Cart cart = new Cart("c2");
+cart.addItem(new CartItem("headphones", "electronics", Money.ofCents(4999)));
+EligibilityPolicy policy = new EligibilityPolicy("p2", Money.ofCents(5000), java.util.Collections.<String>emptyList(), 1);
+boolean eligible = policy.isEligible(cart, new Customer("u2"));
+expectedText = "not eligible, 4999 cents is under the 5000-cent minimum";
+actualText = eligible ? "eligible despite missing the minimum" : "not eligible, 4999 cents is under the 5000-cent minimum";
+passed = !eligible;`,
+              },
+              {
+                id: "empty-categories-no-restriction",
+                label: "an empty category list restricts nothing",
+                body: `Cart cart = new Cart("c3");
+cart.addItem(new CartItem("mug", "kitchen", Money.ofCents(2000)));
+EligibilityPolicy policy = new EligibilityPolicy("p3", Money.ofCents(1000), java.util.Collections.<String>emptyList(), 1);
+boolean eligible = policy.isEligible(cart, new Customer("u3"));
+expectedText = "eligible, no category restriction applies";
+actualText = eligible ? "eligible, no category restriction applies" : "rejected even though no categories are restricted";
+passed = eligible;`,
+              },
+              {
+                id: "wrong-category-rejected",
+                label: "a books-only coupon rejects an electronics-only cart",
+                body: `Cart cart = new Cart("c4");
+cart.addItem(new CartItem("keyboard", "electronics", Money.ofCents(4000)));
+EligibilityPolicy policy = new EligibilityPolicy("p4", Money.ofCents(1000), java.util.Arrays.asList("books"), 1);
+boolean eligible = policy.isEligible(cart, new Customer("u4"));
+expectedText = "not eligible, nothing in the cart is a book";
+actualText = eligible ? "eligible despite the category restriction" : "not eligible, nothing in the cart is a book";
+passed = !eligible;`,
+              },
+              {
+                id: "limit-reached-rejected",
+                label: "a customer who already hit the per-customer limit is rejected",
+                body: `Cart cart = new Cart("c5");
+cart.addItem(new CartItem("novel", "books", Money.ofCents(3000)));
+Customer repeat = new Customer("u5");
+repeat.recordRedemption("coupon-a");
+repeat.recordRedemption("coupon-b");
+EligibilityPolicy policy = new EligibilityPolicy("p5", Money.ofCents(1000), java.util.Collections.<String>emptyList(), 2);
+boolean eligible = policy.isEligible(cart, repeat);
+expectedText = "not eligible, 2 redemptions already used of a limit of 2";
+actualText = eligible ? "eligible despite hitting the limit" : "not eligible, 2 redemptions already used of a limit of 2";
+passed = !eligible;`,
+              },
+              {
+                id: "under-limit-still-eligible",
+                label: "one prior redemption under a limit of two still qualifies",
+                body: `Cart cart = new Cart("c6");
+cart.addItem(new CartItem("novel", "books", Money.ofCents(3000)));
+Customer returning = new Customer("u6");
+returning.recordRedemption("coupon-a");
+EligibilityPolicy policy = new EligibilityPolicy("p6", Money.ofCents(1000), java.util.Collections.<String>emptyList(), 2);
+boolean eligible = policy.isEligible(cart, returning);
+expectedText = "eligible, 1 redemption used of a limit of 2";
+actualText = eligible ? "eligible, 1 redemption used of a limit of 2" : "rejected for having any history at all";
+passed = eligible;`,
+              },
+            ],
+          },
         },
       },
       {

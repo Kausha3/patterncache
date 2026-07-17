@@ -1,5 +1,101 @@
 import type { LLDLesson } from "@/types";
 
+// Compilable domain model shared by this lesson's runnable Java exercises.
+// Each string is a complete file; the exercise runner writes them next to
+// the learner's class and compiles everything together in the browser.
+
+const SIZE_JAVA = `public enum Size {
+    SMALL, MEDIUM, LARGE;
+
+    // A locker of this size can fit any package at most as big as itself.
+    // This is the mirror image of Parking Lot's vehicle-to-spot rule.
+    public boolean canFit(Size packageSize) {
+        return this.ordinal() >= packageSize.ordinal();
+    }
+}
+`;
+
+const PACKAGE_JAVA = `public class Package {
+    private final String id;
+    private final Size size;
+    private final String trackingId;
+
+    public Package(String id, Size size, String trackingId) {
+        this.id = id;
+        this.size = size;
+        this.trackingId = trackingId;
+    }
+
+    public String getId() { return id; }
+    public Size getSize() { return size; }
+    public String getTrackingId() { return trackingId; }
+}
+`;
+
+// Support version of Locker: it owns isOccupied and contents, so it is the
+// only class that flips them. assignPackage guards double assignment, the
+// same invariant ParkingSpot.assignVehicle protects in the Parking Lot lesson.
+const LOCKER_JAVA = `public class Locker {
+    private final String id;
+    private final Size size;
+    private boolean isOccupied;
+    private Package contents;
+
+    public Locker(String id, Size size) {
+        this.id = id;
+        this.size = size;
+    }
+
+    public String getId() { return id; }
+    public Size getSize() { return size; }
+    public boolean isOccupied() { return isOccupied; }
+    public Package getContents() { return contents; }
+
+    public void assignPackage(Package pkg) {
+        if (isOccupied) {
+            throw new IllegalStateException("Locker " + id + " is already occupied");
+        }
+        this.isOccupied = true;
+        this.contents = pkg;
+    }
+
+    public void release() {
+        this.isOccupied = false;
+        this.contents = null;
+    }
+}
+`;
+
+// Expiry is modeled as a flag the tests can flip via expire(), standing in
+// for a real expiresAt timestamp check. A code is only valid while it is
+// unexpired AND its locker still holds a package, which is what makes a
+// code single-use: the first successful pickup releases the locker.
+const PICKUP_CODE_JAVA = `public class PickupCode {
+    private final String code;
+    private final Locker locker;
+    private boolean expired;
+
+    private PickupCode(String code, Locker locker) {
+        this.code = code;
+        this.locker = locker;
+    }
+
+    public static PickupCode generateFor(Locker locker) {
+        return new PickupCode("PC-" + locker.getId(), locker);
+    }
+
+    public String getCode() { return code; }
+    public Locker getLocker() { return locker; }
+
+    // Test setup helper standing in for the expiry window elapsing.
+    public void expire() { this.expired = true; }
+
+    public boolean isValid() {
+        return !expired && locker.isOccupied();
+    }
+}
+`;
+
 export const amazonLocker: LLDLesson = {
   id: "amazon-locker",
   track: "lld",
@@ -138,6 +234,178 @@ export const amazonLocker: LLDLesson = {
             "Accepts any locker size ≥ package size, not just an exact match. This is the mirror image of Parking Lot's exact-or-bigger vehicle rule",
             "Fails loudly (exception, or a null/Optional signal) when nothing fits, instead of silently doing nothing",
           ],
+          java: {
+            editClassName: "LockerLocation",
+            starterFile: `import java.util.List;
+
+public class LockerLocation {
+    private final String id;
+    private final List<Locker> lockers;
+
+    public LockerLocation(String id, List<Locker> lockers) {
+        this.id = id;
+        this.lockers = lockers;
+    }
+
+    public String getId() { return id; }
+    public List<Locker> getLockers() { return lockers; }
+
+    public PickupCode putPackage(Package pkg) {
+        // Find a free locker at least as big as the package, assign the
+        // package, and return a code. Fail loudly when nothing fits.
+        return null;
+    }
+}
+`,
+            referenceFile: `import java.util.List;
+
+public class LockerLocation {
+    private final String id;
+    private final List<Locker> lockers;
+
+    public LockerLocation(String id, List<Locker> lockers) {
+        this.id = id;
+        this.lockers = lockers;
+    }
+
+    public String getId() { return id; }
+    public List<Locker> getLockers() { return lockers; }
+
+    public PickupCode putPackage(Package pkg) {
+        for (Locker locker : lockers) {
+            if (!locker.isOccupied() && locker.getSize().canFit(pkg.getSize())) {
+                locker.assignPackage(pkg);
+                return PickupCode.generateFor(locker);
+            }
+        }
+        throw new IllegalStateException("No locker available for this package size");
+    }
+}
+`,
+            support: [
+              { className: "Size", source: SIZE_JAVA },
+              { className: "Package", source: PACKAGE_JAVA },
+              { className: "Locker", source: LOCKER_JAVA },
+              { className: "PickupCode", source: PICKUP_CODE_JAVA },
+            ],
+            tests: [
+              {
+                id: "assigns-free-locker",
+                label: "a fitting delivery lands in the free locker and returns a code",
+                body: `Locker locker = new Locker("L1", Size.SMALL);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(locker));
+Package pkg = new Package("P1", Size.SMALL, "TRK-1");
+PickupCode code = site.putPackage(pkg);
+expectedText = "code issued and locker L1 holds package P1";
+if (code == null) {
+    actualText = "no code returned";
+    passed = false;
+} else if (!locker.isOccupied() || locker.getContents() != pkg) {
+    actualText = "code returned but locker L1 does not hold package P1";
+    passed = false;
+} else {
+    actualText = "code issued and locker L1 holds package P1";
+    passed = true;
+}`,
+              },
+              {
+                id: "skips-occupied-locker",
+                label: "skips an occupied locker and uses the next free one",
+                body: `Locker taken = new Locker("L1", Size.MEDIUM);
+Package already = new Package("P0", Size.SMALL, "TRK-0");
+taken.assignPackage(already);
+Locker free = new Locker("L2", Size.MEDIUM);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(taken, free));
+PickupCode code = site.putPackage(new Package("P1", Size.SMALL, "TRK-1"));
+expectedText = "locker L2 takes the package, locker L1 untouched";
+if (taken.getContents() != already) {
+    actualText = "locker L1 lost the package it already held";
+    passed = false;
+} else if (code == null) {
+    actualText = "no code returned";
+    passed = false;
+} else if (!free.isOccupied()) {
+    actualText = "locker L2 is still empty";
+    passed = false;
+} else {
+    actualText = "locker L2 takes the package, locker L1 untouched";
+    passed = true;
+}`,
+              },
+              {
+                id: "accepts-bigger-locker",
+                label: "a small package is accepted into a large locker, no exact match needed",
+                body: `Locker big = new Locker("L1", Size.LARGE);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(big));
+PickupCode code = site.putPackage(new Package("P1", Size.SMALL, "TRK-1"));
+expectedText = "small package accepted into the large locker";
+if (code == null || !big.isOccupied()) {
+    actualText = "delivery rejected even though the large locker fits";
+    passed = false;
+} else {
+    actualText = "small package accepted into the large locker";
+    passed = true;
+}`,
+              },
+              {
+                id: "rejects-oversize-package",
+                label: "a large package never squeezes into a small locker",
+                body: `Locker small = new Locker("L1", Size.SMALL);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(small));
+expectedText = "IllegalStateException, nothing fits a large package";
+try {
+    PickupCode code = site.putPackage(new Package("P1", Size.LARGE, "TRK-1"));
+    if (small.isOccupied()) {
+        actualText = "no exception, the large package was squeezed into the small locker";
+    } else {
+        actualText = code == null ? "no exception, returned null" : "no exception, a code was issued anyway";
+    }
+    passed = false;
+} catch (IllegalStateException expectedFailure) {
+    actualText = "IllegalStateException, nothing fits a large package";
+    passed = true;
+}`,
+              },
+              {
+                id: "full-site-fails-loudly",
+                label: "a full site rejects the delivery instead of overwriting or going quiet",
+                body: `Locker only = new Locker("L1", Size.LARGE);
+only.assignPackage(new Package("P0", Size.SMALL, "TRK-0"));
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(only));
+expectedText = "IllegalStateException, every locker is full";
+try {
+    PickupCode code = site.putPackage(new Package("P1", Size.SMALL, "TRK-1"));
+    actualText = code == null ? "no exception, returned null" : "no exception, a code was issued for a full site";
+    passed = false;
+} catch (IllegalStateException expectedFailure) {
+    actualText = "IllegalStateException, every locker is full";
+    passed = true;
+}`,
+              },
+              {
+                id: "code-tied-to-locker",
+                label: "the returned code is valid and points at the locker that got the package",
+                body: `Locker locker = new Locker("L1", Size.MEDIUM);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(locker));
+Package pkg = new Package("P1", Size.MEDIUM, "TRK-1");
+PickupCode code = site.putPackage(pkg);
+expectedText = "a valid code tied to locker L1";
+if (code == null) {
+    actualText = "no code returned";
+    passed = false;
+} else if (code.getLocker() != locker) {
+    actualText = "code points at a different locker";
+    passed = false;
+} else if (!code.isValid()) {
+    actualText = "code tied to locker L1 but already invalid";
+    passed = false;
+} else {
+    actualText = "a valid code tied to locker L1";
+    passed = true;
+}`,
+              },
+            ],
+          },
         },
       },
       {
@@ -156,6 +424,175 @@ export const amazonLocker: LLDLesson = {
             "Releases the locker as part of pickup, so it becomes available again for a new delivery",
             "Bonus (L5+, not required here): what happens if getPackage() is called twice with the same code, meaning idempotency after the first successful pickup",
           ],
+          java: {
+            editClassName: "LockerLocation",
+            starterFile: `import java.util.List;
+
+public class LockerLocation {
+    private final String id;
+    private final List<Locker> lockers;
+
+    public LockerLocation(String id, List<Locker> lockers) {
+        this.id = id;
+        this.lockers = lockers;
+    }
+
+    public String getId() { return id; }
+    public List<Locker> getLockers() { return lockers; }
+
+    public Package getPackage(PickupCode code) {
+        // Validate the code first, then hand back the package from the
+        // code's own locker and free that locker for the next delivery.
+        return null;
+    }
+}
+`,
+            referenceFile: `import java.util.List;
+
+public class LockerLocation {
+    private final String id;
+    private final List<Locker> lockers;
+
+    public LockerLocation(String id, List<Locker> lockers) {
+        this.id = id;
+        this.lockers = lockers;
+    }
+
+    public String getId() { return id; }
+    public List<Locker> getLockers() { return lockers; }
+
+    public Package getPackage(PickupCode code) {
+        if (!code.isValid()) {
+            throw new IllegalArgumentException("Code is invalid or expired");
+        }
+        Locker locker = code.getLocker();
+        Package pkg = locker.getContents();
+        locker.release();
+        return pkg;
+    }
+}
+`,
+            support: [
+              { className: "Size", source: SIZE_JAVA },
+              { className: "Package", source: PACKAGE_JAVA },
+              { className: "Locker", source: LOCKER_JAVA },
+              { className: "PickupCode", source: PICKUP_CODE_JAVA },
+            ],
+            tests: [
+              {
+                id: "hands-over-package",
+                label: "a valid code hands back the package that was delivered",
+                body: `Locker locker = new Locker("L1", Size.MEDIUM);
+Package pkg = new Package("P1", Size.MEDIUM, "TRK-1");
+locker.assignPackage(pkg);
+PickupCode code = PickupCode.generateFor(locker);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(locker));
+Package handed = site.getPackage(code);
+expectedText = "package P1 handed over";
+actualText = handed == null ? "null instead of the package" : "package " + handed.getId() + " handed over";
+passed = handed == pkg;`,
+              },
+              {
+                id: "frees-locker-on-pickup",
+                label: "pickup frees the locker for the next delivery",
+                body: `Locker locker = new Locker("L1", Size.SMALL);
+locker.assignPackage(new Package("P1", Size.SMALL, "TRK-1"));
+PickupCode code = PickupCode.generateFor(locker);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(locker));
+site.getPackage(code);
+expectedText = "locker L1 free again";
+actualText = locker.isOccupied() ? "locker L1 still holds the package" : "locker L1 free again";
+passed = !locker.isOccupied();`,
+              },
+              {
+                id: "rejects-expired-code",
+                label: "an expired code is rejected loudly, not honored",
+                body: `Locker locker = new Locker("L1", Size.SMALL);
+locker.assignPackage(new Package("P1", Size.SMALL, "TRK-1"));
+PickupCode code = PickupCode.generateFor(locker);
+code.expire();
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(locker));
+expectedText = "IllegalArgumentException, code expired";
+try {
+    Package handed = site.getPackage(code);
+    actualText = handed == null ? "no exception, quietly returned null" : "no exception, the package was handed out on an expired code";
+    passed = false;
+} catch (IllegalArgumentException expectedFailure) {
+    actualText = "IllegalArgumentException, code expired";
+    passed = true;
+}`,
+              },
+              {
+                id: "expired-code-keeps-package",
+                label: "a rejected expired code leaves the package in its locker",
+                body: `Locker locker = new Locker("L1", Size.SMALL);
+Package pkg = new Package("P1", Size.SMALL, "TRK-1");
+locker.assignPackage(pkg);
+PickupCode code = PickupCode.generateFor(locker);
+code.expire();
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(locker));
+try {
+    site.getPackage(code);
+} catch (IllegalArgumentException expectedFailure) {
+    // Rejected as it should be; the locker must be untouched.
+}
+expectedText = "locker L1 still holds package P1";
+boolean stillHeld = locker.isOccupied() && locker.getContents() == pkg;
+actualText = stillHeld ? "locker L1 still holds package P1" : "locker L1 was emptied on an expired code";
+passed = stillHeld;`,
+              },
+              {
+                id: "code-is-single-use",
+                label: "a code works exactly once, the second attempt is rejected",
+                body: `Locker locker = new Locker("L1", Size.MEDIUM);
+Package pkg = new Package("P1", Size.MEDIUM, "TRK-1");
+locker.assignPackage(pkg);
+PickupCode code = PickupCode.generateFor(locker);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(locker));
+Package first = site.getPackage(code);
+expectedText = "first pickup succeeds, second attempt rejected";
+if (first != pkg) {
+    actualText = first == null ? "first pickup returned null" : "first pickup returned the wrong package";
+    passed = false;
+} else {
+    try {
+        Package second = site.getPackage(code);
+        actualText = second == null ? "second attempt quietly returned null" : "second attempt handed the package out again";
+        passed = false;
+    } catch (IllegalArgumentException expectedFailure) {
+        actualText = "first pickup succeeds, second attempt rejected";
+        passed = true;
+    }
+}`,
+              },
+              {
+                id: "uses-codes-own-locker",
+                label: "pickup opens the code's own locker, not the first occupied one",
+                body: `Locker other = new Locker("L1", Size.MEDIUM);
+other.assignPackage(new Package("P9", Size.SMALL, "TRK-9"));
+Locker mine = new Locker("L2", Size.MEDIUM);
+Package pkg = new Package("P1", Size.SMALL, "TRK-1");
+mine.assignPackage(pkg);
+PickupCode code = PickupCode.generateFor(mine);
+LockerLocation site = new LockerLocation("SEA-1", java.util.Arrays.asList(other, mine));
+Package handed = site.getPackage(code);
+expectedText = "package P1 from locker L2, locker L1 untouched";
+if (handed != pkg) {
+    actualText = handed == null ? "null instead of the package" : "package " + handed.getId() + " from the wrong locker";
+    passed = false;
+} else if (!other.isOccupied()) {
+    actualText = "locker L1 was disturbed";
+    passed = false;
+} else if (mine.isOccupied()) {
+    actualText = "package P1 handed over but locker L2 never freed";
+    passed = false;
+} else {
+    actualText = "package P1 from locker L2, locker L1 untouched";
+    passed = true;
+}`,
+              },
+            ],
+          },
         },
       },
       {
