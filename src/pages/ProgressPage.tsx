@@ -10,6 +10,7 @@ import { useGameProgress } from "@/hooks/useGameProgress";
 import { usePatternGenomeProgress } from "@/hooks/usePatternGenomeProgress";
 import { useAmazonPrepProgress } from "@/hooks/useAmazonPrepProgress";
 import { loadGarageProgress } from "@/game/garageProgress";
+import { loadExerciseProgress } from "@/game/exerciseProgress";
 import {
   deriveLedger,
   summarizeLedger,
@@ -44,6 +45,7 @@ export function ProgressPage() {
   // Read fresh on every render: a memoized-once read goes stale if a garage
   // chapter completes while this page stays mounted. The parse is tiny.
   const garageProgress = loadGarageProgress();
+  const exerciseProgress = loadExerciseProgress();
   const ledger = useMemo(
     () =>
       deriveLedger({
@@ -55,8 +57,9 @@ export function ProgressPage() {
         challengeCheckpoints: game.challengeCheckpoints,
         dailyTargets: dailyTargetTitles,
         amazonPrepRecords: amazonRecords,
+        exerciseRecords: exerciseProgress,
       }),
-    [forgeProgress, garageProgress, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
+    [forgeProgress, garageProgress, exerciseProgress, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
   );
   const summary = useMemo(() => summarizeLedger(ledger), [ledger]);
   const recent = ledger.slice(0, 8);

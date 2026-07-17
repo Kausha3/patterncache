@@ -1,5 +1,77 @@
 import type { LLDLesson } from "@/types";
 
+// Compilable domain model shared by this lesson's runnable Java exercises.
+// Each string is a complete file; the exercise runner writes them next to
+// the learner's class and compiles everything together in the browser.
+
+const VEHICLE_SIZE_JAVA = `public enum VehicleSize {
+    MOTORCYCLE, COMPACT, LARGE;
+}
+`;
+
+const SPOT_SIZE_JAVA = `public enum SpotSize {
+    MOTORCYCLE, COMPACT, LARGE;
+
+    public boolean canFit(VehicleSize vehicle) {
+        switch (this) {
+            case MOTORCYCLE: return vehicle == VehicleSize.MOTORCYCLE;
+            case COMPACT: return vehicle == VehicleSize.MOTORCYCLE || vehicle == VehicleSize.COMPACT;
+            default: return true;
+        }
+    }
+}
+`;
+
+const VEHICLE_JAVA = `public class Vehicle {
+    private final String plate;
+    private final VehicleSize size;
+
+    public Vehicle(String plate, VehicleSize size) {
+        this.plate = plate;
+        this.size = size;
+    }
+
+    public String getPlate() { return plate; }
+    public VehicleSize getSize() { return size; }
+}
+`;
+
+// Support version of ParkingSpot for the findAvailableSpot exercise, where
+// the spot itself is not the class under edit. occupy() exists so tests can
+// set up an already-taken spot.
+const PARKING_SPOT_SUPPORT_JAVA = `public class ParkingSpot {
+    private final int id;
+    private final SpotSize size;
+    private boolean isOccupied;
+
+    public ParkingSpot(int id, SpotSize size) {
+        this.id = id;
+        this.size = size;
+    }
+
+    public int getId() { return id; }
+    public SpotSize getSize() { return size; }
+    public boolean isOccupied() { return isOccupied; }
+    public void occupy() { this.isOccupied = true; }
+}
+`;
+
+const LEVEL_JAVA = `import java.util.List;
+
+public class Level {
+    private final int floor;
+    private final List<ParkingSpot> spots;
+
+    public Level(int floor, List<ParkingSpot> spots) {
+        this.floor = floor;
+        this.spots = spots;
+    }
+
+    public int getFloor() { return floor; }
+    public List<ParkingSpot> getSpots() { return spots; }
+}
+`;
+
 export const parkingLot: LLDLesson = {
   id: "parking-lot",
   track: "lld",
@@ -148,6 +220,126 @@ export const parkingLot: LLDLesson = {
             "Compares spot size against vehicle size, since a large vehicle must not match a compact spot",
             "Returns null (not an exception, not a half-built object) when nothing fits",
           ],
+          java: {
+            editClassName: "ParkingLot",
+            starterFile: `import java.util.List;
+
+public class ParkingLot {
+    private final List<Level> levels;
+
+    public ParkingLot(List<Level> levels) {
+        this.levels = levels;
+    }
+
+    public ParkingSpot findAvailableSpot(Vehicle vehicle) {
+        // Walk the levels and return the first free spot this vehicle fits in.
+        // Return null when nothing fits anywhere.
+        return null;
+    }
+}
+`,
+            referenceFile: `import java.util.List;
+
+public class ParkingLot {
+    private final List<Level> levels;
+
+    public ParkingLot(List<Level> levels) {
+        this.levels = levels;
+    }
+
+    public ParkingSpot findAvailableSpot(Vehicle vehicle) {
+        for (Level level : levels) {
+            for (ParkingSpot spot : level.getSpots()) {
+                if (!spot.isOccupied() && spot.getSize().canFit(vehicle.getSize())) {
+                    return spot;
+                }
+            }
+        }
+        return null;
+    }
+}
+`,
+            support: [
+              { className: "VehicleSize", source: VEHICLE_SIZE_JAVA },
+              { className: "SpotSize", source: SPOT_SIZE_JAVA },
+              { className: "Vehicle", source: VEHICLE_JAVA },
+              { className: "ParkingSpot", source: PARKING_SPOT_SUPPORT_JAVA },
+              { className: "Level", source: LEVEL_JAVA },
+            ],
+            tests: [
+              {
+                id: "skips-occupied",
+                label: "skips an occupied spot and returns the next free one",
+                body: `ParkingSpot taken = new ParkingSpot(1, SpotSize.COMPACT);
+taken.occupy();
+ParkingSpot free = new ParkingSpot(2, SpotSize.COMPACT);
+Level ground = new Level(0, java.util.Arrays.asList(taken, free));
+ParkingLot lot = new ParkingLot(java.util.Arrays.asList(ground));
+ParkingSpot found = lot.findAvailableSpot(new Vehicle("KA-01", VehicleSize.COMPACT));
+expectedText = "spot 2";
+actualText = found == null ? "null" : "spot " + found.getId();
+passed = found != null && found.getId() == 2;`,
+              },
+              {
+                id: "second-level",
+                label: "keeps searching onto the next level when the first is full",
+                body: `ParkingSpot g1 = new ParkingSpot(1, SpotSize.COMPACT);
+g1.occupy();
+ParkingSpot g2 = new ParkingSpot(2, SpotSize.LARGE);
+g2.occupy();
+Level ground = new Level(0, java.util.Arrays.asList(g1, g2));
+ParkingSpot upstairs = new ParkingSpot(3, SpotSize.COMPACT);
+Level first = new Level(1, java.util.Arrays.asList(upstairs));
+ParkingLot lot = new ParkingLot(java.util.Arrays.asList(ground, first));
+ParkingSpot found = lot.findAvailableSpot(new Vehicle("KA-02", VehicleSize.COMPACT));
+expectedText = "spot 3 on level 1";
+actualText = found == null ? "null" : "spot " + found.getId();
+passed = found != null && found.getId() == 3;`,
+              },
+              {
+                id: "size-guard",
+                label: "refuses to put a large vehicle in a compact spot",
+                body: `ParkingSpot compactOnly = new ParkingSpot(1, SpotSize.COMPACT);
+Level ground = new Level(0, java.util.Arrays.asList(compactOnly));
+ParkingLot lot = new ParkingLot(java.util.Arrays.asList(ground));
+ParkingSpot found = lot.findAvailableSpot(new Vehicle("KA-03", VehicleSize.LARGE));
+expectedText = "null, nothing fits";
+actualText = found == null ? "null, nothing fits" : "spot " + found.getId();
+passed = found == null;`,
+              },
+              {
+                id: "moto-in-compact",
+                label: "lets a motorcycle take a compact spot",
+                body: `ParkingSpot compact = new ParkingSpot(1, SpotSize.COMPACT);
+Level ground = new Level(0, java.util.Arrays.asList(compact));
+ParkingLot lot = new ParkingLot(java.util.Arrays.asList(ground));
+ParkingSpot found = lot.findAvailableSpot(new Vehicle("KA-04", VehicleSize.MOTORCYCLE));
+expectedText = "spot 1";
+actualText = found == null ? "null" : "spot " + found.getId();
+passed = found != null && found.getId() == 1;`,
+              },
+              {
+                id: "find-does-not-claim",
+                label: "finding a spot must not occupy it",
+                body: `ParkingSpot free = new ParkingSpot(1, SpotSize.LARGE);
+Level ground = new Level(0, java.util.Arrays.asList(free));
+ParkingLot lot = new ParkingLot(java.util.Arrays.asList(ground));
+lot.findAvailableSpot(new Vehicle("KA-05", VehicleSize.COMPACT));
+expectedText = "spot 1 still free after the search";
+actualText = free.isOccupied() ? "spot 1 became occupied" : "spot 1 still free after the search";
+passed = !free.isOccupied();`,
+              },
+              {
+                id: "empty-lot",
+                label: "an empty lot returns null instead of crashing",
+                body: `ParkingLot lot = new ParkingLot(java.util.Collections.<Level>emptyList());
+ParkingSpot found = lot.findAvailableSpot(new Vehicle("KA-06", VehicleSize.COMPACT));
+expectedText = "null";
+actualText = found == null ? "null" : "spot " + found.getId();
+passed = found == null;`,
+              },
+            ],
+          },
         },
       },
       {
@@ -178,6 +370,106 @@ export const parkingLot: LLDLesson = {
           starter: "void assignVehicle(Vehicle vehicle) {\n    // your code here\n}",
           reference:
             "void assignVehicle(Vehicle vehicle) {\n    if (isOccupied) {\n        throw new IllegalStateException(\"Spot \" + id + \" is already occupied\");\n    }\n    this.isOccupied = true;\n}",
+          java: {
+            editClassName: "ParkingSpot",
+            starterFile: `public class ParkingSpot {
+    private final int id;
+    private final SpotSize size;
+    private boolean isOccupied;
+
+    public ParkingSpot(int id, SpotSize size) {
+        this.id = id;
+        this.size = size;
+    }
+
+    public int getId() { return id; }
+    public SpotSize getSize() { return size; }
+    public boolean isOccupied() { return isOccupied; }
+
+    public void assignVehicle(Vehicle vehicle) {
+        // Guard the flag this class owns, then flip it.
+        // An already-occupied spot must fail loudly, not silently.
+    }
+}
+`,
+            referenceFile: `public class ParkingSpot {
+    private final int id;
+    private final SpotSize size;
+    private boolean isOccupied;
+
+    public ParkingSpot(int id, SpotSize size) {
+        this.id = id;
+        this.size = size;
+    }
+
+    public int getId() { return id; }
+    public SpotSize getSize() { return size; }
+    public boolean isOccupied() { return isOccupied; }
+
+    public void assignVehicle(Vehicle vehicle) {
+        if (isOccupied) {
+            throw new IllegalStateException("Spot " + id + " is already occupied");
+        }
+        this.isOccupied = true;
+    }
+}
+`,
+            support: [
+              { className: "VehicleSize", source: VEHICLE_SIZE_JAVA },
+              { className: "SpotSize", source: SPOT_SIZE_JAVA },
+              { className: "Vehicle", source: VEHICLE_JAVA },
+            ],
+            tests: [
+              {
+                id: "marks-occupied",
+                label: "assigning a free spot marks it occupied",
+                body: `ParkingSpot spot = new ParkingSpot(7, SpotSize.COMPACT);
+spot.assignVehicle(new Vehicle("KA-11", VehicleSize.COMPACT));
+expectedText = "spot 7 occupied";
+actualText = spot.isOccupied() ? "spot 7 occupied" : "spot 7 still free";
+passed = spot.isOccupied();`,
+              },
+              {
+                id: "rejects-double",
+                label: "a second assignment fails loudly instead of overwriting",
+                body: `ParkingSpot spot = new ParkingSpot(7, SpotSize.COMPACT);
+spot.assignVehicle(new Vehicle("KA-11", VehicleSize.COMPACT));
+expectedText = "IllegalStateException on the second assign";
+try {
+    spot.assignVehicle(new Vehicle("KA-12", VehicleSize.COMPACT));
+    actualText = "no exception, the second vehicle silently took the spot";
+    passed = false;
+} catch (IllegalStateException expectedFailure) {
+    actualText = "IllegalStateException on the second assign";
+    passed = true;
+}`,
+              },
+              {
+                id: "state-survives-reject",
+                label: "a rejected assignment leaves the spot occupied",
+                body: `ParkingSpot spot = new ParkingSpot(7, SpotSize.COMPACT);
+spot.assignVehicle(new Vehicle("KA-11", VehicleSize.COMPACT));
+try {
+    spot.assignVehicle(new Vehicle("KA-12", VehicleSize.COMPACT));
+} catch (IllegalStateException expectedFailure) {
+    // The guard fired; the spot must still belong to the first vehicle.
+}
+expectedText = "spot 7 still occupied";
+actualText = spot.isOccupied() ? "spot 7 still occupied" : "spot 7 lost its occupied flag";
+passed = spot.isOccupied();`,
+              },
+              {
+                id: "independent-spots",
+                label: "occupying one spot never touches another",
+                body: `ParkingSpot first = new ParkingSpot(1, SpotSize.COMPACT);
+ParkingSpot second = new ParkingSpot(2, SpotSize.COMPACT);
+first.assignVehicle(new Vehicle("KA-11", VehicleSize.COMPACT));
+expectedText = "spot 2 still free";
+actualText = second.isOccupied() ? "spot 2 became occupied too" : "spot 2 still free";
+passed = !second.isOccupied();`,
+              },
+            ],
+          },
           checklist: [
             "Checks isOccupied before assigning, and doesn't silently overwrite an already-occupied spot",
             "Fails loudly (exception, or a boolean/Result return) instead of quietly doing nothing",

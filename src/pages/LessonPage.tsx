@@ -241,7 +241,14 @@ function StepContent({
       case "clarify":
         return lesson.interview ? <ClarifyInterview interview={lesson.interview} onComplete={() => onActivityComplete("clarify")} /> : null;
       case "design":
-        return <ClassModeler design={lesson.design} prompt={lesson.interview?.prompt} onComplete={() => onActivityComplete("design")} />;
+        return (
+          <ClassModeler
+            design={lesson.design}
+            prompt={lesson.interview?.prompt}
+            onComplete={() => onActivityComplete("design")}
+            exerciseContext={{ lessonId: lesson.id, lessonTitle: lesson.title }}
+          />
+        );
       case "recap":
         return <Recap lesson={lesson} canComplete={requiredActivityComplete} requiredActivityLabel={requiredActivityLabel} />;
     }

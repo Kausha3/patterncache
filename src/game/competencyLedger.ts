@@ -4,6 +4,7 @@ import { CODING_COMBAT_MISSIONS } from "@/arena/codingCombatMissions";
 import { LLD_STUDIO_MISSIONS } from "@/arena/lldStudioMissions";
 import type { PatternGenomeProgress } from "@/hooks/usePatternGenomeProgress";
 import type { GarageProgress, GarageChapterId } from "@/game/garageProgress";
+import type { ExerciseProgress } from "@/game/exerciseProgress";
 import type { ArenaScores, CodingCombatScores, LldStudioScores } from "@/arena/types";
 import { AMAZON_SDE1_QUESTIONS } from "@/content/amazonSde1Prep";
 import type { AmazonPrepRecord } from "@/hooks/useAmazonPrepProgress";
@@ -108,6 +109,8 @@ export interface LedgerInputs {
   dailyTargets?: Record<string, string>;
   /** Amazon SDE1 board records keyed by question id. */
   amazonPrepRecords?: Record<string, AmazonPrepRecord>;
+  /** Runnable lesson code exercises keyed by "<lessonId>:<methodId>". */
+  exerciseRecords?: ExerciseProgress;
 }
 
 const forgeTitle = (missionId: string): string =>
@@ -319,6 +322,22 @@ export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
         at: record.completedAt,
       });
     }
+  }
+
+  // Runnable lesson exercises: the learner's own class compiled with javac
+  // and passed the exercise's test suite on the in-browser JVM. Verified by
+  // the machine, not self-attested; a run that never passed records nothing.
+  for (const [exerciseId, record] of Object.entries(inputs.exerciseRecords ?? {})) {
+    if (!record?.passedAt) continue;
+    entries.push({
+      id: `exercise-${exerciseId}-coded`,
+      kind: "coded",
+      source: "lesson",
+      refId: exerciseId,
+      label: `Compiled and passed the test suite on ${record.label}`,
+      verified: true,
+      at: record.passedAt,
+    });
   }
 
   // LLD Studio: responsibility assignment against requirement mutations with

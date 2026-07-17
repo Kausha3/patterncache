@@ -187,3 +187,30 @@ describe("ledger XP decoration", () => {
     expect(xp).toBe(EVIDENCE_XP.transferred.verified + EVIDENCE_XP.coded.attested);
   });
 });
+
+describe("runnable lesson exercise evidence", () => {
+  it("records a passed exercise as verified coded evidence", () => {
+    const inputs = emptyInputs();
+    inputs.exerciseRecords = {
+      "parking-lot:m1": { label: "findAvailableSpot(vehicle): Spot · Design a Parking Lot", attempts: 3, passedAt: 5000 },
+    };
+    const entries = deriveLedger(inputs);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      kind: "coded",
+      source: "lesson",
+      verified: true,
+      refId: "parking-lot:m1",
+      at: 5000,
+    });
+    expect(entries[0].label).toContain("findAvailableSpot");
+  });
+
+  it("records nothing for an exercise that was attempted but never passed", () => {
+    const inputs = emptyInputs();
+    inputs.exerciseRecords = {
+      "parking-lot:m1": { label: "findAvailableSpot(vehicle): Spot · Design a Parking Lot", attempts: 4 },
+    };
+    expect(deriveLedger(inputs)).toHaveLength(0);
+  });
+});

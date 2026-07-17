@@ -163,12 +163,39 @@ export interface EntityCandidate {
   properties?: PropertyDef[];
 }
 
+/** One machine-checked scenario for a JavaExerciseSpec. The body is authored
+ * Java statements that run inside a per-test try/catch with three locals in
+ * scope to assign: `passed` (boolean verdict), `expectedText` and `actualText`
+ * (what the learner sees on failure). A thrown exception is reported as that
+ * test's error without stopping later tests. */
+export interface JavaExerciseTest {
+  id: string;
+  label: string;
+  body: string;
+}
+
+/** Everything needed to compile and run a lesson exercise on the in-browser
+ * JVM. The learner edits one complete class file; the support files provide
+ * the surrounding domain model so the whole thing genuinely compiles. */
+export interface JavaExerciseSpec {
+  /** Class the learner edits; saved as <editClassName>.java. */
+  editClassName: string;
+  /** Full compilable class the learner starts from: fields and constructor
+   * given, the target method stubbed so the first run fails honestly. */
+  starterFile: string;
+  /** The same file with the method implemented correctly; must pass every test. */
+  referenceFile: string;
+  /** Supporting domain classes, each a complete compilable file. */
+  support: { className: string; source: string }[];
+  tests: JavaExerciseTest[];
+}
+
 /** A real "write it yourself" exercise for the handful of methods that actually
  * have interesting logic (search/filter, state mutation) — not every method
- * needs one. Graded by commit-then-compare against a reference solution, same
- * "ground truth reveal" philosophy as the rest of the app — not auto-executed,
- * since that would require either a backend sandbox or a JS-only exercise, and
- * this is meant to be practiced in the learner's actual interview language. */
+ * needs one. Exercises with a `java` spec compile and run on the in-browser
+ * JVM against a real test suite; the rest grade by commit-then-compare against
+ * a reference solution, the same "ground truth reveal" philosophy as the rest
+ * of the app. */
 export interface CodeExercise {
   language: "java";
   /** Method stub shown before the learner writes anything — signature + a comment, no logic. */
@@ -177,6 +204,8 @@ export interface CodeExercise {
   reference: string;
   /** What a correct solution must handle — self-checked against the learner's own code, not scored. */
   checklist: string[];
+  /** When present, the exercise runs for real: javac + JVM in the browser. */
+  java?: JavaExerciseSpec;
 }
 
 export interface MethodCandidate {

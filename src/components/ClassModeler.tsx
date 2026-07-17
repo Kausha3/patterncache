@@ -42,7 +42,7 @@ const PHASE_META: Record<Phase, string> = {
   done: "the finished class model",
 };
 
-export function ClassModeler({ design, prompt, onComplete }: { design: ClassModelSpec; prompt?: string; onComplete?: () => void }) {
+export function ClassModeler({ design, prompt, onComplete, exerciseContext }: { design: ClassModelSpec; prompt?: string; onComplete?: () => void; exerciseContext?: { lessonId: string; lessonTitle: string } }) {
   const [phase, setPhase] = useState<Phase>("watch");
   const [watchDone, setWatchDone] = useState(false);
 
@@ -89,6 +89,7 @@ export function ClassModeler({ design, prompt, onComplete }: { design: ClassMode
         <PracticePhase
           entities={correctEntities}
           allMethods={design.methods}
+          exerciseContext={exerciseContext}
           order={practiceOrder}
           idx={practiceIdx}
           placedIds={placedIds}
@@ -299,6 +300,7 @@ function normalizeClassName(s: string): string {
 function PracticePhase({
   entities,
   allMethods,
+  exerciseContext,
   order,
   idx,
   placedIds,
@@ -312,6 +314,7 @@ function PracticePhase({
 }: {
   entities: EntityCandidate[];
   allMethods: MethodCandidate[];
+  exerciseContext?: { lessonId: string; lessonTitle: string };
   order: string[];
   idx: number;
   placedIds: Set<string>;
@@ -468,7 +471,12 @@ function PracticePhase({
             </div>
             {method.codeExercise && (
               <Suspense fallback={<p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>Loading editor…</p>}>
-                <CodeExerciseBlock key={method.id} exercise={method.codeExercise} />
+                <CodeExerciseBlock
+                  key={method.id}
+                  exercise={method.codeExercise}
+                  exerciseId={exerciseContext ? `${exerciseContext.lessonId}:${method.id}` : undefined}
+                  exerciseLabel={exerciseContext ? `${method.signature} \u00b7 ${exerciseContext.lessonTitle}` : undefined}
+                />
               </Suspense>
             )}
             <div>

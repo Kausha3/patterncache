@@ -1,4 +1,5 @@
 import type { CodingCombatTestCase } from "@/arena/codingCombatMissions";
+import type { JavaExerciseTest } from "@/types";
 
 /**
  * Turns a mission's JSON test cases into a real Java test program.
@@ -198,12 +199,12 @@ export function validateJavaSpec(
   return problems;
 }
 
-function testMethod(spec: JavaCombatSpec, test: CodingCombatTestCase, index: number): string {
-  const argDecls = test.args
-    .map((arg, argIndex) => `      ${javaTypeName(spec.argTypes[argIndex])} arg${argIndex} = ${javaLiteral(spec.argTypes[argIndex], arg)};`)
-    .join("\n");
-  const argList = test.args.map((_, argIndex) => `arg${argIndex}`).join(", ");
-  const returnDecl = javaTypeName(spec.returnType);
+/**
+ * The fixed scaffold every generated test method runs inside: verdict locals,
+ * per-test stdout capture, and a Throwable catch so one exploding test cannot
+ * hide the results of later ones.
+ */
+function testMethodShell(id: string, index: number, innerStatements: string): string {
   return `  private static void test${index}() {
     long startedAt = System.nanoTime();
     boolean passed = false;
@@ -214,20 +215,29 @@ function testMethod(spec: JavaCombatSpec, test: CodingCombatTestCase, index: num
     java.io.PrintStream original = System.out;
     try {
       System.setOut(new java.io.PrintStream(captured, true, "UTF-8"));
-${argDecls}
-      ${returnDecl} expected = ${javaLiteral(spec.returnType, test.expected)};
-      expectedText = ${javaDisplay(spec.returnType, "expected")};
-      Solution solution = new Solution();
-      ${returnDecl} returned = solution.${spec.methodName}(${argList});
-      passed = ${javaEquality(spec.returnType, "expected", "returned")};
-      actualText = ${javaDisplay(spec.returnType, "returned")};
+${innerStatements}
     } catch (Throwable failure) {
       error = failure.toString();
     } finally {
       System.setOut(original);
     }
-    record(${stringLiteral(test.id)}, passed, expectedText, actualText, error, stdoutTail(captured), startedAt);
+    record(${stringLiteral(id)}, passed, expectedText, actualText, error, stdoutTail(captured), startedAt);
   }`;
+}
+
+function combatTestInner(spec: JavaCombatSpec, test: CodingCombatTestCase): string {
+  const argDecls = test.args
+    .map((arg, argIndex) => `      ${javaTypeName(spec.argTypes[argIndex])} arg${argIndex} = ${javaLiteral(spec.argTypes[argIndex], arg)};`)
+    .join("\n");
+  const argList = test.args.map((_, argIndex) => `arg${argIndex}`).join(", ");
+  const returnDecl = javaTypeName(spec.returnType);
+  return `${argDecls}
+      ${returnDecl} expected = ${javaLiteral(spec.returnType, test.expected)};
+      expectedText = ${javaDisplay(spec.returnType, "expected")};
+      Solution solution = new Solution();
+      ${returnDecl} returned = solution.${spec.methodName}(${argList});
+      passed = ${javaEquality(spec.returnType, "expected", "returned")};
+      actualText = ${javaDisplay(spec.returnType, "returned")};`;
 }
 
 /**
@@ -239,12 +249,47 @@ export function generateTestMain(spec: JavaCombatSpec, tests: CodingCombatTestCa
   if (problems.length > 0) {
     throw new Error(`Mission tests do not fit the Java spec:\n${problems.join("\n")}`);
   }
-  const methods = tests.map((test, index) => testMethod(spec, test, index)).join("\n\n");
+  const methods = tests
+    .map((test, index) => testMethodShell(test.id, index, combatTestInner(spec, test)))
+    .join("\n\n");
   const calls = tests.map((_, index) => `    test${index}();`).join("\n");
+  return mainShell("PcTestMain", methods, calls);
+}
+
+/**
+ * Generate the PcExerciseMain.java source for a lesson exercise. Each test
+ * body is authored Java (setup on real domain objects, then assign `passed`,
+ * `expectedText`, `actualText`), because lesson methods operate on domain
+ * classes that JSON-typed arguments cannot express.
+ */
+export function generateExerciseMain(tests: JavaExerciseTest[]): string {
+  const seen = new Set<string>();
+  for (const test of tests) {
+    if (seen.has(test.id)) throw new Error(`Duplicate exercise test id: ${test.id}`);
+    seen.add(test.id);
+    if (!test.body.includes("passed")) {
+      throw new Error(`Exercise test ${test.id} never assigns \`passed\`; it could not report a verdict.`);
+    }
+  }
+  const methods = tests
+    .map((test, index) => {
+      const inner = test.body
+        .trim()
+        .split("\n")
+        .map((line) => (line.trim().length === 0 ? "" : `      ${line}`))
+        .join("\n");
+      return testMethodShell(test.id, index, inner);
+    })
+    .join("\n\n");
+  const calls = tests.map((_, index) => `    test${index}();`).join("\n");
+  return mainShell("PcExerciseMain", methods, calls);
+}
+
+function mainShell(className: string, methods: string, calls: string): string {
   return `import java.io.FileWriter;
 import java.io.PrintWriter;
 
-public final class PcTestMain {
+public final class ${className} {
   private static final StringBuilder OUT = new StringBuilder();
   private static boolean first = true;
 
