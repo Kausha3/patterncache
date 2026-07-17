@@ -55,7 +55,7 @@ import type {
   SystemForgeMissionId,
 } from "@/arena/systemForgeMissions";
 import parkingGarageMap from "@/assets/system-forge/parking-garage-map.webp";
-import { SolidGarageGame } from "@/components/SolidGarageGame";
+import { SolidCampaign } from "@/components/SolidCampaign";
 import "@/theme/pattern-genome.css";
 
 type RunState = "idle" | "running" | "complete";
@@ -169,7 +169,7 @@ export function PatternGenomePage() {
   };
 
   if (!showAdvanced) {
-    return <div className="living-garage-page"><SolidGarageGame /></div>;
+    return <div className="living-garage-page"><SolidCampaign /></div>;
   }
 
   return (

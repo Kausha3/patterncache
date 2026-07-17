@@ -43,14 +43,14 @@ export const SOLID_PRINCIPLES: SolidPrincipleEntry[] = [
       "Stable code should gain new behavior by ADDING code, not by editing what already works. The tell you're violating it: a new requirement makes you reopen a class that was finished, to add another branch.",
     whereYouUsedIt: [
       {
+        label: "System Forge · The Tariff Wars",
+        route: "/arena/pattern-genome",
+        note: "You watched an event tariff break EV pricing inside one shared method, then shipped tariffs as TariffPolicy implementations. The whole chapter is this principle.",
+      },
+      {
         label: "Discount / Coupon System lesson",
         route: "/lesson/discount-coupon-system",
         note: "A new discount type ships as a new DiscountRule implementation. Coupon and CouponEngine never get edited for it.",
-      },
-      {
-        label: "Splitwise cold drill",
-        route: "/drill/splitwise",
-        note: "Equal, exact, and percentage splits are separate strategies, so a new split kind is a new class, not a new branch.",
       },
     ],
     interviewLine:
@@ -63,6 +63,11 @@ export const SOLID_PRINCIPLES: SolidPrincipleEntry[] = [
     plain:
       "Anything that claims a contract must be fully usable through that contract. If calling code has to check which concrete type it got before trusting a method, the substitution is broken.",
     whereYouUsedIt: [
+      {
+        label: "System Forge · The Impostor Spot",
+        route: "/arena/pattern-genome",
+        note: "ReservedSpot claimed the ParkingSpot contract and broke it without a single caller changing. You repaired the subtype, not the callers.",
+      },
       {
         label: "File System cold drill",
         route: "/drill/file-system",
@@ -85,9 +90,14 @@ export const SOLID_PRINCIPLES: SolidPrincipleEntry[] = [
       "Keep contracts small enough that implementers use everything they sign up for. A fat interface forces classes to carry methods they can't honestly implement, which is how LSP violations get manufactured.",
     whereYouUsedIt: [
       {
+        label: "System Forge · One Remote To Rule Them All",
+        route: "/arena/pattern-genome",
+        note: "One universal device contract forced fake methods, and a silent no-op hid real broken hardware. You split it into client-sized contracts.",
+      },
+      {
         label: "Pizza Ordering cold drill",
         route: "/drill/pizza-ordering",
-        note: "The Pizza contract is exactly two methods, getCost() and getDescription(), which is why both PlainPizza and ToppingDecorator can honor all of it. That smallness is ISP working quietly. We don't have a fat-interface horror story in the app yet; the principle mostly shows up here as contracts kept deliberately narrow.",
+        note: "The Pizza contract is exactly two methods, getCost() and getDescription(), which is why both PlainPizza and ToppingDecorator can honor all of it. That smallness is ISP working quietly.",
       },
     ],
     interviewLine:
@@ -101,9 +111,9 @@ export const SOLID_PRINCIPLES: SolidPrincipleEntry[] = [
       "High-level logic should depend on an abstraction, and the concrete implementations should depend on that same abstraction from the other side. The stable thing in the middle is the contract, not any class.",
     whereYouUsedIt: [
       {
-        label: "Discount / Coupon System lesson",
-        route: "/lesson/discount-coupon-system",
-        note: "CouponEngine depends on the DiscountRule interface. It never imports percentage-off or fixed-off concretely, which is exactly why new rules don't touch it.",
+        label: "System Forge · The Outage at Exit Rush",
+        route: "/arena/pattern-genome",
+        note: "A vendor outage stopped the exit flow that constructed its own payment client. You inverted it behind a garage-owned PaymentPort and swapped adapters mid-outage.",
       },
       {
         label: "Undo/Redo cold drill",

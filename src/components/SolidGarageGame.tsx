@@ -41,7 +41,7 @@ import floorScanner from "@/assets/living-garage/search-module.webp";
 
 const STRONG_SHIFT_ANSWER = "Each Level owns the parking spaces on that floor, so findSpot(vehicle) belongs inside Level because it searches the spots Level already remembers. ParkingLot should coordinate across floors instead of searching every individual space. That keeps both classes focused and contains future changes to floor-search behavior.";
 
-export function SolidGarageGame() {
+export function SolidGarageGame({ onContinue }: { onContinue?: () => void } = {}) {
   const [game, dispatch] = useReducer(firstShiftReducer, undefined, createFirstShiftState);
   const [answer, setAnswer] = useState("");
   const [assessment, setAssessment] = useState<FirstShiftInterviewAssessment>();
@@ -107,7 +107,7 @@ export function SolidGarageGame() {
           onSubmit={submitInterview}
         />
       ) : null}
-      {game.stage === "complete" ? <ShiftComplete score={game.interviewScore ?? 0} attempts={game.attempts} onReplay={replay} /> : null}
+      {game.stage === "complete" ? <ShiftComplete score={game.interviewScore ?? 0} attempts={game.attempts} onReplay={replay} onContinue={onContinue} /> : null}
     </main>
   );
 }
@@ -355,7 +355,7 @@ function ShiftInterview({
   );
 }
 
-function ShiftComplete({ score, attempts, onReplay }: { score: number; attempts: number; onReplay: () => void }) {
+function ShiftComplete({ score, attempts, onReplay, onContinue }: { score: number; attempts: number; onReplay: () => void; onContinue?: () => void }) {
   return (
     <section className="shift-complete" aria-labelledby="shift-title">
       <span className="shift-complete-icon"><CheckCircle size={44} weight="fill" /></span>
@@ -369,7 +369,12 @@ function ShiftComplete({ score, attempts, onReplay }: { score: number; attempts:
         <span><Wrench size={19} /><b>SRP</b><small>principle</small></span>
       </div>
       <div className="shift-score"><strong>{score}%</strong><span>interview evidence</span><i>{attempts === 0 ? "Transferred without a wrong installation" : `${attempts} useful ${attempts === 1 ? "retry" : "retries"}`}</i></div>
-      <button className="shift-primary" type="button" onClick={onReplay}><ArrowClockwise size={20} /> Replay the shift from memory</button>
+      <div className="shift-complete-actions">
+        {onContinue ? (
+          <button className="shift-primary" type="button" onClick={onContinue}>Next chapter: Open/Closed <ArrowRight size={20} /></button>
+        ) : null}
+        <button className={onContinue ? "shift-secondary" : "shift-primary"} type="button" onClick={onReplay}><ArrowClockwise size={20} /> Replay the shift from memory</button>
+      </div>
     </section>
   );
 }

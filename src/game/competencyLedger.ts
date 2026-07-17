@@ -3,7 +3,7 @@ import { PATTERN_GENOME_MISSIONS } from "@/arena/patternGenomeMissions";
 import { CODING_COMBAT_MISSIONS } from "@/arena/codingCombatMissions";
 import { LLD_STUDIO_MISSIONS } from "@/arena/lldStudioMissions";
 import type { PatternGenomeProgress } from "@/hooks/usePatternGenomeProgress";
-import type { GarageProgress } from "@/game/garageProgress";
+import type { GarageProgress, GarageChapterId } from "@/game/garageProgress";
 import type { ArenaScores, CodingCombatScores, LldStudioScores } from "@/arena/types";
 import { AMAZON_SDE1_QUESTIONS } from "@/content/amazonSde1Prep";
 import type { AmazonPrepRecord } from "@/hooks/useAmazonPrepProgress";
@@ -123,6 +123,37 @@ const ARENA_MODE_LABELS: Record<string, string> = {
 };
 const arenaTitle = (mode: string): string => ARENA_MODE_LABELS[mode] ?? mode;
 
+
+const GARAGE_CHAPTER_EVIDENCE: Record<
+  GarageChapterId,
+  { observed: string; repaired: string; transferred: string; explained: string }
+> = {
+  ocp: {
+    observed: "Watched the event tariff break EV pricing inside one shared method",
+    repaired: "Moved tariffs behind a TariffPolicy contract and cleared the fee suite",
+    transferred: "Shipped the valet lane as a LanePolicy with hints off",
+    explained: "Defended Open/Closed on the garage's pricing",
+  },
+  lsp: {
+    observed: "Watched ReservedSpot break the entry flow without any caller changing",
+    repaired: "Made the subtype honor the ParkingSpot promise instead of patching callers",
+    transferred: "Kept CompactSpot truthful about its capability with hints off",
+    explained: "Defended substitutability across every spot kind",
+  },
+  isp: {
+    observed: "Watched fake device methods hide a genuinely broken display",
+    repaired: "Split the universal device contract into client-sized interfaces",
+    transferred: "Split the mobile API by client need with hints off",
+    explained: "Defended client-sized contracts on the device fleet",
+  },
+  dip: {
+    observed: "Watched the Acme outage stop the exit flow welded to it",
+    repaired: "Inverted the dependency behind a garage-owned PaymentPort",
+    transferred: "Ported the plate camera behind its own port with hints off",
+    explained: "Defended the domain-owned contract and its testability payoff",
+  },
+};
+
 /**
  * Derive the full evidence ledger from the persisted stores. Pure and
  * deterministic: same inputs always produce the same entries with the same
@@ -174,6 +205,51 @@ export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
         label: `Explained why findSpot belongs on Level (${shift.bestScore}% interview evidence)`,
         verified: true,
         at: shift.completedAt,
+      },
+    );
+  }
+
+  // SOLID campaign chapters 2-5 repeat the same loop on new principles.
+  for (const [chapterId, record] of Object.entries(inputs.garage?.chapters ?? {})) {
+    if (!record) continue;
+    const labels = GARAGE_CHAPTER_EVIDENCE[chapterId as GarageChapterId];
+    if (!labels) continue;
+    entries.push(
+      {
+        id: `garage-${chapterId}-observed`,
+        kind: "observed-failure",
+        source: "system-forge",
+        refId: chapterId,
+        label: labels.observed,
+        verified: true,
+        at: record.completedAt,
+      },
+      {
+        id: `garage-${chapterId}-repaired`,
+        kind: "repaired-design",
+        source: "system-forge",
+        refId: chapterId,
+        label: labels.repaired,
+        verified: true,
+        at: record.completedAt,
+      },
+      {
+        id: `garage-${chapterId}-transferred`,
+        kind: "transferred",
+        source: "system-forge",
+        refId: chapterId,
+        label: labels.transferred,
+        verified: true,
+        at: record.completedAt,
+      },
+      {
+        id: `garage-${chapterId}-explained`,
+        kind: "explained",
+        source: "system-forge",
+        refId: chapterId,
+        label: `${labels.explained} (${record.bestScore}% interview evidence)`,
+        verified: true,
+        at: record.completedAt,
       },
     );
   }

@@ -23,7 +23,7 @@ const MASTERY_WORK: PracticeCard[] = [
   {
     title: "System Forge",
     route: "/arena/pattern-genome",
-    blurb: "The canonical LLD experience. Run a real garage into a rush-hour failure, repair it, transfer the fix with hints off, and defend it in interview language. Mission 1 teaches Single Responsibility; more SOLID chapters are planned.",
+    blurb: "The canonical LLD experience. Run a real garage into a rush-hour failure, repair it, transfer the fix with hints off, and defend it in interview language. Five chapters, one per SOLID principle, from Single Responsibility to Dependency Inversion.",
     icon: "layers",
     accent: color.violet,
     tag: "Canonical LLD",
