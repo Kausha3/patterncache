@@ -36,4 +36,35 @@ describe("course plan", () => {
   it("formats dates without UTC shifting", () => {
     expect(formatLocalDate(new Date(2026, 6, 5, 23, 45))).toBe("2026-07-05");
   });
+
+  it("schedules the complete LLD arc in both plans", () => {
+    // The arc, per the July 2026 research pass: basics, then the six lessons
+    // ordered responsibility -> allocation -> state machine -> policy, plus
+    // the two constrained-structure drills with dated Amazon SDE-1 evidence
+    // (LRU/LFU cache Dec 2024, Circular Buffer 2025), plus cold transfer.
+    const lldLessons15 = ["lld-101", "parking-lot", "amazon-locker", "vending-machine", "discount-coupon-system"];
+    const lldLessons30 = [...lldLessons15, "elevator-system", "chess-game"];
+    const lldDrillRoutes = ["/drill/lru-cache", "/drill/circular-buffer"];
+
+    for (const [length, lessons] of [[15, lldLessons15], [30, lldLessons30]] as const) {
+      const plan = buildCoursePlan(length);
+      const lessonIds = plan.flatMap((day) => day.tasks.map((task) => task.lessonId).filter(Boolean));
+      const routes = plan.flatMap((day) => day.tasks.map((task) => task.route).filter(Boolean));
+
+      for (const id of lessons) {
+        expect(lessonIds, `${length}-day plan should schedule lesson ${id}`).toContain(id);
+      }
+      for (const route of lldDrillRoutes) {
+        expect(routes, `${length}-day plan should route to ${route}`).toContain(route);
+      }
+      // Transfer practice: at least one open-ended cold drill day.
+      expect(routes.some((route) => route === "/drill"), `${length}-day plan needs a cold transfer day`).toBe(true);
+    }
+  });
+
+  it("keeps Chess out of the 15-day sprint (stretch tier, no dated SDE-1 evidence)", () => {
+    const plan = buildCoursePlan(15);
+    const lessonIds = plan.flatMap((day) => day.tasks.map((task) => task.lessonId).filter(Boolean));
+    expect(lessonIds).not.toContain("chess-game");
+  });
 });

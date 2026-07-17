@@ -76,3 +76,22 @@ The interactive board lives at `#/companies/amazon/sde1`. Progress is stored loc
 - `src/hooks/useAmazonPrepProgress.ts`
 - `src/hooks/useAmazonPrepProgress.test.ts`
 
+
+## July 2026 LLD research refresh
+
+A second deep-research pass (103 agents, adversarial 3-vote verification, July 2026) re-checked the LLD side of this curriculum against candidate reports dated September 2025 through July 2026.
+
+**The headline is an absence finding.** Not a single dated in-window candidate report naming an Amazon SDE-1 LLD prompt survived verification. The closest verified Amazon evidence is pre-window: Parking Lot "with many constraints" as a 30-minute LLD segment (LeetCode Discuss, Nov 2024), an LFU-cache-as-product prompt with pluggable eviction policies in an accepted loop (LeetCode Discuss, Dec 2024), and a Feb 2025 fresher loop that contained no LLD round at all. Amazon's official prep pages never describe a distinct LLD round. Consequences for this plan:
+
+- Coverage-first tiering stays correct. Chasing "currently hot" prompt claims from undated listicles would launder weaker evidence than what we already have.
+- An LLD round is not guaranteed at SDE-1. The plan keeps LLD preparation because when the round appears it is decisive, but DSA days stay the volume priority.
+- The verified depth bar (from the one accepted-loop debrief): clarify the vague prompt, model the entities, name extensibility hooks, implement a barebones core. Not pattern name-dropping and not a fully polished program. Day 14/29 mock instructions now say exactly this.
+
+**Changes made from this pass:**
+
+- Circular Buffer (reported in a 2025 SDE-1 loop) is now an in-app drill instead of an external link, and is scheduled on Day 11 next to Parking Lot in the 15-day plan.
+- The 15-day plan's Day 13 dropped Chess (every verified curriculum source tiers it hard/stretch and no dated report names it) in favor of LRU Cache drill work plus the LFU/pluggable-eviction follow-up that the Dec 2024 accepted loop was actually probed on. Chess stays in the 30-day plan and the Library.
+- The 30-day plan gained a constrained-data-structure day (Day 26: LRU Cache + Circular Buffer drills).
+- Lesson ordering was sanity-checked against Hello Interview's six-problem progression (Connect Four -> Amazon Locker -> Elevator -> Parking Lot -> Rate Limiter -> Inventory Management) and the cross-vendor consensus (fundamentals -> state machines -> resource allocation -> scheduling -> policy). Our arc (LLD basics -> Parking Lot -> Locker -> Elevator -> Vending -> Coupon -> constrained structures -> cold transfer) matches the consensus shape.
+
+**Watchlist (verified at other companies, not Amazon; not scheduled in the Amazon plans):** Atlassian's code-design round (Nov 2025 aggregation plus in-window corroboration) centers on Rate Limiter, Middleware Router, Agent Rating Leaderboard, File Collections Tracker (top-N), Cost Explorer, Snake, in-memory File System, and Hit Counter. Flipkart's 2026 machine-coding pool is business-domain flows (wallet, BNPL, appointment booking, loyalty programs) with runnable in-memory code and "partial but well-designed beats complete but messy" as the explicit bar. If a non-Amazon track ships later, these are the evidence-backed prompts to build first. Microsoft, Google, Uber, and Salesforce produced no verified junior-level LLD claims at all this pass.

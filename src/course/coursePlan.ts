@@ -167,8 +167,9 @@ const SPRINT_15: CourseDay[] = [
     focus: "Responsibility, behavior, and edge cases",
     tasks: [
       lesson("lld-101", "LLD Basics", 15, "Learn the entity and responsibility heuristics."),
-      lesson("parking-lot", "Parking Lot", 35, "Complete the class model, method placement, code, and edge cases."),
+      lesson("parking-lot", "Parking Lot", 35, "Complete the class model, method placement, code, and edge cases. The one prompt with a dated Amazon SDE-1 report behind it."),
       task("d11-redraw", "Parking Lot from memory", 25, "Redraw the classes and relationships without reopening the lesson.", "design", "/arena/pattern-genome"),
+      task("d11-buffer", "Cold drill: Circular Buffer", 40, "Fixed storage, two wrapping indexes, and the empty-vs-full trap. Reported in a 2025 SDE-1 loop.", "design", "/drill/circular-buffer"),
       starStory("d11", "Invent and Simplify"),
     ],
   },
@@ -185,11 +186,11 @@ const SPRINT_15: CourseDay[] = [
   },
   {
     day: 13,
-    title: "Extensibility and transfer",
-    focus: "Patterns used for a reason",
+    title: "Cache design and extensibility",
+    focus: "O(1) contracts, pluggable policies, and transfer",
     tasks: [
-      lesson("discount-coupon-system", "Discount / Coupon System", 35, "Model eligibility, stacking, validity, and strategy variation."),
-      lesson("chess-game", "Chess Game", 35, "Separate board state, piece behavior, validation, and game state."),
+      lesson("discount-coupon-system", "Discount / Coupon System", 35, "Model eligibility, stacking, validity, and strategy variation. The same pluggable-policy thinking a Dec 2024 Amazon SDE-1 loop probed on a cache."),
+      task("d13-cache", "Cold drill: LRU Cache", 45, "Design get/put with O(1) contracts, then talk through the LFU variation. A Dec 2024 Amazon SDE-1 loop asked cache design with pluggable eviction.", "design", "/drill/lru-cache"),
       task("d13-patterns", "Spot the Pattern", 20, "Complete the pattern scenarios and explain each rejected alternative.", "review", "/patterns"),
       task("d13-cold", "Cold drill: Library or ATM", 45, "Clarify, model, add edge cases, and compare only after committing.", "design", "/drill"),
     ],
@@ -200,7 +201,7 @@ const SPRINT_15: CourseDay[] = [
     focus: "Sustain quality under interview timing",
     tasks: [
       task("d14-coding", "55-minute coding round", 55, "Narrate, test, and give complexity as if an interviewer were present.", "mock"),
-      task("d14-design", "55-minute design round", 55, "Use an unseen prompt and ask a partner or recorder to push on trade-offs.", "mock"),
+      task("d14-design", "55-minute design round", 55, "Use an unseen prompt. Practice the verified bar: clarify the vague prompt first, model the entities, code the core barebones, and name your extension points out loud.", "mock"),
       task("d14-behavior", "Two behavioral rounds", 50, "Answer four LP questions with metrics and follow-up detail.", "mock"),
     ],
   },
@@ -241,11 +242,11 @@ const SPRINT_30: CourseDay[] = [
   { day: 22, title: "Amazon Locker", focus: "Allocation and lifecycle", tasks: [lesson("amazon-locker", "Amazon Locker", 35, "Model package and locker state."), task("30-d22", "Locker from memory", 30, "Redraw and code one allocation method.", "design", "/arena/pattern-genome")] },
   { day: 23, title: "Elevator", focus: "Requests and scheduling", tasks: [lesson("elevator-system", "Elevator System", 35, "Model requests and dispatch."), task("30-d23", "Scheduling alternatives", 25, "Compare nearest-car and direction-aware policies.", "design")] },
   { day: 24, title: "Vending Machine", focus: "State-machine design", tasks: [lesson("vending-machine", "Vending Machine", 35, "Model payment and dispensing states."), task("30-d24", "State transition tests", 25, "Write tests for refund and out-of-stock paths.", "coding", "/arena/lld-studio")] },
-  { day: 25, title: "Coupon and Chess", focus: "Extensibility and rules", tasks: [lesson("discount-coupon-system", "Discount / Coupon", 35, "Eligibility and strategy variation."), lesson("chess-game", "Chess Game", 35, "Rules and game state."), starStory("30-d25", "Dive Deep")] },
-  { day: 26, title: "Design patterns", focus: "Recognize the problem shape", tasks: [task("30-d26p", "Pattern learn mode", 25, "Review patterns through their real examples.", "review", "/patterns"), task("30-d26s", "Spot the Pattern", 25, "Complete every scenario and justify rejected options.", "review", "/patterns")] },
+  { day: 25, title: "Coupon and Chess", focus: "Extensibility and rules", tasks: [lesson("discount-coupon-system", "Discount / Coupon", 35, "Eligibility and strategy variation."), lesson("chess-game", "Chess Game", 35, "Rules and game state."), task("30-d25p", "Pattern learn mode", 25, "Review patterns through their real examples.", "review", "/patterns"), starStory("30-d25", "Dive Deep")] },
+  { day: 26, title: "Constrained data-structure design", focus: "O(1) contracts and index math under invariants", tasks: [task("30-d26lru", "Cold drill: LRU Cache", 45, "Design get/put with O(1) contracts, then talk through the LFU variation. A Dec 2024 Amazon SDE-1 loop asked cache design with pluggable eviction.", "design", "/drill/lru-cache"), task("30-d26buf", "Cold drill: Circular Buffer", 40, "Fixed storage, wrapping indexes, and the empty-vs-full trap. Reported in a 2025 SDE-1 loop.", "design", "/drill/circular-buffer"), task("30-d26s", "Spot the Pattern", 25, "Complete every scenario and justify rejected options.", "review", "/patterns")] },
   { day: 27, title: "Cold LLD transfer", focus: "No hints and no copied model", tasks: [task("30-d27a", "Cold drill I", 45, "Choose Library or ATM.", "design", "/drill"), task("30-d27b", "Cold drill II", 45, "Choose a different domain and compare only after committing.", "design", "/drill")] },
   { day: 28, title: "Amazon systems and principles", focus: "Operational depth", tasks: [lesson("amazon-warehouse", "Amazon Warehouse", 30, "Inventory and event flow."), lesson("amazon-checkout", "Amazon Checkout", 30, "Correctness and rollback."), task("30-d28lp", "Four LP follow-up drills", 35, "Metrics, alternatives, failures, and learning.", "behavioral")] },
-  { day: 29, title: "Full loop rehearsal", focus: "Interview stamina", tasks: [task("30-d29c", "55-minute coding", 55, "Narrate and test.", "mock"), task("30-d29d", "55-minute design", 55, "Use an unseen prompt.", "mock"), task("30-d29b", "Behavioral follow-ups", 40, "Four questions with probing follow-ups.", "mock")] },
+  { day: 29, title: "Full loop rehearsal", focus: "Interview stamina", tasks: [task("30-d29c", "55-minute coding", 55, "Narrate and test.", "mock"), task("30-d29d", "55-minute design", 55, "Use an unseen prompt. Clarify first, model entities, code the core barebones, name extension points.", "mock"), task("30-d29b", "Behavioral follow-ups", 40, "Four questions with probing follow-ups.", "mock")] },
   { day: 30, title: "Final readiness", focus: "Close the loop", tasks: [task("30-d30m", "Final mock", 90, "Use the weakest technical format.", "mock"), task("30-d30r", "Readiness scorecard", 25, "Record final evidence and remaining risks.", "review"), task("30-d30c", "Interview-day checklist", 15, "Freeze notes and logistics.", "review")] },
 ];
 

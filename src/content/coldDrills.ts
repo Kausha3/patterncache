@@ -1691,7 +1691,7 @@ const lruCache: ColdDrillPrompt = {
         id: "evictionpolicy",
         name: "EvictionPolicy",
         isEntity: false,
-        why: "Nobody asked for pluggable eviction strategies (LFU, FIFO, etc.), and inventing a strategy interface for a single fixed policy (LRU) adds indirection with no caller that needs it.",
+        why: "Don't build it upfront: a strategy interface for a single fixed policy (LRU) adds indirection with no caller that needs it. But expect it as the follow-up. A Dec 2024 Amazon SDE-1 loop asked for exactly this, pluggable eviction policies on a cache, as the extensibility probe. The winning move is to name where the interface would go when asked, not to pre-build it.",
       },
       {
         id: "cacheentry",
