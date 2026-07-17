@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle, Lock, Play } from "@phosphor-icons/react";
 import { SolidGarageGame } from "./SolidGarageGame";
 import { SolidChapterPlayer } from "./SolidChapterPlayer";
 import { SOLID_CHAPTER_MISSIONS } from "@/arena/solidChapterMissions";
-import { loadGarageProgress } from "@/game/garageProgress";
+import { isCampaignComplete, loadGarageProgress } from "@/game/garageProgress";
 import type { GarageChapterId, GarageProgress } from "@/game/garageProgress";
 
 type CampaignView = "map" | "first-shift" | GarageChapterId;
@@ -128,6 +129,61 @@ function CampaignMap({ progress, onOpen }: { progress: GarageProgress; onOpen: (
           );
         })}
       </div>
+      {isCampaignComplete(progress) ? <CampaignBridge /> : null}
     </main>
+  );
+}
+
+/**
+ * Shown once all five chapters are complete. The campaign taught the
+ * principles inside one garage; the bridge points at where the same skills
+ * get exercised on prompts the learner has never seen.
+ */
+function CampaignBridge() {
+  const navigate = useNavigate();
+  const nextSteps = [
+    {
+      title: "Cold Design Drills",
+      body: "Bare prompts you have never seen, no hints. This is where the garage skills prove they transfer.",
+      cta: "Open the drill bank",
+      route: "/drill",
+    },
+    {
+      title: "Guided LLD lessons",
+      body: "Parking Lot, Locker, Elevator and more, each with Java exercises that compile and run in your browser.",
+      cta: "Open the library",
+      route: "/library",
+    },
+    {
+      title: "Back to your plan",
+      body: "Your daily schedule already mixes these reps with coding and mock days. Let it drive from here.",
+      cta: "Open Today",
+      route: "/",
+    },
+  ];
+  return (
+    <section className="campaign-bridge" aria-labelledby="campaign-bridge-title">
+      <header>
+        <CheckCircle size={20} weight="fill" aria-hidden />
+        <div>
+          <h2 id="campaign-bridge-title">Campaign complete. The garage has taught you all five.</h2>
+          <p>
+            You watched every failure, repaired every design, and defended each principle in interview language. From
+            here the reps come from prompts you have not seen before.
+          </p>
+        </div>
+      </header>
+      <div className="campaign-bridge-grid">
+        {nextSteps.map((step) => (
+          <button key={step.route} type="button" className="campaign-bridge-card" onClick={() => navigate(step.route)}>
+            <strong>{step.title}</strong>
+            <p>{step.body}</p>
+            <span>
+              {step.cta} <ArrowRight size={14} />
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }

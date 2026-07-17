@@ -18,6 +18,8 @@ export type IconName =
   | "close"
   | "plus"
   | "minus"
+  | "download"
+  | "upload"
   | "chevronRight"
   | "target"
   | "insight"
@@ -45,6 +47,8 @@ const STROKE: Partial<Record<IconName, string>> = {
   close: "M6 6l12 12M18 6 6 18",
   plus: "M12 5v14M5 12h14",
   minus: "M5 12h14",
+  download: "M12 4v11m0 0 5-5m-5 5-5-5M4 20h16",
+  upload: "M12 20V9m0 0 5 5m-5-5-5 5M4 4h16",
   chevronRight: "M9 5l7 7-7 7",
   target: "M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0",
   layers: "M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5M3 8v0",

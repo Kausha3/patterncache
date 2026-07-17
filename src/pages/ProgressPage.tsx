@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PathMap } from "@/components/PathMap";
 import { Button, Divider, Eyebrow, Panel } from "@/components/ui";
@@ -11,6 +11,8 @@ import { usePatternGenomeProgress } from "@/hooks/usePatternGenomeProgress";
 import { useAmazonPrepProgress } from "@/hooks/useAmazonPrepProgress";
 import { loadGarageProgress } from "@/game/garageProgress";
 import { loadExerciseProgress } from "@/game/exerciseProgress";
+import { describeExport, exportProgress, importProgress, parseProgressExport } from "@/game/progressVault";
+import type { ProgressExport } from "@/game/progressVault";
 import {
   deriveLedger,
   summarizeLedger,
@@ -205,7 +207,110 @@ export function ProgressPage() {
           </div>
         </section>
       )}
+
+      <Divider />
+      <DataPanel />
     </div>
+  );
+}
+
+/**
+ * Export and import for everything on this device. Progress is
+ * localStorage-only by design (no accounts), so this is the backup and
+ * move-devices story.
+ */
+function DataPanel() {
+  const [pendingImport, setPendingImport] = useState<{ data: ProgressExport; labels: string[] } | null>(null);
+  const [importError, setImportError] = useState<string>();
+  const [importDone, setImportDone] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const downloadExport = () => {
+    const snapshot = exportProgress();
+    const stamp = new Date(snapshot.exportedAt).toISOString().slice(0, 10);
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `patterncache-progress-${stamp}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const readFile = (file: File) => {
+    setImportError(undefined);
+    setPendingImport(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = parseProgressExport(String(reader.result));
+        const labels = describeExport(data);
+        if (labels.length === 0) throw new Error("That export holds no progress data.");
+        setPendingImport({ data, labels });
+      } catch (error) {
+        setImportError(error instanceof Error ? error.message : "That file could not be read.");
+      }
+    };
+    reader.onerror = () => setImportError("That file could not be read.");
+    reader.readAsText(file);
+  };
+
+  const confirmImport = () => {
+    if (!pendingImport) return;
+    importProgress(pendingImport.data);
+    setPendingImport(null);
+    setImportDone(true);
+    // Every hook reads its store on mount; a reload is the honest way to
+    // make the whole app reflect the restored data at once.
+    globalThis.setTimeout(() => window.location.reload(), 900);
+  };
+
+  return (
+    <section style={{ display: "grid", gap: 10 }}>
+      <Eyebrow tone={color.textDim}>Your data · saved on this device only</Eyebrow>
+      <Panel style={{ display: "grid", gap: 12 }}>
+        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: color.textDim }}>
+          Everything lives in this browser. Export a backup before switching devices or clearing the browser, then
+          import it on the other side. Importing replaces the progress on this device.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <Button icon="download" onClick={downloadExport}>Export my progress</Button>
+          <Button variant="ghost" icon="upload" onClick={() => fileInput.current?.click()}>Import a backup</Button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            aria-label="Choose a PatternCache progress export file"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) readFile(file);
+              event.target.value = "";
+            }}
+          />
+        </div>
+        {importError ? (
+          <p style={{ margin: 0, fontSize: 12.5, color: color.red }}>{importError}</p>
+        ) : null}
+        {pendingImport ? (
+          <div style={{ display: "grid", gap: 8, padding: "12px 14px", border: `1px solid ${color.panelBorder}`, borderRadius: 10 }}>
+            <strong style={{ fontSize: 12.5, color: color.text }}>
+              This backup holds: {pendingImport.labels.join(", ")}.
+            </strong>
+            <p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>
+              Importing overwrites those areas on this device. There is no undo.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button icon="upload" onClick={confirmImport}>Replace my progress with this backup</Button>
+              <Button variant="subtle" onClick={() => setPendingImport(null)}>Cancel</Button>
+            </div>
+          </div>
+        ) : null}
+        {importDone ? (
+          <p style={{ margin: 0, fontSize: 12.5, color: color.green }}>Backup restored. Reloading…</p>
+        ) : null}
+      </Panel>
+    </section>
   );
 }
 

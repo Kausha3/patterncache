@@ -96,6 +96,11 @@ export function recordFirstShiftCompletion(score: number, attempts: number): Gar
   return persist({ ...current, firstShift: mergeRecord(current.firstShift, score, attempts) });
 }
 
+/** True when the first shift and all four chapters have a completion record. */
+export function isCampaignComplete(progress: GarageProgress): boolean {
+  return !!progress.firstShift && GARAGE_CHAPTER_IDS.every((chapterId) => !!progress.chapters?.[chapterId]);
+}
+
 export function recordChapterCompletion(chapterId: GarageChapterId, score: number, attempts: number): GarageProgress {
   const current = loadGarageProgress();
   return persist({
