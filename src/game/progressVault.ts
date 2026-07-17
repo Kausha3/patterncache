@@ -22,6 +22,7 @@ export const KNOWN_STORES: { key: string; label: string }[] = [
   { key: "patterncache.pattern-genome.v1", label: "System Forge missions" },
   { key: "patterncache.garage.v1", label: "SOLID campaign" },
   { key: "patterncache.exercises.v1", label: "Runnable Java exercises" },
+  { key: "patterncache.mock-interviews.v1", label: "Mock interview sessions" },
 ];
 
 export interface ProgressExport {

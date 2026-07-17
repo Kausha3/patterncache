@@ -107,6 +107,7 @@ describe("progress vault", () => {
       "patterncache.exercises.v1",
       "patterncache.game.v1",
       "patterncache.garage.v1",
+      "patterncache.mock-interviews.v1",
       "patterncache.pattern-genome.v1",
       "patterncache.progress.v1",
     ]);

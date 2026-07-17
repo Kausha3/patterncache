@@ -12,6 +12,7 @@ import { useAmazonPrepProgress } from "@/hooks/useAmazonPrepProgress";
 import { loadGarageProgress } from "@/game/garageProgress";
 import { loadExerciseProgress } from "@/game/exerciseProgress";
 import { describeExport, exportProgress, importProgress, parseProgressExport } from "@/game/progressVault";
+import { loadMockSessions } from "@/interview/mockSessionStore";
 import type { ProgressExport } from "@/game/progressVault";
 import {
   deriveLedger,
@@ -48,6 +49,7 @@ export function ProgressPage() {
   // chapter completes while this page stays mounted. The parse is tiny.
   const garageProgress = loadGarageProgress();
   const exerciseProgress = loadExerciseProgress();
+  const mockSessions = loadMockSessions();
   const ledger = useMemo(
     () =>
       deriveLedger({
@@ -60,8 +62,9 @@ export function ProgressPage() {
         dailyTargets: dailyTargetTitles,
         amazonPrepRecords: amazonRecords,
         exerciseRecords: exerciseProgress,
+        mockSessions,
       }),
-    [forgeProgress, garageProgress, exerciseProgress, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
+    [forgeProgress, garageProgress, exerciseProgress, mockSessions, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
   );
   const summary = useMemo(() => summarizeLedger(ledger), [ledger]);
   const recent = ledger.slice(0, 8);

@@ -18,6 +18,7 @@ const CodingCombatPage = lazy(() => import("@/pages/CodingCombatPage").then((mod
 const LldStudioPage = lazy(() => import("@/pages/LldStudioPage").then((module) => ({ default: module.LldStudioPage })));
 const PatternGenomePage = lazy(() => import("@/pages/PatternGenomePage").then((module) => ({ default: module.PatternGenomePage })));
 const AmazonSde1PrepPage = lazy(() => import("@/pages/AmazonSde1PrepPage").then((module) => ({ default: module.AmazonSde1PrepPage })));
+const MockInterviewPage = lazy(() => import("@/pages/MockInterviewPage").then((module) => ({ default: module.MockInterviewPage })));
 
 /** Persistent primary navigation and routed pages. */
 export function App() {
@@ -51,6 +52,14 @@ export function App() {
             element={
               <Suspense fallback={<PageFallback label="Loading Coding Combat…" />}>
                 <CodingCombatPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/interview"
+            element={
+              <Suspense fallback={<PageFallback label="Loading the mock interview…" />}>
+                <MockInterviewPage />
               </Suspense>
             }
           />
@@ -105,6 +114,7 @@ export function activeSection(pathname: string): string {
     pathname.startsWith("/practice") ||
     pathname.startsWith("/arena") ||
     pathname.startsWith("/drill") ||
+    pathname.startsWith("/interview") ||
     pathname.startsWith("/patterns")
   ) {
     return "/practice";

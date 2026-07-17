@@ -56,6 +56,18 @@ const MORE_REPS: PracticeCard[] = [
   },
 ];
 
+const INTERVIEW_WORK: PracticeCard[] = [
+  {
+    title: "Mock interview",
+    route: "/interview",
+    blurb: "Paste the JD and the resume you submitted. Get the questions interviewers mine from them, judged the way that company judges, with honest heuristic coaching. Everything stays on this device.",
+    icon: "insight",
+    accent: color.violet,
+    tag: "Resume based · on device",
+    tagTone: color.violet,
+  },
+];
+
 const CODING_WORK: PracticeCard[] = [
   {
     title: "Amazon SDE I board",
@@ -101,6 +113,7 @@ export function PracticeHubPage() {
 
       <Section eyebrow="Learn LLD · one starting point" tone={color.violet} cards={START_HERE} />
       <Section eyebrow="Coding" tone={color.amber} cards={CODING_WORK} />
+      <Section eyebrow="Interview practice" tone={color.violet} cards={INTERVIEW_WORK} />
       <Section eyebrow="More reps · after the campaign" tone={color.blue} cards={MORE_REPS} />
       <Section
         eyebrow="Quick checks · recall support, not mastery"

@@ -40,6 +40,7 @@ export type EvidenceSource =
   | "daily-challenge"
   | "amazon-board"
   | "lesson"
+  | "mock-interview"
   | "quick-check";
 
 export interface EvidenceEntry {
@@ -111,6 +112,8 @@ export interface LedgerInputs {
   amazonPrepRecords?: Record<string, AmazonPrepRecord>;
   /** Runnable lesson code exercises keyed by "<lessonId>:<methodId>". */
   exerciseRecords?: ExerciseProgress;
+  /** Completed mock interview sessions (id, company, weakest dimension). */
+  mockSessions?: { id: string; companyId: string; completedAt?: number; answeredCount: number }[];
 }
 
 const forgeTitle = (missionId: string): string =>
@@ -322,6 +325,21 @@ export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
         at: record.completedAt,
       });
     }
+  }
+
+  // Mock interviews: a completed loop is real speaking-out-loud practice,
+  // but the coach is heuristic, so the evidence stays self-attested.
+  for (const session of inputs.mockSessions ?? []) {
+    if (!session.completedAt || session.answeredCount === 0) continue;
+    entries.push({
+      id: `mock-${session.id}-explained`,
+      kind: "explained",
+      source: "mock-interview",
+      refId: session.id,
+      label: `Ran a full ${session.companyId === "general" ? "mock" : session.companyId} interview loop, ${session.answeredCount} answers coached`,
+      verified: false,
+      at: session.completedAt,
+    });
   }
 
   // Runnable lesson exercises: the learner's own class compiled with javac
