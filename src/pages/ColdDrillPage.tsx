@@ -221,7 +221,7 @@ export function ColdDrillPage() {
                     <div key={m.id} style={{ display: "grid", gap: 8 }}>
                       <span style={{ fontFamily: font.mono, fontSize: 13, fontWeight: 700, color: color.text }}>{m.signature}</span>
                       <Suspense fallback={<p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>Loading editor…</p>}>
-                        <CodeExerciseBlock exercise={m.codeExercise!} />
+                        <CodeExerciseBlock exercise={m.codeExercise!} exerciseId={`drill:${drill.id}:${m.id}`} exerciseLabel={`${m.signature} \u00b7 ${drill.title}`} />
                       </Suspense>
                     </div>
                   ))}

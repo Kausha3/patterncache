@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { generateExerciseMain, parseJavaTestReport } from "./javaHarness";
 import type { JavaExerciseSpec } from "@/types";
 import { LESSONS } from "@/content";
+import { listColdDrills } from "@/content/coldDrills";
 
 /**
  * Golden proof for every runnable lesson exercise: assemble exactly the
@@ -42,6 +43,18 @@ function discoverJavaExercises(): DiscoveredExercise[] {
       if (method.codeExercise?.java) {
         found.push({
           lessonId: lesson.id,
+          methodId: method.id,
+          signature: method.signature,
+          spec: method.codeExercise.java,
+        });
+      }
+    }
+  }
+  for (const drill of listColdDrills()) {
+    for (const method of drill.reference.methods) {
+      if (method.codeExercise?.java) {
+        found.push({
+          lessonId: `drill:${drill.id}`,
           methodId: method.id,
           signature: method.signature,
           spec: method.codeExercise.java,

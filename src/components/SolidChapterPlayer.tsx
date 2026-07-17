@@ -23,6 +23,7 @@ import type {
   Workbench,
 } from "@/arena/solidChapterEngine";
 import { recordChapterCompletion } from "@/game/garageProgress";
+import { ImpostorSpotWorld } from "./ImpostorSpotWorld";
 
 /**
  * Plays one SOLID campaign chapter through a workbench, not a quiz: the
@@ -47,6 +48,9 @@ export function SolidChapterPlayer({
     createChapterState,
   );
   const [answer, setAnswer] = useState("");
+  // LSP opens with a living incident; the computed board appears only after
+  // the learner has watched the lane jam (or on other chapters, immediately).
+  const [worldWitnessed, setWorldWitnessed] = useState(mission.id !== "lsp");
   const [assessment, setAssessment] = useState<ChapterInterviewAssessment>();
   const [showModelAnswer, setShowModelAnswer] = useState(false);
 
@@ -101,14 +105,19 @@ export function SolidChapterPlayer({
 
       {state.stage === "incident" && (
         <section className="chapter-card">
-          <div className="chapter-coach" role="status">
-            <Lightbulb size={22} weight="duotone" />
-            <p>{state.feedback}</p>
-          </div>
-          <ResultsBoard bench={mission.repairBench} benchState={state.repair} />
-          <button className="shift-primary" type="button" onClick={() => dispatch({ type: "SEE_FAILURE" })}>
-            <Wrench size={18} /> Open the workbench
-          </button>
+          {mission.id === "lsp" ? <ImpostorSpotWorld onJammed={() => setWorldWitnessed(true)} /> : null}
+          {worldWitnessed ? (
+            <>
+              <div className="chapter-coach" role="status">
+                <Lightbulb size={22} weight="duotone" />
+                <p>{state.feedback}</p>
+              </div>
+              <ResultsBoard bench={mission.repairBench} benchState={state.repair} />
+              <button className="shift-primary" type="button" onClick={() => dispatch({ type: "SEE_FAILURE" })}>
+                <Wrench size={18} /> Open the workbench
+              </button>
+            </>
+          ) : null}
         </section>
       )}
 
@@ -335,15 +344,14 @@ function WorkbenchView({
         {bench.controls.map((control) => (
           <div key={control.id} className="chapter-control">
             <span className="chapter-control-label">{control.label}</span>
-            <div className="chapter-control-options" role="radiogroup" aria-label={control.label}>
+            <div className="chapter-control-options" role="group" aria-label={control.label}>
               {control.options.map((option) => {
                 const selected = benchState.config[control.id] === option.id;
                 return (
                   <button
                     key={option.id}
                     type="button"
-                    role="radio"
-                    aria-checked={selected}
+                    aria-pressed={selected}
                     className={selected ? "chapter-pill is-selected" : "chapter-pill"}
                     onClick={() => onSet(control.id, option.id)}
                   >
