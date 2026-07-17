@@ -69,11 +69,11 @@ const CODING_WORK: PracticeCard[] = [
   {
     title: "Coding Combat",
     route: "/arena/coding-lab",
-    blurb: "Executable missions with visible and hidden tests plus a defense round. Runs JavaScript today, so treat it as the testing loop, not Amazon practice. Java execution is the target.",
+    blurb: "Write Solution.java, and javac compiles and runs it in your browser against visible and hidden tests, then a defense round. Same language as your Amazon loop.",
     icon: "play",
     accent: color.teal,
-    tag: "Engineering prototype · JS",
-    tagTone: color.textFaint,
+    tag: "Real Java · in your browser",
+    tagTone: color.teal,
   },
 ];
 

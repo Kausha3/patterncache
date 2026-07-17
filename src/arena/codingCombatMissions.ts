@@ -1,4 +1,5 @@
 import type { CodingCombatMissionId } from "./types";
+import type { JavaCombatSpec } from "@/java/javaHarness";
 
 export interface CodingCombatTestCase {
   id: string;
@@ -27,12 +28,16 @@ export interface CodingCombatMission {
   signal: string;
   difficulty: "Warm-up" | "Interview" | "Bar raiser";
   minutes: number;
+  /** Name of the JS function, used by the prototype JS runner and its tests. */
   functionName: string;
   signature: string;
   prompt: string;
   constraints: string[];
   examples: { input: string; output: string; why: string }[];
+  /** JS starter, used by the prototype JS runner and its tests. */
   starterCode: string;
+  /** The real thing: what the workbench compiles and runs in the browser JVM. */
+  java: JavaCombatSpec;
   visibleTests: CodingCombatTestCase[];
   hiddenTests: CodingCombatTestCase[];
   hints: string[];
@@ -62,6 +67,21 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
   // Keep the invariant explicit while you move through the array.
   return [-1, -1];
 }`,
+    java: {
+      methodName: "findTargetPair",
+      signature: "public int[] findTargetPair(int[] nums, int target)",
+      argTypes: ["int[]", "int"],
+      returnType: "int[]",
+      starterCode: `import java.util.*;
+
+public class Solution {
+    public int[] findTargetPair(int[] nums, int target) {
+        // Keep the invariant explicit while you move through the array.
+        return new int[] { -1, -1 };
+    }
+}
+`,
+    },
     visibleTests: [
       { id: "mixed-values", label: "negative and positive values", args: [[-4, -1, 0, 3, 10], 6], expected: [0, 4] },
       { id: "middle-pair", label: "pair inside both boundaries", args: [[1, 2, 4, 7, 11], 9], expected: [1, 3] },
@@ -133,6 +153,21 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
   // Track exactly enough state to restore the no-duplicates invariant.
   return 0;
 }`,
+    java: {
+      methodName: "longestUniqueRun",
+      signature: "public int longestUniqueRun(String text)",
+      argTypes: ["String"],
+      returnType: "int",
+      starterCode: `import java.util.*;
+
+public class Solution {
+    public int longestUniqueRun(String text) {
+        // Track exactly enough state to restore the no-duplicates invariant.
+        return 0;
+    }
+}
+`,
+    },
     visibleTests: [
       { id: "repeating-cycle", label: "repeating cycle", args: ["abcabcbb"], expected: 3 },
       { id: "same-character", label: "one repeated character", args: ["bbbbb"], expected: 1 },
@@ -192,7 +227,7 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
     signature: "shortestHopCount(graph, start, end) → number",
     prompt: "Given an unweighted adjacency-list graph, return the minimum number of edges from start to end. Return -1 when end is unreachable.",
     constraints: [
-      "The graph may contain cycles and nodes missing from the adjacency object.",
+      "The graph may contain cycles and nodes missing from the adjacency map.",
       "When start equals end, return 0.",
       "Visit each reachable node at most once.",
     ],
@@ -204,6 +239,21 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
   // Explore the graph in a way that makes the first arrival minimal.
   return -1;
 }`,
+    java: {
+      methodName: "shortestHopCount",
+      signature: "public int shortestHopCount(Map<String, List<String>> graph, String start, String end)",
+      argTypes: ["Map<String,List<String>>", "String", "String"],
+      returnType: "int",
+      starterCode: `import java.util.*;
+
+public class Solution {
+    public int shortestHopCount(Map<String, List<String>> graph, String start, String end) {
+        // Explore the graph in a way that makes the first arrival minimal.
+        return -1;
+    }
+}
+`,
+    },
     visibleTests: [
       { id: "two-hops", label: "target two levels away", args: [{ A: ["B", "C"], B: ["D"], C: [], D: [] }, "A", "D"], expected: 2 },
       { id: "unreachable", label: "isolated target", args: [{ A: ["B"], B: [], Z: [] }, "A", "Z"], expected: -1 },

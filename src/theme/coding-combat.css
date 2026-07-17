@@ -1073,3 +1073,39 @@
   padding: 9px 12px;
   max-width: 560px;
 }
+
+/* Java runner additions: compile log, captured stdout, runtime credit */
+
+.combat-compile-log {
+  margin-top: 6px;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font: 500 10.5px/1.6 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.combat-stdout {
+  margin-top: 4px;
+  padding: 6px 8px;
+  max-height: 96px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-faint);
+  font: 500 9.5px/1.5 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.combat-console-credit {
+  padding: 8px 13px;
+  border-top: 1px solid var(--hairline);
+  color: var(--text-faint);
+  font: 500 9px/1.4 var(--mono);
+}

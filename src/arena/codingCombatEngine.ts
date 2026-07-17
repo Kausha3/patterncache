@@ -12,6 +12,8 @@ export interface CodingCombatTestResult {
   actual?: unknown;
   durationMs: number;
   error?: string;
+  /** Tail of what the solution printed during this test (Java runs only). */
+  stdout?: string;
 }
 
 export interface CodingCombatRunResult {
@@ -20,6 +22,8 @@ export interface CodingCombatRunResult {
   durationMs: number;
   results: CodingCombatTestResult[];
   fatalError?: string;
+  /** Full javac diagnostics when the solution failed to compile (Java runs only). */
+  compileLog?: string;
 }
 
 export interface CodingCombatDefenseResult {

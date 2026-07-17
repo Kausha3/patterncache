@@ -25,32 +25,32 @@ export function CodingCombatPage() {
             <Icon name="arrowLeft" size={14} /> Arena
           </button>
           <div>
-            <Eyebrow tone={color.teal}>Engineering prototype · JavaScript runner</Eyebrow>
+            <Eyebrow tone={color.teal}>Real Java · compiled and run in your browser</Eyebrow>
             <h1>Build it. Then defend it.</h1>
             <p>Write a real solution, survive private edge cases, and answer the invariant, complexity, and counterexample follow-ups.</p>
             <p className="combat-java-note">
-              This lab runs JavaScript, so treat it as the testing loop, not Amazon interview practice.
-              Your Amazon coding work lives on the SDE I board, in Java. In-browser Java execution with
-              compilation errors and hidden tests is the target for this lab.
+              You write Solution.java, javac compiles it in your browser, and your class runs on a real JVM
+              against visible and hidden tests. Same language as your Amazon loop. The first run downloads
+              the runtime, roughly 20 MB, then it is cached.
             </p>
           </div>
           <div className="combat-lobby-stats">
             <div><strong>{completed}/3</strong><span>missions cleared</span></div>
             <div><strong>21</strong><span>total test cases</span></div>
-            <div><strong>1.8s</strong><span>execution guard</span></div>
+            <div><strong>javac</strong><span>real compile errors</span></div>
           </div>
         </header>
 
         <section className="combat-safety-strip" aria-label="Execution guarantees">
-          <span><Icon name="shield" size={14} /> Browser-isolated execution</span>
-          <span><Icon name="gauge" size={14} /> Infinite loops terminated</span>
+          <span><Icon name="shield" size={14} /> Runs on your device, nothing uploaded</span>
+          <span><Icon name="gauge" size={14} /> Real compiler diagnostics</span>
           <span><Icon name="insight" size={14} /> Hidden boundary tests</span>
         </section>
 
         <section className="combat-mission-grid" aria-labelledby="combat-mission-heading">
           <div className="combat-mission-heading">
             <div><Eyebrow>Mission select</Eyebrow><h2 id="combat-mission-heading">Choose the pattern you need to prove.</h2></div>
-            <span>JavaScript · zero setup · saved on this device</span>
+            <span>Java 8 · zero setup · saved on this device</span>
           </div>
           <div className="combat-mission-cards">
             {CODING_COMBAT_MISSIONS.map((candidate, index) => {

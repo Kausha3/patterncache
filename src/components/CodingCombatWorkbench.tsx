@@ -1,28 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { javascript } from "@codemirror/lang-javascript";
+import { java } from "@codemirror/lang-java";
 import { EditorView } from "@codemirror/view";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 import type { CodingCombatMission } from "@/arena/codingCombatMissions";
-import {
-  CODING_COMBAT_MAX_SCORE,
-  formatCombatValue,
-  gradeCodingCombat,
-  runCodingCombat,
-} from "@/arena/codingCombatEngine";
+import { CODING_COMBAT_MAX_SCORE, gradeCodingCombat } from "@/arena/codingCombatEngine";
 import type { CodingCombatGrade, CodingCombatRunResult } from "@/arena/codingCombatEngine";
+import { runJavaCombat } from "@/java/javaCombatRunner";
+import type { JavaRunStage } from "@/java/javaCombatRunner";
+import { ensureJavaRuntime } from "@/java/javaRunner";
 import { Button, Eyebrow, InlineCode } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { color } from "@/theme/tokens";
 
 const EDITOR_EXTENSIONS = [
-  javascript(),
+  java(),
   EditorView.contentAttributes.of({
     "aria-label": "Solution editor",
     "aria-describedby": "coding-combat-editor-help",
     spellcheck: "false",
   }),
 ];
+
+const STAGE_MESSAGES: Record<JavaRunStage, string> = {
+  "loading-runtime": "Starting the Java runtime. The first run downloads about 20 MB; after that it is cached.",
+  compiling: "Compiling Solution.java with javac…",
+  running: "Running your class on the JVM…",
+};
 const EDITOR_SETUP = {
   lineNumbers: true,
   foldGutter: true,
@@ -48,31 +52,51 @@ export function CodingCombatWorkbench({
   onNext: () => void;
   hasNext: boolean;
 }) {
-  const [code, setCode] = useState(mission.starterCode);
+  const [code, setCode] = useState(mission.java.starterCode);
   const [phase, setPhase] = useState<"code" | "defense" | "complete">("code");
   const [runResult, setRunResult] = useState<CodingCombatRunResult>();
   const [runScope, setRunScope] = useState<"visible" | "complete">("visible");
   const [isRunning, setIsRunning] = useState(false);
+  const [runStage, setRunStage] = useState<JavaRunStage>();
+  const [runtimeReady, setRuntimeReady] = useState(false);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [failedSubmissions, setFailedSubmissions] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [grade, setGrade] = useState<CodingCombatGrade>();
   const [baselineBest] = useState(previousBest ?? 0);
-  const activeRun = useRef<AbortController>();
+  const disposed = useRef(false);
 
-  useEffect(() => () => activeRun.current?.abort(), []);
+  useEffect(() => {
+    disposed.current = false;
+    // Warm the JVM in the background so the first real run only pays for
+    // compilation. A failure here is not surfaced; the run button retries
+    // and reports properly.
+    ensureJavaRuntime().then(
+      () => {
+        if (!disposed.current) setRuntimeReady(true);
+      },
+      () => undefined,
+    );
+    return () => {
+      disposed.current = true;
+    };
+  }, []);
 
   const runTests = async (includeHidden: boolean) => {
     if (isRunning || phase !== "code") return;
-    const controller = new AbortController();
-    activeRun.current = controller;
     setIsRunning(true);
     setRunScope(includeHidden ? "complete" : "visible");
-    const result = await runCodingCombat(code, mission, includeHidden, { signal: controller.signal });
-    if (controller.signal.aborted) return;
-    activeRun.current = undefined;
+    setRunStage(runtimeReady ? "compiling" : "loading-runtime");
+    const result = await runJavaCombat(code, mission, includeHidden, {
+      onStage: (stage) => {
+        if (!disposed.current) setRunStage(stage);
+      },
+    });
+    if (disposed.current) return;
+    setRuntimeReady(true);
     setRunResult(result);
     setIsRunning(false);
+    setRunStage(undefined);
     if (!includeHidden) return;
     if (result.passed) setPhase("defense");
     else setFailedSubmissions((current) => current + 1);
@@ -115,7 +139,7 @@ export function CodingCombatWorkbench({
     <div className="combat-workbench">
       <header className="combat-workbench-header">
         <div>
-          <Eyebrow tone={color.blue}>Build phase · JavaScript</Eyebrow>
+          <Eyebrow tone={color.blue}>Build phase · Java</Eyebrow>
           <h1>{mission.title}</h1>
           <p>{mission.signal}</p>
         </div>
@@ -138,18 +162,18 @@ export function CodingCombatWorkbench({
             <header className="combat-editor-toolbar">
               <div>
                 <Icon name="code" size={15} />
-                <strong id="combat-editor-heading">solution.js</strong>
-                <span>isolated worker</span>
+                <strong id="combat-editor-heading">Solution.java</strong>
+                <span>{runtimeReady ? "Java 8 · runtime ready" : "Java 8 · runtime loads on first run"}</span>
               </div>
               <button
-                onClick={() => updateCode(mission.starterCode)}
+                onClick={() => updateCode(mission.java.starterCode)}
                 disabled={phase !== "code" || isRunning}
               >
                 Reset starter
               </button>
             </header>
             <p id="coding-combat-editor-help" className="sr-only">
-              Write the requested JavaScript function. Run visible tests before submitting to hidden tests.
+              Write real Java. Your class is compiled with javac and executed in your browser. Run visible tests before submitting to hidden tests.
             </p>
             <CodeMirror
               value={code}
@@ -181,7 +205,7 @@ export function CodingCombatWorkbench({
             </footer>
           </section>
 
-          <TestConsole result={runResult} runScope={runScope} isRunning={isRunning} />
+          <TestConsole result={runResult} runScope={runScope} isRunning={isRunning} runStage={runStage} />
 
           {phase === "defense" ? (
             <DefensePanel
@@ -214,7 +238,7 @@ function ProblemBrief({
       </div>
       <h2 id="combat-problem-heading">Mission contract</h2>
       <p>{mission.prompt}</p>
-      <InlineCode>{mission.signature}</InlineCode>
+      <InlineCode>{mission.java.signature}</InlineCode>
 
       <section>
         <h3>Constraints</h3>
@@ -256,10 +280,12 @@ function TestConsole({
   result,
   runScope,
   isRunning,
+  runStage,
 }: {
   result?: CodingCombatRunResult;
   runScope: "visible" | "complete";
   isRunning: boolean;
+  runStage?: JavaRunStage;
 }) {
   const passedCount = result?.results.filter((test) => test.passed).length ?? 0;
   return (
@@ -269,14 +295,21 @@ function TestConsole({
           <span className="combat-console-dot" aria-hidden />
           <strong id="combat-console-heading">Test console</strong>
         </div>
-        {result ? <span>{passedCount}/{result.results.length} passed · {result.durationMs.toFixed(1)}ms</span> : null}
+        {result && !isRunning ? <span>{passedCount}/{result.results.length} passed · {(result.durationMs / 1000).toFixed(1)}s</span> : null}
       </header>
       {isRunning ? (
-        <div className="combat-console-empty"><span className="combat-running-dot" aria-hidden />Executing in an isolated worker…</div>
+        <div className="combat-console-empty">
+          <span className="combat-running-dot" aria-hidden />
+          {runStage ? STAGE_MESSAGES[runStage] : "Preparing the run…"}
+        </div>
       ) : result?.fatalError ? (
         <div className="combat-console-fatal">
           <Icon name="insight" size={16} />
-          <div><strong>{result.timedOut ? "Execution terminated" : "Runner error"}</strong><p>{result.fatalError}</p></div>
+          <div>
+            <strong>{result.timedOut ? "Run timed out" : result.compileLog !== undefined ? "Compile error" : "Runner error"}</strong>
+            <p>{result.fatalError}</p>
+            {result.compileLog ? <pre className="combat-compile-log">{result.compileLog}</pre> : null}
+          </div>
         </div>
       ) : result ? (
         <div className="combat-test-list">
@@ -288,8 +321,9 @@ function TestConsole({
                 {test.error ? <code>{test.error}</code> : test.hidden ? (
                   <small>{test.passed ? "Private edge case held" : "Private edge case failed; inspect your invariant and boundaries"}</small>
                 ) : (
-                  <small>expected {formatCombatValue(test.expected)} · received {formatCombatValue(test.actual)}</small>
+                  <small>expected {String(test.expected)} · received {test.actual === undefined ? "nothing" : String(test.actual)}</small>
                 )}
+                {test.stdout && !test.passed ? <pre className="combat-stdout">your output: {test.stdout}</pre> : null}
               </div>
               <span>{test.durationMs.toFixed(1)}ms</span>
             </article>
@@ -301,6 +335,9 @@ function TestConsole({
       ) : (
         <div className="combat-console-empty">Run visible tests for fast feedback, then submit when you can defend the invariant.</div>
       )}
+      <footer className="combat-console-credit">
+        Java runs in your browser through CheerpJ by Leaning Technologies. Nothing is sent to a server.
+      </footer>
     </section>
   );
 }
