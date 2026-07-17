@@ -441,7 +441,7 @@ function CourseTaskRow({
             {meta.label}
           </span>
           <span style={{ fontFamily: font.mono, fontSize: 10.5, color: color.textFaint }}>{item.minutes} min</span>
-          <span style={{ fontFamily: font.mono, fontSize: 9.5, fontWeight: 700, color: color.amber }}>+{getCourseTaskXp(item)} XP</span>
+          <span style={{ fontFamily: font.mono, fontSize: 9, fontWeight: 600, color: color.textFaint }}>+{getCourseTaskXp(item)} xp</span>
         </div>
         <p style={{ margin: 0, fontSize: 13, color: color.textDim, lineHeight: 1.5 }}>{item.description}</p>
       </div>

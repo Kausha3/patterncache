@@ -303,6 +303,264 @@ public class Solution {
       },
     ],
   },
+  {
+    id: "pair-sum-map",
+    title: "Complement Map Ambush",
+    signal: "unsorted input / complement lookup / one pass",
+    difficulty: "Warm-up",
+    minutes: 20,
+    functionName: "findPairIndices",
+    signature: "findPairIndices(nums, target) -> [smallerIndex, largerIndex]",
+    prompt: "Given an unsorted integer array, return the indices of the two distinct elements that sum to target, in ascending order. Return [-1, -1] when no pair exists.",
+    constraints: [
+      "The array is not sorted and may contain negative values and duplicates.",
+      "An index cannot pair with itself; at most one valid pair exists in every input.",
+      "Target O(n) time with a single pass over the array.",
+    ],
+    examples: [
+      { input: "nums = [2, 7, 11, 15], target = 9", output: "[0, 1]", why: "2 + 7 = 9" },
+      { input: "nums = [4], target = 8", output: "[-1, -1]", why: "An element cannot pair with itself" },
+    ],
+    starterCode: `function findPairIndices(nums, target) {
+  // Sorting is off the table: the answer is a pair of ORIGINAL indices.
+  return [-1, -1];
+}`,
+    java: {
+      methodName: "findPairIndices",
+      signature: "public int[] findPairIndices(int[] nums, int target)",
+      argTypes: ["int[]", "int"],
+      returnType: "int[]",
+      starterCode: `import java.util.*;
+
+public class Solution {
+    public int[] findPairIndices(int[] nums, int target) {
+        // Sorting is off the table: the answer is a pair of ORIGINAL indices.
+        return new int[] { -1, -1 };
+    }
+}
+`,
+    },
+    visibleTests: [
+      { id: "classic-pair", label: "pair at the front", args: [[2, 7, 11, 15], 9], expected: [0, 1] },
+      { id: "later-pair", label: "pair skips the first element", args: [[3, 2, 4], 6], expected: [1, 2] },
+      { id: "empty", label: "empty input", args: [[], 5], expected: [-1, -1] },
+    ],
+    hiddenTests: [
+      { id: "duplicate-values", label: "duplicate values form the pair", args: [[3, 3], 6], expected: [0, 1] },
+      { id: "single-element", label: "single element cannot pair with itself", args: [[4], 8], expected: [-1, -1] },
+      { id: "no-self-match", label: "half of target present only once", args: [[5, 1, 7], 10], expected: [-1, -1] },
+      { id: "boundary-pair", label: "first and last elements pair", args: [[10, 3, 20, 30, -5], 5], expected: [0, 4] },
+    ],
+    hints: [
+      "You get one pass. At each value, ask: which number would complete the pair, and have I already seen it?",
+      "Keep a map from value to index. Look up target - nums[i] BEFORE inserting nums[i], so an element can never match itself.",
+      "When the lookup hits, the stored index is always smaller than i, so [storedIndex, i] is already in ascending order.",
+    ],
+    defense: [
+      {
+        id: "map-invariant",
+        category: "invariant",
+        prompt: "What must be true about the map when index i is processed?",
+        options: [
+          { id: "seen-before", label: "It contains exactly the values at indices before i, so one lookup of target - nums[i] checks every earlier partner", correct: true, feedback: "Correct. Check-then-insert keeps the map one step behind the scan, which is what makes a single pass complete and prevents self-matching." },
+          { id: "whole-array", label: "It already contains every value in the array", correct: false, feedback: "Prefilling the whole map lets a value match its own entry, and it costs a second pass for nothing." },
+          { id: "sorted-keys", label: "Its keys are kept in ascending order", correct: false, feedback: "A hash map has no useful ordering, and none is needed; correctness comes from what has been inserted, not how it is arranged." },
+        ],
+      },
+      {
+        id: "map-complexity",
+        category: "complexity",
+        prompt: "How does the one-pass map compare with sorting plus two pointers?",
+        options: [
+          { id: "linear-space", label: "O(n) time and O(n) space, versus O(n log n) time and destroyed index information for the sorting approach", correct: true, feedback: "Correct. The map buys a faster pass by spending memory, and it is the only one of the two that can still report original indices directly." },
+          { id: "both-linear", label: "Both approaches are O(n) time; the map just uses less memory", correct: false, feedback: "Sorting alone costs O(n log n), and the map uses more memory, not less." },
+          { id: "map-log", label: "The map approach is O(n log n) because each lookup is logarithmic", correct: false, feedback: "Hash map lookups are expected O(1); logarithmic lookups belong to tree maps, which are not needed here." },
+        ],
+      },
+      {
+        id: "map-counterexample",
+        category: "counterexample",
+        prompt: "Which input breaks a version that fills the whole map first, then scans for target - nums[i]?",
+        options: [
+          { id: "self-match", label: "nums = [5, 2, 9], target = 10", correct: true, feedback: "Correct. The complement of 5 is 5 itself, and the prefilled map contains it, so the scan reports a pair built from index 0 twice." },
+          { id: "dup-safe", label: "nums = [3, 3], target = 6", correct: false, feedback: "The second insert overwrites the index to 1, so the scan at index 0 still reports [0, 1]. Duplicates survive prefilling; self-matching does not." },
+          { id: "no-pair", label: "nums = [1, 2, 4], target = 100", correct: false, feedback: "No lookup succeeds in either version, so this input cannot separate them." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rotated-search",
+    title: "Rotated Array Recon",
+    signal: "rotated sorted array / one half is always sorted / logarithmic bar",
+    difficulty: "Interview",
+    minutes: 25,
+    functionName: "findInRotated",
+    signature: "findInRotated(nums, target) -> index",
+    prompt: "A sorted array of distinct integers was rotated at an unknown pivot. Return the index of target, or -1 when it is not present.",
+    constraints: [
+      "All values are distinct; the array may be empty or not rotated at all.",
+      "Run in O(log n) time; a linear scan does not meet the bar.",
+      "Return the zero-based index of target, or -1 when it is absent.",
+    ],
+    examples: [
+      { input: "nums = [4, 5, 6, 7, 0, 1, 2], target = 0", output: "4", why: "The sorted right half [0, 1, 2] contains 0" },
+      { input: "nums = [1, 2, 3, 4, 5], target = 4", output: "3", why: "A rotation at index 0 leaves the array fully sorted" },
+    ],
+    starterCode: `function findInRotated(nums, target) {
+  // Every split leaves one half sorted. Decide which half to keep from that.
+  return -1;
+}`,
+    java: {
+      methodName: "findInRotated",
+      signature: "public int findInRotated(int[] nums, int target)",
+      argTypes: ["int[]", "int"],
+      returnType: "int",
+      starterCode: `import java.util.*;
+
+public class Solution {
+    public int findInRotated(int[] nums, int target) {
+        // Every split leaves one half sorted. Decide which half to keep from that.
+        return -1;
+    }
+}
+`,
+    },
+    visibleTests: [
+      { id: "rotated-hit", label: "target in the rotated tail", args: [[4, 5, 6, 7, 0, 1, 2], 0], expected: 4 },
+      { id: "first-index", label: "target at index 0", args: [[4, 5, 6, 7, 0, 1, 2], 4], expected: 0 },
+      { id: "empty", label: "empty input", args: [[], 5], expected: -1 },
+    ],
+    hiddenTests: [
+      { id: "single-element", label: "single element array", args: [[1], 1], expected: 0 },
+      { id: "not-rotated", label: "rotation at index 0", args: [[1, 2, 3, 4, 5], 4], expected: 3 },
+      { id: "two-rotated", label: "two elements, equal lo and mid", args: [[3, 1], 1], expected: 1 },
+      { id: "pivot-target", label: "target is the pivot minimum", args: [[5, 6, 7, 1, 2, 3], 1], expected: 3 },
+    ],
+    hints: [
+      "Plain binary search fails because the whole array is not sorted, but every [lo, mid, hi] split leaves at least one half fully sorted.",
+      "Use nums[lo] <= nums[mid] to identify the sorted half. The <= matters when lo and mid are the same index.",
+      "If target lies between the sorted half's endpoints, keep that half; otherwise keep the other one. Check nums[mid] == target before either move.",
+    ],
+    defense: [
+      {
+        id: "rotated-invariant",
+        category: "invariant",
+        prompt: "What property of every [lo, mid, hi] split makes binary search survive the rotation?",
+        options: [
+          { id: "one-sorted-half", label: "At least one of the two halves is fully sorted, and comparing target against that half's endpoints decides which half to discard", correct: true, feedback: "Correct. The rotation point falls in at most one half, so the other half supports an ordinary range check, and one certain half is enough to halve the search space safely." },
+          { id: "mid-is-pivot", label: "The midpoint always lands on the rotation pivot", correct: false, feedback: "The pivot can be anywhere; if the midpoint reliably found it there would be nothing left to search for." },
+          { id: "both-sorted", label: "Both halves are always sorted on their own", correct: false, feedback: "The half containing the rotation point is not sorted; that is exactly why the endpoint comparison is needed to find the half that is." },
+        ],
+      },
+      {
+        id: "rotated-complexity",
+        category: "complexity",
+        prompt: "What is the complexity, and why does a linear scan fail the bar?",
+        options: [
+          { id: "log-n", label: "O(log n): every step discards half the range, and the rotation was the only reason to consider O(n) at all", correct: true, feedback: "Correct. The interviewer gave you a sorted-then-rotated array precisely so you would recover the logarithm; scanning throws that structure away." },
+          { id: "log-when-lucky", label: "O(log n) only when the array is not rotated, O(n) otherwise", correct: false, feedback: "The sorted-half test works at every step regardless of where the pivot is, so the logarithmic bound holds unconditionally." },
+          { id: "nlogn", label: "O(n log n), because you must first locate the pivot", correct: false, feedback: "No pivot pre-pass is needed, and even finding the pivot first would be one O(log n) search followed by another." },
+        ],
+      },
+      {
+        id: "rotated-counterexample",
+        category: "counterexample",
+        prompt: "Which input breaks a version that tests the sorted half with strict nums[lo] < nums[mid]?",
+        options: [
+          { id: "two-elements", label: "nums = [3, 1], target = 1", correct: true, feedback: "Correct. Here lo and mid are both index 0, so nums[lo] equals nums[mid]. Strict < calls the left half unsorted, the search keeps the wrong side, and 1 is never found." },
+          { id: "plain-sorted", label: "nums = [1, 2, 3, 4, 5], target = 4", correct: false, feedback: "With distinct values and lo different from mid, strict and non-strict comparisons agree, so the unrotated case does not expose the bug." },
+          { id: "standard-rotated", label: "nums = [4, 5, 6, 7, 0, 1, 2], target = 0", correct: false, feedback: "Every split here has lo strictly below mid with distinct values, so both comparison variants pick the same halves." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "balanced-brackets",
+    title: "Bracket Stack Sentinel",
+    signal: "matching pairs / last opened closes first / stack discipline",
+    difficulty: "Warm-up",
+    minutes: 15,
+    functionName: "isBalanced",
+    signature: "isBalanced(text) -> boolean",
+    prompt: "Return true when every bracket in the string is closed by the matching bracket type in the correct order.",
+    constraints: [
+      "The input contains only the six bracket characters: ( ) [ ] { }.",
+      "Every closer must match the most recently opened, still unclosed bracket.",
+      "The empty string is balanced. Run in O(n) time.",
+    ],
+    examples: [
+      { input: "text = '([{}])'", output: "true", why: "Every closer matches the most recent unclosed opener" },
+      { input: "text = '([)]'", output: "false", why: "')' arrives while '[' is still the newest unclosed opener" },
+    ],
+    starterCode: `function isBalanced(text) {
+  // The most recent unfinished promise is the one that must be kept first.
+  return false;
+}`,
+    java: {
+      methodName: "isBalanced",
+      signature: "public boolean isBalanced(String text)",
+      argTypes: ["String"],
+      returnType: "boolean",
+      starterCode: `import java.util.*;
+
+public class Solution {
+    public boolean isBalanced(String text) {
+        // The most recent unfinished promise is the one that must be kept first.
+        return false;
+    }
+}
+`,
+    },
+    visibleTests: [
+      { id: "flat-pairs", label: "three flat pairs", args: ["()[]{}"], expected: true },
+      { id: "wrong-type", label: "mismatched closer type", args: ["(]"], expected: false },
+      { id: "empty", label: "empty string", args: [""], expected: true },
+    ],
+    hiddenTests: [
+      { id: "interleaved", label: "interleaved pairs", args: ["([)]"], expected: false },
+      { id: "deep-nesting", label: "all three types nested", args: ["{[()]}"], expected: true },
+      { id: "closer-first", label: "closer before any opener", args: [")("], expected: false },
+      { id: "lone-opener", label: "single unclosed opener", args: ["("], expected: false },
+    ],
+    hints: [
+      "Read left to right. Each opener is a promise of a closer later, and the newest promise must be kept first.",
+      "Push openers on a stack. On a closer, pop and compare: the popped opener must be the matching type.",
+      "Two failure modes remain: a closer arriving on an empty stack, and openers left on the stack at the end. Return false for both.",
+    ],
+    defense: [
+      {
+        id: "bracket-invariant",
+        category: "invariant",
+        prompt: "What does the stack top represent at every point in the scan?",
+        options: [
+          { id: "newest-unclosed", label: "The most recently opened bracket that has not been closed yet, so a valid closer only ever needs to match the top", correct: true, feedback: "Correct. Bracket nesting is last-opened-first-closed, so a single top comparison replaces any search through earlier openers." },
+          { id: "all-brackets", label: "The stack holds every bracket seen so far, open or closed", correct: false, feedback: "Closed pairs are popped off. Keeping closed brackets around would make the top meaningless as a matching target." },
+          { id: "first-opener", label: "The stack top is always the first opener in the string", correct: false, feedback: "The first opener sits at the bottom. The whole point of the stack is that the newest opener, not the oldest, is due next." },
+        ],
+      },
+      {
+        id: "bracket-complexity",
+        category: "complexity",
+        prompt: "What is the tight complexity of the stack check?",
+        options: [
+          { id: "linear-linear", label: "O(n) time and O(n) space, because a string of all openers stacks every character", correct: true, feedback: "Correct. Each character is pushed and popped at most once, and the worst-case input like '(((((' keeps them all on the stack at once." },
+          { id: "constant-space", label: "O(n) time and O(1) space, because only three bracket types exist", correct: false, feedback: "The stack must remember nesting depth, not just types. '([' and '[(' need different futures, and depth can grow with n." },
+          { id: "quadratic", label: "O(n^2) time, because each closer must scan back for its opener", correct: false, feedback: "No scan happens. The invariant puts the only candidate opener on the top of the stack, one comparison per closer." },
+        ],
+      },
+      {
+        id: "bracket-counterexample",
+        category: "counterexample",
+        prompt: "Which input passes a checker that only counts openers and closers of each type?",
+        options: [
+          { id: "interleave", label: "'([)]'", correct: true, feedback: "Correct. Counts match perfectly for both types, but the order is wrong. The same hole lets ')(' through, which is also why popping an empty stack must fail instead of crash." },
+          { id: "lone", label: "'((('", correct: false, feedback: "Three openers and zero closers: even a counting checker rejects this one, so it proves nothing about ordering." },
+          { id: "mismatch", label: "'(]'", correct: false, feedback: "The counts disagree for each type, one '(' without ')' and one ']' without '[', so counting already catches it." },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getCodingCombatMission(id: string): CodingCombatMission | undefined {

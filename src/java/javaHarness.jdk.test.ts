@@ -85,6 +85,63 @@ public class Solution {
     }
 }
 `,
+  "pair-sum-map": `import java.util.*;
+
+public class Solution {
+    public int[] findPairIndices(int[] nums, int target) {
+        Map<Integer, Integer> seen = new HashMap<>();
+        for (int index = 0; index < nums.length; index += 1) {
+            Integer partner = seen.get(target - nums[index]);
+            if (partner != null) return new int[] { partner, index };
+            seen.put(nums[index], index);
+        }
+        return new int[] { -1, -1 };
+    }
+}
+`,
+  "rotated-search": `import java.util.*;
+
+public class Solution {
+    public int findInRotated(int[] nums, int target) {
+        int low = 0;
+        int high = nums.length - 1;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (nums[mid] == target) return mid;
+            if (nums[low] <= nums[mid]) {
+                if (nums[low] <= target && target < nums[mid]) high = mid - 1;
+                else low = mid + 1;
+            } else {
+                if (nums[mid] < target && target <= nums[high]) low = mid + 1;
+                else high = mid - 1;
+            }
+        }
+        return -1;
+    }
+}
+`,
+  "balanced-brackets": `import java.util.*;
+
+public class Solution {
+    public boolean isBalanced(String text) {
+        Deque<Character> stack = new ArrayDeque<>();
+        for (int index = 0; index < text.length(); index += 1) {
+            char current = text.charAt(index);
+            if (current == '(' || current == '[' || current == '{') {
+                stack.push(current);
+                continue;
+            }
+            if (stack.isEmpty()) return false;
+            char opened = stack.pop();
+            boolean matches = (current == ')' && opened == '(')
+                || (current == ']' && opened == '[')
+                || (current == '}' && opened == '{');
+            if (!matches) return false;
+        }
+        return stack.isEmpty();
+    }
+}
+`,
 };
 
 function compileAndRun(solutionSource: string, harnessSource: string) {

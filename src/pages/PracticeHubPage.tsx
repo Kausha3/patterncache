@@ -24,7 +24,7 @@ const START_HERE: PracticeCard[] = [
   {
     title: "System Forge · SOLID campaign",
     route: "/arena/pattern-genome",
-    blurb: "THE way to learn LLD here. One garage, five chapters, one per SOLID principle: run the world into a real failure, repair it, transfer the fix with hints off, and defend it in interview language. Start at chapter 1 and do not skip.",
+    blurb: "Start LLD here. One garage, five chapters, one per SOLID principle: run the world into a real failure, repair it, transfer the fix with hints off, and defend it in interview language. Start at chapter 1 and do not skip.",
     icon: "layers",
     accent: color.violet,
     tag: "Start here · Canonical LLD",

@@ -23,7 +23,21 @@ import type {
   Workbench,
 } from "@/arena/solidChapterEngine";
 import { recordChapterCompletion } from "@/game/garageProgress";
+import type { ComponentType } from "react";
 import { ImpostorSpotWorld } from "./ImpostorSpotWorld";
+import { TariffWarsWorld } from "./TariffWarsWorld";
+import { OneRemoteWorld } from "./OneRemoteWorld";
+import { ExitRushWorld } from "./ExitRushWorld";
+import type { ChapterPrincipleId } from "@/arena/solidChapterEngine";
+
+// Every chapter opens with a living incident: watch the world break before
+// the workbench names why. Same philosophy as Mission 1's garage floor.
+const LIVING_WORLDS: Record<ChapterPrincipleId, ComponentType<{ onWitnessed: () => void }>> = {
+  ocp: TariffWarsWorld,
+  lsp: ImpostorSpotWorld,
+  isp: OneRemoteWorld,
+  dip: ExitRushWorld,
+};
 
 /**
  * Plays one SOLID campaign chapter through a workbench, not a quiz: the
@@ -48,9 +62,10 @@ export function SolidChapterPlayer({
     createChapterState,
   );
   const [answer, setAnswer] = useState("");
-  // LSP opens with a living incident; the computed board appears only after
-  // the learner has watched the lane jam (or on other chapters, immediately).
-  const [worldWitnessed, setWorldWitnessed] = useState(mission.id !== "lsp");
+  // The computed board appears only after the learner has watched this
+  // chapter's living world break.
+  const [worldWitnessed, setWorldWitnessed] = useState(false);
+  const LivingWorld = LIVING_WORLDS[mission.id];
   const [assessment, setAssessment] = useState<ChapterInterviewAssessment>();
   const [showModelAnswer, setShowModelAnswer] = useState(false);
 
@@ -105,7 +120,7 @@ export function SolidChapterPlayer({
 
       {state.stage === "incident" && (
         <section className="chapter-card">
-          {mission.id === "lsp" ? <ImpostorSpotWorld onJammed={() => setWorldWitnessed(true)} /> : null}
+          <LivingWorld onWitnessed={() => setWorldWitnessed(true)} />
           {worldWitnessed ? (
             <>
               <div className="chapter-coach" role="status">

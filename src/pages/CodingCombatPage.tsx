@@ -9,6 +9,12 @@ import { color } from "@/theme/tokens";
 import type { CodingCombatMissionId } from "@/arena/types";
 import "@/theme/coding-combat.css";
 
+const MISSION_ICONS = ["target", "layers", "gauge"] as const;
+const TOTAL_TEST_CASES = CODING_COMBAT_MISSIONS.reduce(
+  (sum, mission) => sum + mission.visibleTests.length + mission.hiddenTests.length,
+  0,
+);
+
 export function CodingCombatPage() {
   const navigate = useNavigate();
   const { codingCombatScores, recordCodingCombatRun } = useGameProgress();
@@ -35,8 +41,8 @@ export function CodingCombatPage() {
             </p>
           </div>
           <div className="combat-lobby-stats">
-            <div><strong>{completed}/3</strong><span>missions cleared</span></div>
-            <div><strong>21</strong><span>total test cases</span></div>
+            <div><strong>{completed}/{CODING_COMBAT_MISSIONS.length}</strong><span>missions cleared</span></div>
+            <div><strong>{TOTAL_TEST_CASES}</strong><span>total test cases</span></div>
             <div><strong>javac</strong><span>real compile errors</span></div>
           </div>
         </header>
@@ -61,7 +67,7 @@ export function CodingCombatPage() {
                     <span>0{index + 1}</span>
                     <small>{record ? `BEST ${record.bestScore}/${record.maxScore}` : candidate.difficulty}</small>
                   </header>
-                  <div className="combat-mission-icon"><Icon name={index === 0 ? "target" : index === 1 ? "layers" : "gauge"} size={21} /></div>
+                  <div className="combat-mission-icon"><Icon name={MISSION_ICONS[index % MISSION_ICONS.length]} size={21} /></div>
                   <h3>{candidate.title}</h3>
                   <p>{candidate.prompt}</p>
                   <div className="combat-mission-tags">

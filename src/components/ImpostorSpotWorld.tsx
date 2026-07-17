@@ -13,7 +13,7 @@ import type { ImpostorWorldState } from "@/arena/impostorWorld";
  * before the workbench names why. Bespoke to The Impostor Spot, the same
  * way Mission 1's garage floor is bespoke to SRP.
  */
-export function ImpostorSpotWorld({ onJammed }: { onJammed: () => void }) {
+export function ImpostorSpotWorld({ onWitnessed }: { onWitnessed: () => void }) {
   const [world, setWorld] = useState<ImpostorWorldState>(createImpostorWorld);
   const [running, setRunning] = useState(false);
   const announcedJam = useRef(false);
@@ -29,9 +29,9 @@ export function ImpostorSpotWorld({ onJammed }: { onJammed: () => void }) {
   useEffect(() => {
     if (world.jammed && !announcedJam.current) {
       announcedJam.current = true;
-      onJammed();
+      onWitnessed();
     }
-  }, [world.jammed, onJammed]);
+  }, [world.jammed, onWitnessed]);
 
   const recentLog = world.log.slice(-4);
 

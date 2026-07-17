@@ -39,7 +39,14 @@ export interface ArenaScoreRecord {
 
 export type ArenaScores = Partial<Record<ArenaMode, ArenaScoreRecord>>;
 
-export const CODING_COMBAT_MISSION_IDS = ["target-pair", "unique-window", "shortest-hop"] as const;
+export const CODING_COMBAT_MISSION_IDS = [
+  "target-pair",
+  "unique-window",
+  "shortest-hop",
+  "pair-sum-map",
+  "rotated-search",
+  "balanced-brackets",
+] as const;
 export type CodingCombatMissionId = (typeof CODING_COMBAT_MISSION_IDS)[number];
 export type CodingCombatScores = Partial<Record<CodingCombatMissionId, ArenaScoreRecord>>;
 

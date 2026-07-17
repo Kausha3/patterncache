@@ -35,13 +35,27 @@ let runInProgress = false;
 
 function injectLoaderScript(): Promise<void> {
   if (typeof window.cheerpjInit === "function") return Promise.resolve();
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return Promise.reject(
+      new Error("You look offline. The Java runtime needs one download (about 20 MB); reconnect and press Run again."),
+    );
+  }
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = CHEERPJ_LOADER_URL;
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () =>
-      reject(new Error("The Java runtime script could not be downloaded. Check your connection and run again."));
+    script.onerror = () => {
+      // Remove the dead tag so the retry injects a fresh one.
+      script.remove();
+      reject(
+        new Error(
+          navigator.onLine === false
+            ? "The connection dropped while downloading the Java runtime. Reconnect and press Run again."
+            : "The Java runtime could not be downloaded. Check your connection and press Run again; nothing is lost.",
+        ),
+      );
+    };
     document.head.appendChild(script);
   });
 }

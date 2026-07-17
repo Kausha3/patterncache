@@ -42,11 +42,53 @@ const REFERENCE_SOLUTIONS: Record<string, string> = {
     }
     return -1;
   }`,
+  "pair-sum-map": `function findPairIndices(nums, target) {
+    const seen = new Map();
+    for (let index = 0; index < nums.length; index += 1) {
+      const need = target - nums[index];
+      if (seen.has(need)) return [seen.get(need), index];
+      seen.set(nums[index], index);
+    }
+    return [-1, -1];
+  }`,
+  "rotated-search": `function findInRotated(nums, target) {
+    let low = 0;
+    let high = nums.length - 1;
+    while (low <= high) {
+      const mid = low + Math.floor((high - low) / 2);
+      if (nums[mid] === target) return mid;
+      if (nums[low] <= nums[mid]) {
+        if (nums[low] <= target && target < nums[mid]) high = mid - 1;
+        else low = mid + 1;
+      } else {
+        if (nums[mid] < target && target <= nums[high]) low = mid + 1;
+        else high = mid - 1;
+      }
+    }
+    return -1;
+  }`,
+  "balanced-brackets": `function isBalanced(text) {
+    const openerFor = { ")": "(", "]": "[", "}": "{" };
+    const stack = [];
+    for (const character of text) {
+      if (character === "(" || character === "[" || character === "{") stack.push(character);
+      else if (stack.pop() !== openerFor[character]) return false;
+    }
+    return stack.length === 0;
+  }`,
 };
 
 describe("Coding Combat mission pack", () => {
   it("has stable IDs, executable contracts, hidden coverage, and exactly one defensible answer", () => {
-    expect(CODING_COMBAT_MISSIONS).toHaveLength(3);
+    expect(CODING_COMBAT_MISSIONS).toHaveLength(6);
+    expect(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).toEqual([
+      "target-pair",
+      "unique-window",
+      "shortest-hop",
+      "pair-sum-map",
+      "rotated-search",
+      "balanced-brackets",
+    ]);
     expect(new Set(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).size).toBe(CODING_COMBAT_MISSIONS.length);
 
     for (const mission of CODING_COMBAT_MISSIONS) {
