@@ -1,23 +1,23 @@
 import type { SolidPrincipleId } from "./lldGameMissions";
 
 /**
- * Generic engine for SOLID campaign chapters 2 through 5 (OCP, LSP, ISP,
- * DIP). Each chapter repeats the loop the first shift proved: run the world
- * into a domain failure, choose a repair and see its consequence, rerun the
- * same incident, transfer the idea with hints off, then defend it in
- * interview language against a keyword rubric.
+ * Engine for SOLID campaign chapters 2 through 5 (OCP, LSP, ISP, DIP).
  *
- * The anti-MCQ contract still holds where it matters: a wrong repair is not
- * a red X, it is a consequence report (which flows fail now, which classes a
- * future change will touch), and the learner cannot progress until the rerun
- * of the SAME scenario board passes.
+ * The core mechanic is a WORKBENCH, not a multiple-choice list. The learner
+ * adjusts a design configuration (where each tariff lives, how a subtype
+ * behaves, which contract owns each operation, what the exit flow depends
+ * on), then RUNS the world. Every scenario row's pass/fail is COMPUTED from
+ * the actual configuration by an evaluation rule; no option is labeled
+ * correct anywhere. Wrong configurations produce different, specific
+ * failures worth reading, and progression requires making the same board
+ * pass on a rerun. That is the campaign's acceptance rule made literal:
+ * repair and rerun the world, never pick the blessed answer.
  */
 
 export type ChapterStage =
   | "briefing"
   | "incident"
   | "repair"
-  | "rerun"
   | "transfer"
   | "pattern"
   | "debrief"
@@ -26,19 +26,44 @@ export type ChapterStage =
 
 export type ChapterPrincipleId = Exclude<SolidPrincipleId, "srp">;
 
-export interface ScenarioRow {
+export type BenchConfig = Record<string, string>;
+
+export interface BenchControlOption {
   id: string;
   label: string;
-  /** Status on the incident board, before any repair. */
-  before: "pass" | "fail";
+}
+
+export interface BenchControl {
+  id: string;
+  /** The design question, e.g. "Where does the EV charging fee live?" */
+  label: string;
+  options: BenchControlOption[];
+  /** The broken starting position the incident ships with. */
+  initial: string;
+}
+
+export interface BenchRowResult {
+  pass: boolean;
   detail: string;
+}
+
+export interface BenchRow {
+  id: string;
+  label: string;
+  evaluate: (config: BenchConfig) => BenchRowResult;
+}
+
+export interface Workbench {
+  intro: string;
+  controls: BenchControl[];
+  rows: BenchRow[];
+  successNote: string;
 }
 
 export interface ChapterOption {
   id: string;
   label: string;
   correct: boolean;
-  /** What the world looks like after this choice. Consequences, not verdicts. */
   consequence: string;
 }
 
@@ -62,23 +87,14 @@ export interface SolidChapterMission {
   };
   incident: {
     intro: string;
-    board: ScenarioRow[];
     failureBanner: string;
   };
-  repair: {
-    prompt: string;
-    options: ChapterOption[];
-  };
+  repairBench: Workbench;
   rerun: {
-    summary: string;
     before: string;
     after: string;
   };
-  transfer: {
-    prompt: string;
-    options: ChapterOption[];
-    success: string;
-  };
+  transferBench: Workbench;
   pattern?: {
     unlockedName: string;
     prompt: string;
@@ -100,13 +116,18 @@ export interface SolidChapterMission {
   };
 }
 
+export interface BenchState {
+  config: BenchConfig;
+  /** Results of the most recent run, if any. */
+  results?: { rowId: string; pass: boolean; detail: string }[];
+  allPass: boolean;
+  runs: number;
+}
+
 export interface ChapterState {
   stage: ChapterStage;
-  /** Wrong repair currently on the board, if any, for consequence display. */
-  activeWrongRepairId?: string;
-  repairAttempts: number;
-  activeWrongTransferId?: string;
-  transferAttempts: number;
+  repair: BenchState;
+  transfer: BenchState;
   activeWrongPatternId?: string;
   patternAttempts: number;
   interviewScore?: number;
@@ -117,19 +138,34 @@ export interface ChapterState {
 export type ChapterAction =
   | { type: "BEGIN" }
   | { type: "SEE_FAILURE" }
-  | { type: "CHOOSE_REPAIR"; optionId: string }
+  | { type: "SET_CONTROL"; bench: "repair" | "transfer"; controlId: string; optionId: string }
+  | { type: "RUN_BENCH"; bench: "repair" | "transfer" }
   | { type: "CONFIRM_RERUN" }
-  | { type: "CHOOSE_TRANSFER"; optionId: string }
   | { type: "CHOOSE_PATTERN"; optionId: string }
   | { type: "ENTER_INTERVIEW" }
   | { type: "SUBMIT_INTERVIEW"; score: number }
   | { type: "RESET" };
 
-export function createChapterState(): ChapterState {
+export function initialBenchConfig(bench: Workbench): BenchConfig {
+  return Object.fromEntries(bench.controls.map((control) => [control.id, control.initial]));
+}
+
+export function runBench(bench: Workbench, config: BenchConfig): { rowId: string; pass: boolean; detail: string }[] {
+  return bench.rows.map((row) => {
+    const result = row.evaluate(config);
+    return { rowId: row.id, pass: result.pass, detail: result.detail };
+  });
+}
+
+function freshBenchState(bench: Workbench): BenchState {
+  return { config: initialBenchConfig(bench), allPass: false, runs: 0 };
+}
+
+export function createChapterState(mission: SolidChapterMission): ChapterState {
   return {
     stage: "briefing",
-    repairAttempts: 0,
-    transferAttempts: 0,
+    repair: freshBenchState(mission.repairBench),
+    transfer: freshBenchState(mission.transferBench),
     patternAttempts: 0,
     interviewAttempts: 0,
   };
@@ -143,56 +179,57 @@ export function reduceChapter(
   action: ChapterAction,
 ): ChapterState {
   switch (action.type) {
-    case "BEGIN":
-      return state.stage === "briefing"
-        ? { ...state, stage: "incident", feedback: mission.incident.intro }
-        : state;
+    case "BEGIN": {
+      if (state.stage !== "briefing") return state;
+      // The incident IS the repair bench run at its broken initial config:
+      // the learner sees real computed failures before touching anything.
+      const results = runBench(mission.repairBench, state.repair.config);
+      return {
+        ...state,
+        stage: "incident",
+        repair: { ...state.repair, results, allPass: results.every((row) => row.pass) },
+        feedback: mission.incident.intro,
+      };
+    }
     case "SEE_FAILURE":
       return state.stage === "incident"
         ? { ...state, stage: "repair", feedback: mission.incident.failureBanner }
         : state;
-    case "CHOOSE_REPAIR": {
-      if (state.stage !== "repair") return state;
-      const option = mission.repair.options.find((candidate) => candidate.id === action.optionId);
-      if (!option) return state;
-      if (!option.correct) {
-        return {
-          ...state,
-          activeWrongRepairId: option.id,
-          repairAttempts: state.repairAttempts + 1,
-          feedback: option.consequence,
-        };
-      }
+    case "SET_CONTROL": {
+      if (state.stage !== action.bench) return state;
+      const bench = action.bench === "repair" ? mission.repairBench : mission.transferBench;
+      const control = bench.controls.find((candidate) => candidate.id === action.controlId);
+      if (!control || !control.options.some((option) => option.id === action.optionId)) return state;
+      const target = state[action.bench];
       return {
         ...state,
-        stage: "rerun",
-        activeWrongRepairId: undefined,
-        feedback: option.consequence,
+        [action.bench]: {
+          ...target,
+          config: { ...target.config, [action.controlId]: action.optionId },
+          // A change invalidates the last run: the world must be rerun.
+          results: undefined,
+          allPass: false,
+        },
+      };
+    }
+    case "RUN_BENCH": {
+      if (state.stage !== action.bench) return state;
+      const bench = action.bench === "repair" ? mission.repairBench : mission.transferBench;
+      const target = state[action.bench];
+      const results = runBench(bench, target.config);
+      const allPass = results.every((row) => row.pass);
+      return {
+        ...state,
+        [action.bench]: { ...target, results, allPass, runs: target.runs + 1 },
+        feedback: allPass ? bench.successNote : undefined,
       };
     }
     case "CONFIRM_RERUN":
-      return state.stage === "rerun"
-        ? { ...state, stage: "transfer", feedback: mission.transfer.prompt }
-        : state;
-    case "CHOOSE_TRANSFER": {
-      if (state.stage !== "transfer") return state;
-      const option = mission.transfer.options.find((candidate) => candidate.id === action.optionId);
-      if (!option) return state;
-      if (!option.correct) {
-        return {
-          ...state,
-          activeWrongTransferId: option.id,
-          transferAttempts: state.transferAttempts + 1,
-          feedback: option.consequence,
-        };
-      }
-      return {
-        ...state,
-        stage: mission.pattern ? "pattern" : "debrief",
-        activeWrongTransferId: undefined,
-        feedback: mission.transfer.success,
-      };
-    }
+      return state.stage === "repair" && state.repair.allPass
+        ? { ...state, stage: "transfer", feedback: mission.transferBench.intro }
+        : state.stage === "transfer" && state.transfer.allPass
+          ? { ...state, stage: mission.pattern ? "pattern" : "debrief", feedback: undefined }
+          : state;
     case "CHOOSE_PATTERN": {
       if (state.stage !== "pattern" || !mission.pattern) return state;
       const option = mission.pattern.options.find((candidate) => candidate.id === action.optionId);
@@ -205,12 +242,7 @@ export function reduceChapter(
           feedback: option.consequence,
         };
       }
-      return {
-        ...state,
-        stage: "debrief",
-        activeWrongPatternId: undefined,
-        feedback: option.consequence,
-      };
+      return { ...state, stage: "debrief", activeWrongPatternId: undefined, feedback: option.consequence };
     }
     case "ENTER_INTERVIEW":
       return state.stage === "debrief" ? { ...state, stage: "interview", feedback: undefined } : state;
@@ -223,7 +255,7 @@ export function reduceChapter(
         stage: action.score >= CHAPTER_COMPLETION_THRESHOLD ? "complete" : "interview",
       };
     case "RESET":
-      return createChapterState();
+      return createChapterState(mission);
     default:
       return state;
   }
@@ -251,4 +283,19 @@ export function assessChapterInterview(
   }
   const score = matched.length === mission.interview.rubric.length ? 100 : matched.length * perItem;
   return { score, matched, missing };
+}
+
+/**
+ * Enumerate every configuration of a bench. Used by tests to prove the
+ * search space is honest: the initial config fails, at least one config
+ * passes, and distinct wrong configs produce distinct failure details.
+ */
+export function enumerateBenchConfigs(bench: Workbench): BenchConfig[] {
+  let configs: BenchConfig[] = [{}];
+  for (const control of bench.controls) {
+    configs = configs.flatMap((config) =>
+      control.options.map((option) => ({ ...config, [control.id]: option.id })),
+    );
+  }
+  return configs;
 }

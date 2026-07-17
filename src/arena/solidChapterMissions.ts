@@ -1,12 +1,24 @@
-import type { SolidChapterMission } from "./solidChapterEngine";
+import type { BenchConfig, SolidChapterMission } from "./solidChapterEngine";
 
 /**
- * SOLID campaign chapters 2 through 5, all set in the same garage the
- * learner already operates. Every chapter continues the story: the garage
- * that got floor-owned search in Mission 1 now grows tariffs, new spot
- * types, more devices, and a payment vendor, and each growth spurt breaks
- * in the exact way one SOLID principle exists to prevent.
+ * SOLID campaign chapters 2 through 5, all set in the garage the learner
+ * already operates. The repair and transfer phases are WORKBENCHES: the
+ * learner arranges the design and runs the world, and every scenario row is
+ * computed from that arrangement. Nothing in these files marks an option
+ * "correct"; correctness is whatever makes the same board pass on a rerun.
  */
+
+// ---------------------------------------------------------------------------
+// Chapter 2 · OCP · The Tariff Wars
+// ---------------------------------------------------------------------------
+
+const TARIFFS = [
+  { id: "flat", name: "Flat hourly parking" },
+  { id: "ev", name: "EV charging fee" },
+  { id: "event", name: "Event weekend pricing" },
+] as const;
+
+const branchCount = (config: BenchConfig) => TARIFFS.filter((t) => config[t.id] === "branch").length;
 
 const OCP_MISSION: SolidChapterMission = {
   id: "ocp",
@@ -18,72 +30,119 @@ const OCP_MISSION: SolidChapterMission = {
     headline: "The garage started charging real money.",
     body: "Mission 1 gave every floor its own search. Now the owners want revenue: a flat hourly rate at first, then an EV rate per kilowatt, then event-weekend pricing. Each rule landed as another branch inside the pay station's calculateFee() method. It worked, briefly.",
     beats: [
-      "Watch three tariffs collide inside one method",
-      "Choose how the next tariff ships",
+      "Run the fee suite and watch tariffs collide",
+      "Rearrange where each tariff lives, then rerun",
       "Earn the Strategy pattern the honest way",
     ],
   },
   incident: {
-    intro: "Event weekend starts tonight. The new event branch went into calculateFee() this morning. Run the fee suite.",
-    board: [
-      { id: "flat", label: "Flat hourly parking", before: "pass", detail: "The original rate still computes correctly." },
-      { id: "ev", label: "EV charging fee", before: "fail", detail: "EV drivers are overcharged tonight: the event branch runs before the EV branch and double-counts the energy fee." },
-      { id: "event", label: "Event weekend pricing", before: "pass", detail: "The new branch works for plain cars, which is what got tested." },
-      { id: "receipt", label: "Receipt totals match charges", before: "fail", detail: "Receipts show the pre-event fee because a second copy of the fee logic lives in the receipt printer." },
-    ],
-    failureBanner: "The event branch broke EV pricing, a flow nobody touched. Three tariffs now share one method, and every new rule re-risks all the old ones.",
+    intro: "Event weekend starts tonight. The event branch went into calculateFee() this morning. This is the fee suite as it stands.",
+    failureBanner: "Branches sharing one method broke a flow nobody touched. You have the workbench: decide where each tariff lives, then rerun the same suite until it holds.",
   },
-  repair: {
-    prompt: "Membership discounts arrive next month. Decide how tariffs ship from now on.",
-    options: [
+  repairBench: {
+    intro: "Place each tariff, then run the fee suite. The suite reruns against whatever arrangement you choose.",
+    controls: TARIFFS.map((tariff) => ({
+      id: tariff.id,
+      label: `Where does ${tariff.name.toLowerCase()} live?`,
+      options: [
+        { id: "branch", label: "A branch inside calculateFee()" },
+        { id: "card", label: "Its own TariffPolicy implementation" },
+      ],
+      initial: "branch",
+    })),
+    rows: [
+      ...TARIFFS.map((tariff) => ({
+        id: `${tariff.id}-row`,
+        label: tariff.name,
+        evaluate: (config: BenchConfig) => {
+          const asCard = config[tariff.id] === "card";
+          const branches = branchCount(config);
+          if (asCard) {
+            return { pass: true, detail: `${tariff.name} computes in its own policy class, isolated from every other rule.` };
+          }
+          if (branches === 1) {
+            return { pass: true, detail: `${tariff.name} is the only branch left, so nothing interacts with it. Yet.` };
+          }
+          const others = TARIFFS.filter((t) => t.id !== tariff.id && config[t.id] === "branch").map((t) => t.name.toLowerCase());
+          return { pass: false, detail: `${tariff.name} shares calculateFee() with ${others.join(" and ")}. Branch order decides who double-counts whom, and this run it lost.` };
+        },
+      })),
       {
-        id: "policy-slot",
-        label: "Give the pay station one TariffPolicy contract. Each tariff becomes its own small implementation that computes a fee.",
-        correct: true,
-        consequence: "calculateFee() shrinks to one line: ask the active policies for their fees. The flat, EV, and event rules move into their own classes, and the receipt printer reads the same result instead of recomputing it.",
+        id: "receipts",
+        label: "Receipt totals match charges",
+        evaluate: (config: BenchConfig) => {
+          const branches = branchCount(config);
+          return branches === 0
+            ? { pass: true, detail: "The receipt printer reads the computed policy result instead of re-deriving fees itself." }
+            : { pass: false, detail: `The receipt printer carries its own copy of the in-method fee logic, and it is ${branches} branch${branches === 1 ? "" : "es"} out of date.` };
+        },
       },
       {
-        id: "another-branch",
-        label: "Add the membership discount as one more branch inside calculateFee(), like the last three.",
-        correct: false,
-        consequence: "The suite reruns: four tariffs now interact in eleven branch paths, and the EV-during-event combination fails again in a new way. Every future tariff means re-testing every old one, and the method nobody dares touch keeps growing.",
-      },
-      {
-        id: "copy-station",
-        label: "Copy the pay station per tariff: EventPayStation, EvPayStation, MemberPayStation.",
-        correct: false,
-        consequence: "Three stations drift apart within a sprint. A rounding bug in receipt totals now has to be found and fixed three times, and an EV member during an event has no station at all.",
+        id: "next-tariff",
+        label: "Membership discount ships next month",
+        evaluate: (config: BenchConfig) => {
+          const branches = branchCount(config);
+          return branches === 0
+            ? { pass: true, detail: "A new tariff is a new class. calculateFee() does not change, so nothing old needs re-testing." }
+            : { pass: false, detail: `Shipping it means editing a method that already holds ${branches} branch${branches === 1 ? "" : "es"}. Every old tariff goes back into the test plan.` };
+        },
       },
     ],
+    successNote: "The suite holds. calculateFee() shrank to one line that asks the active policies for their fees, and the receipt printer reads the same result.",
   },
   rerun: {
-    summary: "Rerun the same fee suite with TariffPolicy in place.",
     before: "3 tariffs, 1 method, every new rule edits working code",
     after: "3 policy classes, 0 edits to the pay station, membership ships as a 4th class",
   },
-  transfer: {
-    prompt: "Hints off. The gate team has the same disease: a valet lane arrives, and the plan is a new branch inside GateController.decideLane(). Ship the valet lane.",
-    options: [
+  transferBench: {
+    intro: "Hints off. The gate team has the same disease: valet and shuttle routing are about to land inside GateController.decideLane(). Arrange it, then run the lane suite.",
+    controls: [
       {
-        id: "lane-policy",
-        label: "Give GateController a LanePolicy contract and make valet routing its own implementation.",
-        correct: true,
-        consequence: "Correct. GateController stays closed while the valet lane ships as new code. Same shape as the tariffs, different corner of the garage.",
+        id: "valet",
+        label: "Where does valet routing live?",
+        options: [
+          { id: "branch", label: "A branch inside decideLane()" },
+          { id: "policy", label: "Its own LanePolicy implementation" },
+        ],
+        initial: "branch",
       },
       {
-        id: "lane-branch",
-        label: "Add the valet branch to decideLane(). It is only one if-statement.",
-        correct: false,
-        consequence: "The rerun shows the airport-shuttle lane misrouting a week later, broken by the valet branch. One if-statement is how the tariff war started too.",
-      },
-      {
-        id: "lane-copy",
-        label: "Fork GateController into ValetGateController for the valet floor.",
-        correct: false,
-        consequence: "Two controllers drift: the barrier-safety fix next month lands in one and not the other. The rerun flags the fork as a duplicate-maintenance risk.",
+        id: "shuttle",
+        label: "Where does airport-shuttle routing live?",
+        options: [
+          { id: "branch", label: "A branch inside decideLane()" },
+          { id: "policy", label: "Its own LanePolicy implementation" },
+        ],
+        initial: "branch",
       },
     ],
-    success: "Correct. GateController stays closed while the valet lane ships as new code. Same shape as the tariffs, different corner of the garage.",
+    rows: [
+      {
+        id: "valet-row",
+        label: "Valet lane routes correctly",
+        evaluate: (config) =>
+          config.valet === "policy" || config.shuttle !== "branch"
+            ? { pass: true, detail: config.valet === "policy" ? "Valet routing is its own policy, untouched by other lanes." : "Valet is the only branch, so nothing collides with it. Yet." }
+            : { pass: false, detail: "The valet and shuttle branches share decideLane(), and this run the shuttle condition swallowed a valet arrival." },
+      },
+      {
+        id: "shuttle-row",
+        label: "Airport shuttle routes correctly",
+        evaluate: (config) =>
+          config.shuttle === "policy" || config.valet !== "branch"
+            ? { pass: true, detail: config.shuttle === "policy" ? "Shuttle routing is its own policy." : "Shuttle is the only branch left in the method." }
+            : { pass: false, detail: "A week after the valet branch landed, the shuttle misroutes: the branches guard against each other now." },
+      },
+      {
+        id: "gate-closed",
+        label: "GateController stays closed to lane changes",
+        evaluate: (config) =>
+          config.valet === "policy" && config.shuttle === "policy"
+            ? { pass: true, detail: "The next lane type is a new LanePolicy class. decideLane() never changes again." }
+            : { pass: false, detail: "Any new lane type reopens decideLane(). This is exactly how the tariff war started." },
+      },
+    ],
+    successNote: "Same shape as the tariffs, different corner of the garage: lanes vary as policies while the controller stays closed.",
   },
   pattern: {
     unlockedName: "Strategy",
@@ -124,6 +183,10 @@ const OCP_MISSION: SolidChapterMission = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Chapter 3 · LSP · The Impostor Spot
+// ---------------------------------------------------------------------------
+
 const LSP_MISSION: SolidChapterMission = {
   id: "lsp",
   order: 3,
@@ -134,72 +197,151 @@ const LSP_MISSION: SolidChapterMission = {
     headline: "The valet floor shipped a new spot type.",
     body: "A vendor delivered ReservedSpot for the new valet floor. It implements the same ParkingSpot contract every other spot honors, so the entry flow from Mission 1 should just work. Should.",
     beats: [
-      "Run the entry flow against the new subtype",
-      "Watch a contract break without a single caller changing",
-      "Repair the subtype, not the callers",
+      "Run the entry suite against the vendor's subtype",
+      "Change how ReservedSpot honors the contract, then rerun",
+      "Prove any new spot type safe with one caller suite",
     ],
   },
   incident: {
-    intro: "The valet floor opens this morning. ReservedSpot passes compile, claims ParkingSpot, and slots into the same Level lists. Run the entry suite.",
-    board: [
-      { id: "normal-assign", label: "Assign to a standard spot", before: "pass", detail: "Every original spot honors assign() exactly as Mission 1 left it." },
-      { id: "reserved-assign", label: "Assign to a ReservedSpot", before: "fail", detail: "ReservedSpot.assign() throws NeedsManagerKey. The car is stuck at the barrier and the spot now reports occupied with no ticket issued." },
-      { id: "release", label: "Release on exit", before: "fail", detail: "The half-claimed ReservedSpot cannot be released because no session owns it." },
-      { id: "search", label: "findSpot() counts free spots", before: "pass", detail: "Search still works: ReservedSpot reported itself free, which is how the car got sent to it." },
-    ],
-    failureBanner: "No caller changed. The entry flow that works for every other spot corrupted state the moment a subtype stopped honoring the promise it inherited.",
+    intro: "The valet floor opens this morning. ReservedSpot compiles, claims ParkingSpot, and slots into the same Level lists. This is the entry suite against the vendor's defaults.",
+    failureBanner: "No caller changed, and two flows corrupted anyway. The subtype's behavior is on your workbench: adjust what it promises, then rerun the same suite.",
   },
-  repair: {
-    prompt: "The vendor asks how to fix ReservedSpot. Choose the repair.",
-    options: [
+  repairBench: {
+    intro: "Set ReservedSpot's behavior, then run the entry suite. The suite is the same one every other spot already passes.",
+    controls: [
       {
-        id: "honor-contract",
-        label: "Make ReservedSpot honor the promise: it reports free=false unless the reservation matches, and assign() either fully claims the spot or refuses cleanly up front.",
-        correct: true,
-        consequence: "The subtype now models reservation as availability, which the contract already expresses. Callers keep calling the same methods, and a reserved spot simply never shows up as free to the wrong car.",
+        id: "reservedFree",
+        label: "While a reservation holds, isFree() reports the spot as",
+        options: [
+          { id: "free", label: "Free (the reservation is checked later, at assign time)" },
+          { id: "occupied", label: "Not free (a reservation is a form of occupancy)" },
+        ],
+        initial: "free",
       },
       {
-        id: "instanceof-check",
-        label: "Teach the entry flow to check instanceof ReservedSpot and skip those spots.",
-        correct: false,
-        consequence: "The rerun passes today and fails next quarter: every caller that touches spots now needs the check, and the next subtype adds another one. The contract stops meaning anything, which is the exact disease with a workaround on top.",
-      },
-      {
-        id: "catch-retry",
-        label: "Catch the NeedsManagerKey exception at the gate and retry another spot.",
-        correct: false,
-        consequence: "The rerun shows the half-claimed state leaking: the throwing spot already marked itself occupied, so capacity counts drift and the last-spot race from Mission 1 comes back through the side door.",
+        id: "assignBehavior",
+        label: "When assign() is called and the reservation does not match, the spot",
+        options: [
+          { id: "claim-then-throw", label: "Marks itself occupied, then throws NeedsManagerKey" },
+          { id: "accept", label: "Accepts the vehicle anyway and clears the reservation" },
+          { id: "throw-clean", label: "Refuses up front and changes no state at all" },
+        ],
+        initial: "claim-then-throw",
       },
     ],
+    rows: [
+      {
+        id: "entry",
+        label: "Entry flow assigns a car to a spot that reported free",
+        evaluate: (config) => {
+          if (config.reservedFree === "occupied") {
+            return { pass: true, detail: "A reserved spot never looks free, so the search never routes the wrong car to it. The caller code did not change." };
+          }
+          if (config.assignBehavior === "accept") {
+            return { pass: false, detail: "The car parked, but in a spot someone else reserved. The contract said free and the world now disagrees with the bookings system." };
+          }
+          if (config.assignBehavior === "claim-then-throw") {
+            return { pass: false, detail: "The spot said free, then vetoed assign() after marking itself occupied. The car is stuck at the barrier with no ticket and the spot is a phantom." };
+          }
+          return { pass: false, detail: "The spot said free, then refused the assignment. No state corrupted, but the entry flow bounces cars off a spot that keeps advertising itself." };
+        },
+      },
+      {
+        id: "counts",
+        label: "Capacity counts stay accurate",
+        evaluate: (config) =>
+          config.reservedFree === "occupied"
+            ? { pass: true, detail: "Reserved spots count as taken, so building-wide capacity math tells the truth." }
+            : { pass: false, detail: "Every reserved spot inflates the free count. The full-lot check from Mission 1 now lies." },
+      },
+      {
+        id: "customer",
+        label: "The reserved customer arrives to a waiting spot",
+        evaluate: (config) => {
+          if (config.reservedFree === "occupied") {
+            return { pass: true, detail: "Nobody else was ever routed there. The reservation held." };
+          }
+          return config.assignBehavior === "accept"
+            ? { pass: false, detail: "Their spot is under someone else's car. The reservation was silently discarded at assign time." }
+            : { pass: false, detail: "Their spot spent the morning bouncing other drivers and sits in a confused state by the time they arrive." };
+        },
+      },
+      {
+        id: "race",
+        label: "The last-spot race stays closed (Mission 1's invariant)",
+        evaluate: (config) => {
+          if (config.assignBehavior === "throw-clean") {
+            return { pass: true, detail: "assign() either fully claims or cleanly refuses, so two racing requests still produce exactly one winner." };
+          }
+          return config.assignBehavior === "claim-then-throw"
+            ? { pass: false, detail: "Under a race, the losing request leaves the spot half-claimed. Mission 1's atomic-assignment invariant is broken from inside the subtype." }
+            : { pass: false, detail: "Accept-anyway means two racing requests can both think they won. The double-assignment bug is back through the side door." };
+        },
+      },
+    ],
+    successNote: "Both spot kinds now pass through the SAME caller code: reservation is availability, and assign() fully claims or cleanly refuses. No instanceof anywhere.",
   },
   rerun: {
-    summary: "Rerun the entry suite with the honest subtype, same callers, zero caller edits.",
     before: "1 subtype broke 2 flows without any caller changing",
-    after: "both spot kinds pass through the same caller code, no instanceof anywhere",
+    after: "both spot kinds pass the same suite, zero caller edits, no type checks",
   },
-  transfer: {
-    prompt: "Hints off. Facilities wants CompactSpot to accept large vehicles anyway, because 'it mostly fits and we sell more tickets'. The large car then blocks the aisle. Decide.",
-    options: [
+  transferBench: {
+    intro: "Hints off. Facilities wants CompactSpot to accept large vehicles, because 'it mostly fits and we sell more tickets'. Configure the spot and the gate, then run the suite.",
+    controls: [
       {
-        id: "truthful-contract",
-        label: "CompactSpot keeps telling the truth: its size is compact, compatibility says no, and the large car is routed to a real large spot.",
-        correct: true,
-        consequence: "Correct. A subtype that quietly accepts inputs it cannot actually serve is the same broken promise in the other direction. The contract only works if every implementation tells the truth through it.",
+        id: "canFit",
+        label: "CompactSpot.canFit(largeVehicle) returns",
+        options: [
+          { id: "accept", label: "True. It mostly fits, and tickets are tickets" },
+          { id: "truthful", label: "False. The spot is compact and says so" },
+        ],
+        initial: "accept",
       },
       {
-        id: "accept-anyway",
-        label: "Let CompactSpot accept the large vehicle and hope drivers park carefully.",
-        correct: false,
-        consequence: "The world runs it: the aisle blocks, two floors of throughput die, and the failure surfaces far from the lie that caused it. The spot claimed a capability it does not have.",
-      },
-      {
-        id: "gate-special-case",
-        label: "Keep the acceptance but add a special case at the gate for large-into-compact.",
-        correct: false,
-        consequence: "Now the gate owns spot-compatibility logic that ParkingSpot already owns, two sources of truth drift, and the next spot type needs another special case. Callers are patching a lying subtype.",
+        id: "gate",
+        label: "The entry gate",
+        options: [
+          { id: "trust", label: "Trusts whatever the spot's compatibility answer is" },
+          { id: "special-case", label: "Adds its own special case for large-into-compact" },
+        ],
+        initial: "trust",
       },
     ],
-    success: "Correct. A subtype that quietly accepts inputs it cannot actually serve is the same broken promise in the other direction. The contract only works if every implementation tells the truth through it.",
+    rows: [
+      {
+        id: "aisle",
+        label: "Aisles stay clear on Floor 2",
+        evaluate: (config) => {
+          if (config.canFit === "truthful") {
+            return { pass: true, detail: "Large vehicles are routed to real large spots. Nothing hangs into the aisle." };
+          }
+          return config.gate === "special-case"
+            ? { pass: true, detail: "The gate's special case caught it this time. The lie is still in the spot, waiting for the next caller that trusts it." }
+            : { pass: false, detail: "A large SUV took a compact spot and blocks the aisle. Two floors of throughput die while it gets towed." };
+        },
+      },
+      {
+        id: "truth",
+        label: "One source of truth for compatibility",
+        evaluate: (config) => {
+          if (config.gate === "special-case") {
+            return { pass: false, detail: "The gate now owns compatibility logic that ParkingSpot already owns. The two will drift, and the next spot type needs another special case." };
+          }
+          return config.canFit === "truthful"
+            ? { pass: true, detail: "Compatibility lives in the spot, and every caller trusts the same answer." }
+            : { pass: false, detail: "The single source of truth is a lie. Every caller that trusts canFit() inherits the aisle problem." };
+        },
+      },
+      {
+        id: "new-types",
+        label: "The next spot type needs zero caller edits",
+        evaluate: (config) =>
+          config.canFit === "truthful" && config.gate === "trust"
+            ? { pass: true, detail: "Any spot that tells the truth through the contract slots straight in. The suite proves it." }
+            : { pass: false, detail: "Callers are compensating for subtype behavior. Every new spot type will need its own round of caller patches." },
+      },
+    ],
+    successNote: "Same principle, other direction: a subtype that accepts what it cannot serve is as broken as one that refuses what it promised. Contracts only work when implementations tell the truth through them.",
   },
   debrief: {
     headline: "Any spot, same promise.",
@@ -228,6 +370,19 @@ const LSP_MISSION: SolidChapterMission = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Chapter 4 · ISP · One Remote To Rule Them All
+// ---------------------------------------------------------------------------
+
+const DEVICE_OPS = [
+  { id: "openBarrier", name: "openBarrier()", device: "the gate" },
+  { id: "displayMessage", name: "displayMessage()", device: "the display board" },
+  { id: "chargeCard", name: "chargeCard()", device: "the pay terminal" },
+  { id: "readPlate", name: "readPlate()", device: "the plate camera" },
+] as const;
+
+const universalOps = (config: BenchConfig) => DEVICE_OPS.filter((op) => config[op.id] === "universal");
+
 const ISP_MISSION: SolidChapterMission = {
   id: "isp",
   order: 4,
@@ -236,74 +391,134 @@ const ISP_MISSION: SolidChapterMission = {
   hook: "One universal device contract forces every device to fake methods it cannot do.",
   briefing: {
     headline: "Facilities standardized every device onto one interface.",
-    body: "The garage now runs gates, display boards, pay terminals, and plate cameras. Facilities shipped one universal GarageDevice contract with openBarrier(), displayMessage(), chargeCard(), and readPlate(), and every device must implement all four. The display board cannot charge a card. It implements chargeCard() anyway.",
+    body: "The garage runs gates, display boards, pay terminals, and plate cameras. Facilities shipped one universal GarageDevice contract with openBarrier(), displayMessage(), chargeCard(), and readPlate(), and every device must implement all four. The display board cannot charge a card. It implements chargeCard() anyway.",
     beats: [
-      "Run the nightly device health check",
-      "Watch fake methods hide a real hardware failure",
-      "Split the contract by what each client actually needs",
+      "Run the nightly health check against the universal contract",
+      "Move operations into contracts, then rerun",
+      "Make a red row mean real broken hardware again",
     ],
   },
   incident: {
-    intro: "The nightly health check calls every operation on every registered device, because the contract says every device has them. Run it.",
-    board: [
-      { id: "gate-barrier", label: "Gate: openBarrier()", before: "pass", detail: "The gate does the one thing it exists to do." },
-      { id: "display-charge", label: "Display board: chargeCard()", before: "fail", detail: "Throws NotSupported. The health check flags a healthy display board as broken, every single night." },
-      { id: "gate-display", label: "Gate: displayMessage()", before: "fail", detail: "The gate has no screen, so its displayMessage() is an empty method that returns success. Tonight that silent no-op masked the ACTUAL broken display board by the exit ramp." },
-      { id: "terminal-charge", label: "Pay terminal: chargeCard()", before: "pass", detail: "The one device that really charges cards, lost in the noise of fake failures." },
-    ],
-    failureBanner: "Half the health report is noise from methods devices never had, and a silent no-op hid real broken hardware. The fat contract manufactured both problems.",
+    intro: "The nightly health check calls every operation on every registered device, because the contract says every device has them. This is tonight's report.",
+    failureBanner: "Half the report is noise from methods devices never had, and a silent no-op hid real broken hardware. The contract layout is on your workbench: place each operation, then rerun the health check.",
   },
-  repair: {
-    prompt: "Facilities asks how to make the health check trustworthy. Choose the repair.",
-    options: [
+  repairBench: {
+    intro: "Decide which contract each operation belongs to, then run the health check. Every device implements every contract that contains any operation it is forced to carry.",
+    controls: DEVICE_OPS.map((op) => ({
+      id: op.id,
+      label: `${op.name}, really done by ${op.device}, lives in`,
+      options: [
+        { id: "universal", label: "The universal GarageDevice contract (all devices implement it)" },
+        { id: "role", label: `A small role contract only ${op.device} implements` },
+      ],
+      initial: "universal",
+    })),
+    rows: [
       {
-        id: "split-contracts",
-        label: "Split GarageDevice into small contracts: BarrierControl, MessageDisplay, PaymentTerminal, PlateReader. Each device implements only what it really does.",
-        correct: true,
-        consequence: "The health check now asks each device only for the contracts it declares. A failure finally means real broken hardware, and no device carries a method it has to fake.",
+        id: "display-check",
+        label: "Health check: display board",
+        evaluate: (config) => {
+          const forced = universalOps(config).filter((op) => op.id !== "displayMessage");
+          return forced.length === 0
+            ? { pass: true, detail: "The display board answers only for displaying. Its report is clean." }
+            : { pass: false, detail: `The universal contract forces the display board to carry ${forced.map((op) => op.name).join(", ")}. It throws NotSupported and the check flags healthy hardware as broken.` };
+        },
       },
       {
-        id: "not-supported",
-        label: "Keep the fat interface and standardize on throwing NotSupported from methods a device lacks.",
-        correct: false,
-        consequence: "The rerun shows every caller growing try/catch scaffolding, and the health check still cannot tell 'unsupported by design' from 'supported but broken'. The noise is now structured noise.",
+        id: "gate-check",
+        label: "Health check: gate",
+        evaluate: (config) => {
+          const forced = universalOps(config).filter((op) => op.id !== "openBarrier");
+          return forced.length === 0
+            ? { pass: true, detail: "The gate answers only for the barrier. No fakes, no stubs." }
+            : { pass: false, detail: `The gate fakes ${forced.map((op) => op.name).join(", ")} with silent no-ops just to satisfy the contract.` };
+        },
       },
       {
-        id: "empty-defaults",
-        label: "Add a base class with empty default implementations so devices compile cleanly.",
-        correct: false,
-        consequence: "The rerun is all green and the garage is lying to you: the broken exit-ramp display still reports success from its inherited no-op. Silent defaults ship real failures to production.",
+        id: "hidden-failure",
+        label: "The broken exit-ramp display is detected",
+        evaluate: (config) =>
+          config.displayMessage === "role"
+            ? { pass: true, detail: "Only real displays answer for displayMessage(), so the exit-ramp failure finally shows up as the only red row it deserves." }
+            : { pass: false, detail: "The gate's silent displayMessage() no-op returns success, and tonight that success masked the genuinely broken display by the exit ramp." },
+      },
+      {
+        id: "signal",
+        label: "A red row means real breakage",
+        evaluate: (config) => {
+          const universal = universalOps(config);
+          return universal.length === 0
+            ? { pass: true, detail: "Every implementation honors everything it signs, so the health report is finally information instead of noise." }
+            : { pass: false, detail: `${universal.length} operation${universal.length === 1 ? " is" : "s are"} still universal, so the report still mixes 'unsupported by design' with 'supported but broken'.` };
+        },
       },
     ],
+    successNote: "Each device signs only for what it does: BarrierControl, MessageDisplay, PaymentTerminal, PlateReader. Failures mean broken hardware again.",
   },
   rerun: {
-    summary: "Rerun the health check against the split contracts.",
-    before: "4 devices faking 9 methods, 1 real failure hidden",
+    before: "4 devices faking 9 methods, 1 real failure hidden in the noise",
     after: "each device answers only for itself, the broken display is the only red row",
   },
-  transfer: {
-    prompt: "Hints off. The mobile team wants one GarageApi interface with entry, billing, and reporting methods, implemented by every backend service. Decide.",
-    options: [
+  transferBench: {
+    intro: "Hints off. The mobile team wants one GarageApi interface with entry, billing, and reporting methods, implemented by every backend service. Arrange the API, then run the integration suite.",
+    controls: [
       {
-        id: "split-by-client",
-        label: "Give each client its own contract: EntryApi for the gate app, BillingApi for payments, ReportsApi for the office dashboard.",
-        correct: true,
-        consequence: "Correct. Each client depends on exactly what it uses, and a reporting change can never force a redeploy of the entry path. Same disease as the devices, same cure.",
+        id: "entry",
+        label: "Entry operations are served through",
+        options: [
+          { id: "god", label: "The single GarageApi interface" },
+          { id: "client", label: "An EntryApi shaped for the gate app" },
+        ],
+        initial: "god",
       },
       {
-        id: "one-god-api",
-        label: "Ship the single GarageApi. One interface is easier to document.",
-        correct: false,
-        consequence: "The world runs it: the entry app now recompiles every time a report field changes, and the billing service implements report methods it serves with empty lists. The fat contract is back with HTTP in front of it.",
+        id: "billing",
+        label: "Billing operations are served through",
+        options: [
+          { id: "god", label: "The single GarageApi interface" },
+          { id: "client", label: "A BillingApi shaped for payments" },
+        ],
+        initial: "god",
       },
       {
-        id: "api-defaults",
-        label: "One interface, but with default empty responses for methods a service does not really serve.",
-        correct: false,
-        consequence: "An office dashboard quietly renders empty reports from a service that never implemented them. Silent defaults did to the API exactly what they did to the display board.",
+        id: "reports",
+        label: "Reporting operations are served through",
+        options: [
+          { id: "god", label: "The single GarageApi interface" },
+          { id: "client", label: "A ReportsApi shaped for the office dashboard" },
+        ],
+        initial: "god",
       },
     ],
-    success: "Correct. Each client depends on exactly what it uses, and a reporting change can never force a redeploy of the entry path. Same disease as the devices, same cure.",
+    rows: [
+      {
+        id: "entry-deploys",
+        label: "The gate app redeploys only for entry changes",
+        evaluate: (config) =>
+          config.entry === "client"
+            ? { pass: true, detail: "The gate app depends on EntryApi and nothing else. Report fields can churn all quarter." }
+            : { pass: false, detail: "The gate app consumes the god interface, so a renamed report field forces an entry-path recompile and redeploy." },
+      },
+      {
+        id: "no-stubs",
+        label: "No service serves fake methods",
+        evaluate: (config) => {
+          const god = [config.entry, config.billing, config.reports].filter((value) => value === "god").length;
+          return god === 0
+            ? { pass: true, detail: "Each service implements exactly the contract its clients call." }
+            : { pass: false, detail: `${god} capability group${god === 1 ? "" : "s"} still ride the god interface, so services stub methods they never really serve. The billing service returns empty report lists today.` };
+        },
+      },
+      {
+        id: "dashboard",
+        label: "Office dashboard failures are real",
+        evaluate: (config) =>
+          config.reports === "client"
+            ? { pass: true, detail: "Reports come from a service that actually implements them. An empty dashboard now means a real problem." }
+            : { pass: false, detail: "The dashboard quietly renders empty reports from a stubbed god-interface method. Nobody notices for a month." },
+      },
+    ],
+    successNote: "Same disease as the devices, same cure: contracts sized to their clients, so no consumer depends on operations it never uses.",
   },
   debrief: {
     headline: "Each device signs only for what it does.",
@@ -332,6 +547,10 @@ const ISP_MISSION: SolidChapterMission = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Chapter 5 · DIP · The Outage at Exit Rush
+// ---------------------------------------------------------------------------
+
 const DIP_MISSION: SolidChapterMission = {
   id: "dip",
   order: 5,
@@ -342,72 +561,147 @@ const DIP_MISSION: SolidChapterMission = {
     headline: "5pm. Acme Payments is down. Nobody can leave.",
     body: "The pay station constructs AcmePayClient inside its own code and calls acme.sendCharge() directly. Acme's API has a 40 minute outage, the exit queue is backing onto the street, and the team cannot even test a fix because the exit flow only runs against real Acme credentials.",
     beats: [
-      "Watch one concrete dependency stop the whole garage",
-      "Invert the arrow: the garage owns the contract",
+      "Run exit rush against the hard-wired vendor",
+      "Rewire what the exit flow depends on, then rerun",
       "Earn the Adapter pattern the honest way",
     ],
   },
   incident: {
-    intro: "Exit rush is live and Acme is timing out. Run the exit suite.",
-    board: [
-      { id: "charge-exit", label: "Charge on exit", before: "fail", detail: "acme.sendCharge() times out. Barriers stay down. The queue is 14 cars and growing." },
-      { id: "cash-fallback", label: "Fall back to the cash box", before: "fail", detail: "There is no seam to swap anything in: the vendor client is constructed inside the exit flow itself." },
-      { id: "test-exit", label: "Test the exit flow in CI", before: "fail", detail: "Tests need live Acme credentials, so the team is debugging the outage against production." },
-      { id: "receipts", label: "Issue receipts", before: "pass", detail: "Receipts work, for the cars that manage to pay." },
-    ],
-    failureBanner: "Two different symptoms, one cause: the high-level exit flow depends directly on a low-level vendor detail. When the detail died, the domain died with it.",
+    intro: "Exit rush is live and Acme is timing out. This is the exit suite against the current wiring.",
+    failureBanner: "Two different symptoms, one arrow pointing the wrong way. The wiring is on your workbench: decide what the exit flow depends on and what stands behind it, then rerun exit rush.",
   },
-  repair: {
-    prompt: "The queue is still growing. Choose the structural repair.",
-    options: [
+  repairBench: {
+    intro: "Rewire the exit flow's payment dependency, then run exit rush. The suite computes from the wiring you choose.",
+    controls: [
       {
-        id: "payment-port",
-        label: "The garage owns a PaymentPort contract (charge(amount) returns a receipt). AcmeAdapter implements it, a CashboxAdapter implements it, and the pay station receives its port from outside.",
-        correct: true,
-        consequence: "The arrow flips: the exit flow depends on a contract the garage owns, and Acme becomes one replaceable plug. The cashbox adapter goes in tonight, and CI runs against a test adapter with zero network.",
+        id: "dependency",
+        label: "PayStation gets its payment capability by",
+        options: [
+          { id: "construct", label: "Constructing AcmePayClient inside the exit flow" },
+          { id: "port", label: "Receiving a garage-owned PaymentPort from outside" },
+        ],
+        initial: "construct",
       },
       {
-        id: "retry-wrapper",
-        label: "Wrap every acme call in try/catch with an exponential retry loop.",
-        correct: false,
-        consequence: "The rerun shows the queue still frozen: retrying a dead vendor is still depending on a dead vendor. Tests still need credentials, and the exit flow is still married to Acme.",
-      },
-      {
-        id: "second-vendor-branch",
-        label: "Add a second vendor SDK next to Acme with an if(acmeIsDown) branch in the exit flow.",
-        correct: false,
-        consequence: "Now the exit flow constructs two concrete vendors and owns the failover logic for both. Every new provider edits the domain again, which is the tariff-wars disease wearing a payments costume.",
+        id: "outage-plan",
+        label: "Tonight's outage plan",
+        options: [
+          { id: "retry", label: "Wrap acme calls in try/catch with an exponential retry loop" },
+          { id: "vendor-branch", label: "Add a second vendor SDK behind an if(acmeIsDown) branch" },
+          { id: "cashbox", label: "A CashboxAdapter that satisfies the same payment contract" },
+        ],
+        initial: "retry",
       },
     ],
+    rows: [
+      {
+        id: "outage-exit",
+        label: "Cars exit during the Acme outage",
+        evaluate: (config) => {
+          if (config["outage-plan"] === "retry") {
+            return { pass: false, detail: "Retrying a dead vendor is still depending on a dead vendor. The queue is 14 cars and climbing while the backoff climbs with it." };
+          }
+          if (config["outage-plan"] === "cashbox" && config.dependency === "construct") {
+            return { pass: false, detail: "There is a cashbox adapter, but no seam to plug it into: the exit flow constructs Acme inside itself, so nothing can be swapped tonight." };
+          }
+          return config["outage-plan"] === "cashbox"
+            ? { pass: true, detail: "The cashbox adapter plugs into the port and the queue clears. The exit flow never noticed the swap." }
+            : { pass: true, detail: "The second vendor happens to be up, so cars exit tonight. Note what it cost: the exit flow now owns failover branching for two concrete vendors." };
+        },
+      },
+      {
+        id: "ci",
+        label: "CI tests the exit flow without vendor credentials",
+        evaluate: (config) =>
+          config.dependency === "port"
+            ? { pass: true, detail: "A test adapter sits behind the same port. The full exit flow runs in CI with zero network." }
+            : { pass: false, detail: "The exit flow constructs its vendor internally, so every test needs live credentials. The team is debugging the outage against production." },
+      },
+      {
+        id: "new-vendor",
+        label: "A new provider ships next quarter without touching the exit flow",
+        evaluate: (config) => {
+          if (config.dependency !== "port") {
+            return { pass: false, detail: "The exit flow names a concrete vendor class inside itself. Any provider change is an exit-flow change." };
+          }
+          return config["outage-plan"] === "vendor-branch"
+            ? { pass: false, detail: "The port exists, but failover lives as an if-branch in the exit flow. Every new provider edits the domain again. That is the tariff-wars disease wearing a payments costume." }
+            : { pass: true, detail: "A new provider is one new adapter implementing PaymentPort. The exit flow does not change." };
+        },
+      },
+      {
+        id: "blast-radius",
+        label: "A vendor failure stays contained at the boundary",
+        evaluate: (config) =>
+          config.dependency === "port"
+            ? { pass: true, detail: "The failure surfaces inside one adapter, at the edge, where it can be swapped or stubbed." }
+            : { pass: false, detail: "The vendor failure detonates inside the domain: the highest-level policy in the garage died because the lowest-level detail did." },
+      },
+    ],
+    successNote: "The arrow flipped: the exit flow depends on a contract the garage owns, and every vendor is a plug. The cashbox went in tonight without touching the domain.",
   },
   rerun: {
-    summary: "Rerun exit rush with the port in place and the cashbox adapter plugged in.",
     before: "exit flow constructs the vendor, outage stops the garage, CI needs credentials",
     after: "exit flow sees only PaymentPort, cashbox clears the queue, CI runs on a test adapter",
   },
-  transfer: {
-    prompt: "Hints off. The plate-recognition camera arrives next sprint, with its own vendor SDK. The team is about to call vendorCam.scan() inline from the entry flow. Decide.",
-    options: [
+  transferBench: {
+    intro: "Hints off. The plate-recognition camera arrives next sprint with its own vendor SDK, and the team is about to call vendorCam.scan() inline from the entry flow. Wire it, then run the entry suite.",
+    controls: [
       {
-        id: "plate-port",
-        label: "The garage owns a PlateReaderPort. The vendor SDK gets an adapter, and the entry flow receives the port.",
-        correct: true,
-        consequence: "Correct. The entry flow stays testable without a camera on your desk, and the camera vendor is now swappable the same way the payment vendor is.",
+        id: "camera-dep",
+        label: "The entry flow reads plates by",
+        options: [
+          { id: "inline", label: "Calling the camera vendor's SDK inline" },
+          { id: "static-helper", label: "A static CameraUtils.scan() helper wrapping the SDK" },
+          { id: "port", label: "Receiving a PlateReaderPort from outside" },
+        ],
+        initial: "inline",
       },
       {
-        id: "inline-sdk",
-        label: "Call the camera SDK inline. It is just one method call.",
-        correct: false,
-        consequence: "One method call was how Acme got welded in. The rerun shows entry-flow tests now needing camera hardware, and the next outage belongs to the gate.",
-      },
-      {
-        id: "static-helper",
-        label: "Hide the SDK behind a static CameraUtils.scan() helper.",
-        correct: false,
-        consequence: "A static helper is still a hard-wired concrete dependency, just with a nicer name. Nothing can be substituted in tests or during an outage.",
+        id: "contract-owner",
+        label: "The PlateReader contract is defined in",
+        options: [
+          { id: "vendor", label: "The vendor SDK's own types, reused directly" },
+          { id: "garage", label: "The garage domain, with the vendor adapted to it" },
+        ],
+        initial: "vendor",
       },
     ],
-    success: "Correct. The entry flow stays testable without a camera on your desk, and the camera vendor is now swappable the same way the payment vendor is.",
+    rows: [
+      {
+        id: "entry-ci",
+        label: "Entry-flow tests run without camera hardware",
+        evaluate: (config) => {
+          if (config["camera-dep"] === "port") {
+            return { pass: true, detail: "A fake reader sits behind the port. The entry flow tests on any machine." };
+          }
+          return config["camera-dep"] === "static-helper"
+            ? { pass: false, detail: "A static helper is a hard-wired dependency with a nicer name. Nothing can be substituted, so tests still need a camera on the desk." }
+            : { pass: false, detail: "The vendor SDK is called inline, so entry tests need real camera hardware. One method call, welded in, exactly like Acme was." };
+        },
+      },
+      {
+        id: "vendor-swap",
+        label: "The camera vendor can be replaced next year",
+        evaluate: (config) => {
+          if (config["camera-dep"] !== "port") {
+            return { pass: false, detail: "The entry flow speaks the vendor's language directly. Replacing the vendor means rewriting the entry flow." };
+          }
+          return config["contract-owner"] === "garage"
+            ? { pass: true, detail: "The garage owns the contract and the vendor is an adapter. Swapping vendors swaps one adapter." }
+            : { pass: false, detail: "The port exists but it is shaped like the vendor's own types. The domain still speaks vendor; the coupling just moved one file over." };
+        },
+      },
+      {
+        id: "gate-blast",
+        label: "A camera outage cannot stop the gate",
+        evaluate: (config) =>
+          config["camera-dep"] === "port" && config["contract-owner"] === "garage"
+            ? { pass: true, detail: "The gate degrades to manual plate entry behind the same port. The outage belongs to an adapter, not to the entry flow." }
+            : { pass: false, detail: "When the camera vendor has its Acme day, the outage will belong to the gate." },
+      },
+    ],
+    successNote: "The garage owns the socket and vendors bring the plug, for cameras exactly as for payments. The direction of the arrow is the principle.",
   },
   pattern: {
     unlockedName: "Adapter",

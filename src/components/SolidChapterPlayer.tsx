@@ -17,18 +17,19 @@ import {
   CHAPTER_COMPLETION_THRESHOLD,
 } from "@/arena/solidChapterEngine";
 import type {
+  BenchState,
   ChapterInterviewAssessment,
-  ChapterOption,
   SolidChapterMission,
+  Workbench,
 } from "@/arena/solidChapterEngine";
 import { recordChapterCompletion } from "@/game/garageProgress";
 
 /**
- * Plays one SOLID campaign chapter (OCP, LSP, ISP, DIP) through the loop the
- * first shift proved: incident -> consequence-driven repair -> rerun ->
- * hints-off transfer -> (earned pattern) -> debrief -> rubric-graded
- * interview. Wrong choices show world consequences and keep the learner in
- * the stage; the rerun of the same board gates progression.
+ * Plays one SOLID campaign chapter through a workbench, not a quiz: the
+ * learner arranges the design, runs the world, and reads the computed
+ * consequences. Progression requires making the same scenario board pass on
+ * a rerun. The only labeled-answer step left is naming the pattern AFTER it
+ * has been earned, which is vocabulary, not design.
  */
 export function SolidChapterPlayer({
   mission,
@@ -42,7 +43,7 @@ export function SolidChapterPlayer({
   const [state, dispatch] = useReducer(
     (current: ReturnType<typeof createChapterState>, action: Parameters<typeof reduceChapter>[2]) =>
       reduceChapter(mission, current, action),
-    undefined,
+    mission,
     createChapterState,
   );
   const [answer, setAnswer] = useState("");
@@ -93,79 +94,71 @@ export function SolidChapterPlayer({
             ))}
           </div>
           <button className="shift-primary" type="button" onClick={() => dispatch({ type: "BEGIN" })}>
-            <Play size={18} weight="fill" /> Start the incident
+            <Play size={18} weight="fill" /> Run the world
           </button>
         </section>
       )}
 
-      {(state.stage === "incident" || state.stage === "repair" || state.stage === "rerun") && (
+      {state.stage === "incident" && (
         <section className="chapter-card">
           <div className="chapter-coach" role="status">
-            {state.stage === "repair" && state.activeWrongRepairId ? <Warning size={22} weight="fill" /> : <Lightbulb size={22} weight="duotone" />}
+            <Lightbulb size={22} weight="duotone" />
             <p>{state.feedback}</p>
           </div>
-
-          <ScenarioBoard mission={mission} repaired={state.stage === "rerun"} />
-
-          {state.stage === "incident" && (
-            <button className="shift-primary" type="button" onClick={() => dispatch({ type: "SEE_FAILURE" })}>
-              <Wrench size={18} /> Diagnose the failure
-            </button>
-          )}
-
-          {state.stage === "repair" && (
-            <OptionList
-              prompt={mission.repair.prompt}
-              options={mission.repair.options}
-              activeWrongId={state.activeWrongRepairId}
-              onChoose={(optionId) => dispatch({ type: "CHOOSE_REPAIR", optionId })}
-            />
-          )}
-
-          {state.stage === "rerun" && (
-            <div className="chapter-rerun">
-              <div className="chapter-before-after">
-                <article>
-                  <small>Before</small>
-                  <p>{mission.rerun.before}</p>
-                </article>
-                <ArrowRight size={20} />
-                <article className="is-after">
-                  <small>After</small>
-                  <p>{mission.rerun.after}</p>
-                </article>
-              </div>
-              <button className="shift-primary" type="button" onClick={() => dispatch({ type: "CONFIRM_RERUN" })}>
-                {mission.rerun.summary} <ArrowRight size={18} />
-              </button>
-            </div>
-          )}
+          <ResultsBoard bench={mission.repairBench} benchState={state.repair} />
+          <button className="shift-primary" type="button" onClick={() => dispatch({ type: "SEE_FAILURE" })}>
+            <Wrench size={18} /> Open the workbench
+          </button>
         </section>
       )}
 
+      {state.stage === "repair" && (
+        <WorkbenchView
+          bench={mission.repairBench}
+          benchState={state.repair}
+          banner={mission.incident.failureBanner}
+          continueLabel="Take the fix to the next incident"
+          onSet={(controlId, optionId) => dispatch({ type: "SET_CONTROL", bench: "repair", controlId, optionId })}
+          onRun={() => dispatch({ type: "RUN_BENCH", bench: "repair" })}
+          onContinue={() => dispatch({ type: "CONFIRM_RERUN" })}
+          rerun={mission.rerun}
+        />
+      )}
+
       {state.stage === "transfer" && (
-        <section className="chapter-card">
-          <span className="chapter-hints-off">Transfer round · hints off</span>
-          <OptionList
-            prompt={mission.transfer.prompt}
-            options={mission.transfer.options}
-            activeWrongId={state.activeWrongTransferId}
-            onChoose={(optionId) => dispatch({ type: "CHOOSE_TRANSFER", optionId })}
-            feedback={state.activeWrongTransferId ? state.feedback : undefined}
-          />
-        </section>
+        <WorkbenchView
+          bench={mission.transferBench}
+          benchState={state.transfer}
+          hintsOff
+          continueLabel="Continue"
+          onSet={(controlId, optionId) => dispatch({ type: "SET_CONTROL", bench: "transfer", controlId, optionId })}
+          onRun={() => dispatch({ type: "RUN_BENCH", bench: "transfer" })}
+          onContinue={() => dispatch({ type: "CONFIRM_RERUN" })}
+        />
       )}
 
       {state.stage === "pattern" && mission.pattern && (
         <section className="chapter-card">
           <span className="chapter-hints-off is-earned">Pattern earned the honest way</span>
-          <OptionList
-            prompt={mission.pattern.prompt}
-            options={mission.pattern.options}
-            activeWrongId={state.activeWrongPatternId}
-            onChoose={(optionId) => dispatch({ type: "CHOOSE_PATTERN", optionId })}
-            feedback={state.activeWrongPatternId ? state.feedback : undefined}
-          />
+          <div className="chapter-options">
+            <h3>{mission.pattern.prompt}</h3>
+            {state.activeWrongPatternId && (
+              <div className="chapter-coach is-danger" role="status">
+                <Warning size={22} weight="fill" />
+                <p>{state.feedback}</p>
+              </div>
+            )}
+            {mission.pattern.options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className={option.id === state.activeWrongPatternId ? "chapter-option is-wrong" : "chapter-option"}
+                onClick={() => dispatch({ type: "CHOOSE_PATTERN", optionId: option.id })}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </section>
       )}
 
@@ -265,8 +258,8 @@ export function SolidChapterPlayer({
           <small>Chapter {mission.order} complete</small>
           <h2>{mission.principle}: earned, not memorized.</h2>
           <p>
-            You watched the failure, repaired the design, transferred it with hints off, and defended it in interview
-            language.
+            You ran the failure, rearranged the design until the same world passed, transferred it with hints off, and
+            defended it in interview language.
           </p>
           <div className="chapter-score">
             <strong>{state.interviewScore}%</strong>
@@ -286,57 +279,121 @@ export function SolidChapterPlayer({
   );
 }
 
-function ScenarioBoard({ mission, repaired }: { mission: SolidChapterMission; repaired: boolean }) {
+function ResultsBoard({ bench, benchState }: { bench: Workbench; benchState: BenchState }) {
+  if (!benchState.results) return null;
+  const labels = new Map(bench.rows.map((row) => [row.id, row.label]));
   return (
     <div className="chapter-board" aria-label="Scenario suite results">
-      {mission.incident.board.map((row) => {
-        const failing = !repaired && row.before === "fail";
-        return (
-          <div key={row.id} className={failing ? "is-failing" : "is-passing"}>
-            {failing ? <XCircle size={17} weight="fill" /> : <CheckCircle size={17} weight="fill" />}
-            <div>
-              <strong>{row.label}</strong>
-              <p>{repaired && row.before === "fail" ? "Passing after the repair." : row.detail}</p>
-            </div>
+      {benchState.results.map((row) => (
+        <div key={row.rowId} className={row.pass ? "is-passing" : "is-failing"}>
+          {row.pass ? <CheckCircle size={17} weight="fill" /> : <XCircle size={17} weight="fill" />}
+          <div>
+            <strong>{labels.get(row.rowId)}</strong>
+            <p>{row.detail}</p>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
 
-function OptionList({
-  prompt,
-  options,
-  activeWrongId,
-  onChoose,
-  feedback,
+function WorkbenchView({
+  bench,
+  benchState,
+  banner,
+  hintsOff,
+  continueLabel,
+  rerun,
+  onSet,
+  onRun,
+  onContinue,
 }: {
-  prompt: string;
-  options: ChapterOption[];
-  activeWrongId?: string;
-  onChoose: (optionId: string) => void;
-  feedback?: string;
+  bench: Workbench;
+  benchState: BenchState;
+  banner?: string;
+  hintsOff?: boolean;
+  continueLabel: string;
+  rerun?: { before: string; after: string };
+  onSet: (controlId: string, optionId: string) => void;
+  onRun: () => void;
+  onContinue: () => void;
 }) {
+  const hasStaleConfig = benchState.results === undefined && benchState.runs > 0;
   return (
-    <div className="chapter-options">
-      <h3>{prompt}</h3>
-      {feedback && (
-        <div className="chapter-coach is-danger" role="status">
-          <Warning size={22} weight="fill" />
-          <p>{feedback}</p>
+    <section className="chapter-card">
+      {hintsOff ? (
+        <span className="chapter-hints-off">Transfer round · hints off</span>
+      ) : banner ? (
+        <div className="chapter-coach" role="status">
+          <Lightbulb size={22} weight="duotone" />
+          <p>{banner}</p>
+        </div>
+      ) : null}
+
+      <div className="chapter-workbench">
+        <h3>{bench.intro}</h3>
+        {bench.controls.map((control) => (
+          <div key={control.id} className="chapter-control">
+            <span className="chapter-control-label">{control.label}</span>
+            <div className="chapter-control-options" role="radiogroup" aria-label={control.label}>
+              {control.options.map((option) => {
+                const selected = benchState.config[control.id] === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    className={selected ? "chapter-pill is-selected" : "chapter-pill"}
+                    onClick={() => onSet(control.id, option.id)}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <div className="chapter-run-row">
+          <button className="shift-primary" type="button" onClick={onRun}>
+            <Play size={18} weight="fill" /> Run the world
+          </button>
+          <span className="chapter-run-count">
+            {benchState.runs === 0
+              ? "The suite reruns against whatever you arrange."
+              : hasStaleConfig
+                ? "Configuration changed. Run again to see what the world says now."
+                : `${benchState.runs} run${benchState.runs === 1 ? "" : "s"} so far`}
+          </span>
+        </div>
+      </div>
+
+      <ResultsBoard bench={bench} benchState={benchState} />
+
+      {benchState.allPass && (
+        <div className="chapter-rerun">
+          <div className="chapter-coach" role="status">
+            <CheckCircle size={22} weight="fill" />
+            <p>{bench.successNote}</p>
+          </div>
+          {rerun && (
+            <div className="chapter-before-after">
+              <article>
+                <small>Before</small>
+                <p>{rerun.before}</p>
+              </article>
+              <ArrowRight size={20} />
+              <article className="is-after">
+                <small>After</small>
+                <p>{rerun.after}</p>
+              </article>
+            </div>
+          )}
+          <button className="shift-primary" type="button" onClick={onContinue}>
+            {continueLabel} <ArrowRight size={18} />
+          </button>
         </div>
       )}
-      {options.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          className={option.id === activeWrongId ? "chapter-option is-wrong" : "chapter-option"}
-          onClick={() => onChoose(option.id)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    </section>
   );
 }

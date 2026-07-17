@@ -337,13 +337,14 @@ export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
     });
   }
 
-  // Arena timed runs: each rejected answer explains the signal, and the run
-  // is scored, so a completed run is observed-failure evidence at minimum.
+  // Arena timed runs are machine-scored but option-based: picking the right
+  // labeled answer under a clock is recall support, not mastery. They are
+  // recorded honestly as quick-check evidence and never count as mastery.
   for (const [mode, record] of Object.entries(inputs.arenaScores)) {
     if (!record) continue;
     entries.push({
-      id: `arena-${mode}-observed`,
-      kind: "observed-failure",
+      id: `arena-${mode}-recall`,
+      kind: "recall",
       source: "arena",
       refId: mode,
       label: `Completed ${arenaTitle(mode)} under the clock`,

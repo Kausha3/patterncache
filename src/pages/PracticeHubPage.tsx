@@ -15,40 +15,44 @@ interface PracticeCard {
 }
 
 /**
- * Practice hub: one front door for every practice mode. The split matters:
- * mastery work (simulate, repair, transfer, code, explain) is what counts on
- * the competency ledger; quick checks support recall and say so.
+ * Practice hub: one front door for every practice mode. There is exactly ONE
+ * starting point for LLD (the System Forge campaign); everything else on
+ * this page is extra reps or recall support, and says so. A beginner should
+ * never have to choose between four LLD methodologies.
  */
-const MASTERY_WORK: PracticeCard[] = [
+const START_HERE: PracticeCard[] = [
   {
-    title: "System Forge",
+    title: "System Forge · SOLID campaign",
     route: "/arena/pattern-genome",
-    blurb: "The canonical LLD experience. Run a real garage into a rush-hour failure, repair it, transfer the fix with hints off, and defend it in interview language. Five chapters, one per SOLID principle, from Single Responsibility to Dependency Inversion.",
+    blurb: "THE way to learn LLD here. One garage, five chapters, one per SOLID principle: run the world into a real failure, repair it, transfer the fix with hints off, and defend it in interview language. Start at chapter 1 and do not skip.",
     icon: "layers",
     accent: color.violet,
-    tag: "Canonical LLD",
+    tag: "Start here · Canonical LLD",
     tagTone: color.violet,
+  },
+];
+
+const MORE_REPS: PracticeCard[] = [
+  {
+    title: "Cold Design Drills",
+    route: "/drill",
+    blurb: "A bare prompt and a blank page. Name the classes, list the edge cases, then compare against a reference. Best after the campaign, when you have something to transfer.",
+    icon: "insight",
+    accent: color.blue,
   },
   {
     title: "LLD Design Studio",
     route: "/arena/lld-studio",
-    blurb: "Assign responsibilities on a live Java skeleton, then hold the design together while the requirements mutate.",
+    blurb: "Assign responsibilities on a live Java skeleton while requirements mutate. Extra reps on the same skills the campaign teaches.",
     icon: "layers",
     accent: color.violet,
   },
   {
     title: "Arena simulations",
     route: "/arena",
-    blurb: "Timed runs: Pattern Combat, Incident Command, Model Defense. Every rejected answer explains the signal an interviewer wanted.",
+    blurb: "Timed option-based runs: Pattern Combat, Incident Command, Model Defense. Good pressure practice; counts as recall, not mastery.",
     icon: "target",
     accent: color.red,
-  },
-  {
-    title: "Cold Design Drills",
-    route: "/drill",
-    blurb: "A bare prompt and a blank page. Name the classes, list the edge cases, then compare against a reference. Transfer practice, self-scored.",
-    icon: "insight",
-    accent: color.blue,
   },
 ];
 
@@ -95,8 +99,9 @@ export function PracticeHubPage() {
         </p>
       </header>
 
-      <Section eyebrow="Mastery work" tone={color.violet} cards={MASTERY_WORK} />
+      <Section eyebrow="Learn LLD · one starting point" tone={color.violet} cards={START_HERE} />
       <Section eyebrow="Coding" tone={color.amber} cards={CODING_WORK} />
+      <Section eyebrow="More reps · after the campaign" tone={color.blue} cards={MORE_REPS} />
       <Section
         eyebrow="Quick checks · recall support, not mastery"
         tone={color.textDim}

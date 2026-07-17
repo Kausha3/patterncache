@@ -41,7 +41,9 @@ export function ProgressPage() {
     return titles;
   }, [game.dailyTargets]);
 
-  const garageProgress = useMemo(() => loadGarageProgress(), []);
+  // Read fresh on every render: a memoized-once read goes stale if a garage
+  // chapter completes while this page stays mounted. The parse is tiny.
+  const garageProgress = loadGarageProgress();
   const ledger = useMemo(
     () =>
       deriveLedger({

@@ -80,6 +80,17 @@ describe("competency ledger derivation", () => {
     expect(kinds).toEqual(["coded", "explained"]);
   });
 
+  it("records option-based Arena runs as recall, never mastery", () => {
+    const inputs = emptyInputs();
+    inputs.arenaScores = { coding: { bestScore: 3, maxScore: 3, attempts: 1, completedAt: 4000 } };
+    const entries = deriveLedger(inputs);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].kind).toBe("recall");
+    const summary = summarizeLedger(entries);
+    expect(summary.totalMastery).toBe(0);
+    expect(summary.recallCount).toBe(1);
+  });
+
   it("treats LLD Studio records as verified repair evidence", () => {
     const inputs = emptyInputs();
     inputs.lldStudioScores = {

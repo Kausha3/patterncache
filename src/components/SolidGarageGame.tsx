@@ -117,7 +117,7 @@ function ShiftIntro({ onStart }: { onStart: () => void }) {
     <section className="shift-intro" aria-labelledby="shift-title">
       <span><Sparkle size={19} weight="fill" /> Mission 1 · Your First Shift</span>
       <h1 id="shift-title">Keep the garage moving.</h1>
-      <p>You are the new parking operator. Drivers are arriving, but the garage still searches for spaces by hand. Learn the job by doing it—software terms come later.</p>
+      <p>You are the new parking operator. Drivers are arriving, but the garage still searches for spaces by hand. Learn the job by doing it. Software terms come later.</p>
       <div className="shift-intro-goals">
         <article><Car size={25} weight="duotone" /><strong>Park drivers</strong><small>Inspect the real garage yourself.</small></article>
         <article><Gauge size={25} weight="duotone" /><strong>Survive rush hour</strong><small>Feel why the manual process breaks.</small></article>

@@ -104,7 +104,7 @@ export function CoursePage() {
           </div>
           <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.65px" }}>Your interview campaign</h1>
           <p style={{ color: color.textDim, maxWidth: 660 }}>
-            Follow the day, finish the cold work, and use the score—not time spent—to decide what comes back.
+            Follow the day, finish the cold work, and use the score, not time spent, to decide what comes back.
           </p>
         </div>
         <Button variant="ghost" onClick={() => {
@@ -136,10 +136,6 @@ export function CoursePage() {
           </Button>
         </Panel>
       )}
-
-      <GameHud />
-
-      <DailyBossBattle />
 
       <div className="course-stat-grid">
         <StatCard label="Today" value={`Day ${currentDay}`} note={`of ${preferences.length}`} tone={color.blue} />
@@ -219,6 +215,10 @@ export function CoursePage() {
           })}
         </div>
       </section>
+
+      <DailyBossBattle />
+
+      <GameHud />
 
       <AchievementShelf />
     </div>

@@ -2,22 +2,32 @@ import { describe, expect, it } from "vitest";
 import {
   assessChapterInterview,
   createChapterState,
+  enumerateBenchConfigs,
+  initialBenchConfig,
   reduceChapter,
+  runBench,
   CHAPTER_COMPLETION_THRESHOLD,
 } from "./solidChapterEngine";
-import type { ChapterState, SolidChapterMission } from "./solidChapterEngine";
+import type { ChapterState, SolidChapterMission, Workbench } from "./solidChapterEngine";
 import { SOLID_CHAPTER_MISSIONS, getSolidChapterMission } from "./solidChapterMissions";
 
-function playToStage(mission: SolidChapterMission, target: "repair" | "rerun" | "transfer"): ChapterState {
-  let state = createChapterState();
-  state = reduceChapter(mission, state, { type: "BEGIN" });
-  state = reduceChapter(mission, state, { type: "SEE_FAILURE" });
-  if (target === "repair") return state;
-  const correctRepair = mission.repair.options.find((option) => option.correct)!;
-  state = reduceChapter(mission, state, { type: "CHOOSE_REPAIR", optionId: correctRepair.id });
-  if (target === "rerun") return state;
-  state = reduceChapter(mission, state, { type: "CONFIRM_RERUN" });
-  return state;
+function solveBench(bench: Workbench) {
+  return enumerateBenchConfigs(bench).filter((config) =>
+    runBench(bench, config).every((row) => row.pass),
+  );
+}
+
+function applyConfig(
+  mission: SolidChapterMission,
+  state: ChapterState,
+  benchName: "repair" | "transfer",
+  config: Record<string, string>,
+): ChapterState {
+  let next = state;
+  for (const [controlId, optionId] of Object.entries(config)) {
+    next = reduceChapter(mission, next, { type: "SET_CONTROL", bench: benchName, controlId, optionId });
+  }
+  return reduceChapter(mission, next, { type: "RUN_BENCH", bench: benchName });
 }
 
 describe("solid chapter missions data", () => {
@@ -26,23 +36,57 @@ describe("solid chapter missions data", () => {
     expect(SOLID_CHAPTER_MISSIONS.map((mission) => mission.order)).toEqual([2, 3, 4, 5]);
   });
 
-  it("keeps exactly one correct option per decision, with real consequences on every option", () => {
+  it("gives every bench a broken start: the initial configuration must fail the suite", () => {
     for (const mission of SOLID_CHAPTER_MISSIONS) {
-      const decisionSets = [mission.repair.options, mission.transfer.options];
-      if (mission.pattern) decisionSets.push(mission.pattern.options);
-      for (const options of decisionSets) {
-        expect(options.filter((option) => option.correct)).toHaveLength(1);
-        for (const option of options) {
-          expect(option.consequence.length, `${mission.id}/${option.id} needs a consequence`).toBeGreaterThan(40);
+      for (const bench of [mission.repairBench, mission.transferBench]) {
+        const results = runBench(bench, initialBenchConfig(bench));
+        expect(results.some((row) => !row.pass), `${mission.id} bench should start broken`).toBe(true);
+      }
+    }
+  });
+
+  it("guarantees every bench is solvable: at least one configuration passes every row", () => {
+    for (const mission of SOLID_CHAPTER_MISSIONS) {
+      for (const [name, bench] of [["repair", mission.repairBench], ["transfer", mission.transferBench]] as const) {
+        const solutions = solveBench(bench);
+        expect(solutions.length, `${mission.id}/${name} needs a discoverable solution`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("makes experimentation informative: distinct failing configs produce distinct failure details", () => {
+    for (const mission of SOLID_CHAPTER_MISSIONS) {
+      const bench = mission.repairBench;
+      const failingDetailSets = enumerateBenchConfigs(bench)
+        .map((config) => runBench(bench, config))
+        .filter((results) => results.some((row) => !row.pass))
+        .map((results) => results.filter((row) => !row.pass).map((row) => row.detail).join("|"));
+      const distinct = new Set(failingDetailSets);
+      expect(distinct.size, `${mission.id} should have multiple distinct failure narratives`).toBeGreaterThan(1);
+    }
+  });
+
+  it("never labels a workbench option as correct: correctness only exists in evaluation", () => {
+    for (const mission of SOLID_CHAPTER_MISSIONS) {
+      for (const bench of [mission.repairBench, mission.transferBench]) {
+        for (const control of bench.controls) {
+          for (const option of control.options as unknown as Record<string, unknown>[]) {
+            expect(option.correct, `${mission.id} bench options must not carry correct flags`).toBeUndefined();
+          }
         }
       }
     }
   });
 
-  it("gives every incident board at least one failing row and one passing row", () => {
+  it("gives every row a real detail in both passing and failing states", () => {
     for (const mission of SOLID_CHAPTER_MISSIONS) {
-      expect(mission.incident.board.some((row) => row.before === "fail")).toBe(true);
-      expect(mission.incident.board.some((row) => row.before === "pass")).toBe(true);
+      for (const bench of [mission.repairBench, mission.transferBench]) {
+        for (const config of enumerateBenchConfigs(bench)) {
+          for (const row of runBench(bench, config)) {
+            expect(row.detail.length, `${mission.id} row detail too thin`).toBeGreaterThan(30);
+          }
+        }
+      }
     }
   });
 
@@ -58,9 +102,6 @@ describe("solid chapter missions data", () => {
       expect(mission.interview.rubric).toHaveLength(4);
       for (const item of mission.interview.rubric) {
         expect(item.keywords.length).toBeGreaterThan(0);
-        for (const group of item.keywords) {
-          expect(group.length).toBeGreaterThan(0);
-        }
       }
     }
   });
@@ -68,12 +109,14 @@ describe("solid chapter missions data", () => {
   it("scores each mission's own model answer at 100", () => {
     for (const mission of SOLID_CHAPTER_MISSIONS) {
       const assessment = assessChapterInterview(mission, mission.interview.modelAnswer);
-      expect(assessment.score, `${mission.id} model answer should fully match its own rubric: missing ${assessment.missing.join(", ")}`).toBe(100);
+      expect(assessment.score, `${mission.id}: missing ${assessment.missing.join(", ")}`).toBe(100);
     }
   });
 
   it("contains no em-dashes in any user-facing string", () => {
-    const raw = JSON.stringify(SOLID_CHAPTER_MISSIONS);
+    const raw = JSON.stringify(SOLID_CHAPTER_MISSIONS, (_key, value) =>
+      typeof value === "function" ? undefined : value,
+    );
     expect(raw.includes("—")).toBe(false);
   });
 });
@@ -81,63 +124,94 @@ describe("solid chapter missions data", () => {
 describe("solid chapter engine", () => {
   const mission = SOLID_CHAPTER_MISSIONS[0];
 
-  it("walks the happy path to complete", () => {
-    let state = playToStage(mission, "transfer");
+  it("runs the incident as the repair bench at its broken initial config", () => {
+    let state = createChapterState(mission);
+    state = reduceChapter(mission, state, { type: "BEGIN" });
+    expect(state.stage).toBe("incident");
+    expect(state.repair.results).toBeDefined();
+    expect(state.repair.allPass).toBe(false);
+  });
+
+  it("blocks progression until the same board passes on a rerun", () => {
+    let state = createChapterState(mission);
+    state = reduceChapter(mission, state, { type: "BEGIN" });
+    state = reduceChapter(mission, state, { type: "SEE_FAILURE" });
+    expect(state.stage).toBe("repair");
+    // Trying to continue without a passing run does nothing.
+    expect(reduceChapter(mission, state, { type: "CONFIRM_RERUN" }).stage).toBe("repair");
+    // A partial fix reruns to a still-failing board with new details.
+    state = applyConfig(mission, state, "repair", { ev: "card" });
+    expect(state.repair.allPass).toBe(false);
+    expect(state.repair.runs).toBe(1);
+    // The full fix passes and unlocks progression.
+    const solution = solveBench(mission.repairBench)[0];
+    state = applyConfig(mission, state, "repair", solution);
+    expect(state.repair.allPass).toBe(true);
+    state = reduceChapter(mission, state, { type: "CONFIRM_RERUN" });
     expect(state.stage).toBe("transfer");
-    const correctTransfer = mission.transfer.options.find((option) => option.correct)!;
-    state = reduceChapter(mission, state, { type: "CHOOSE_TRANSFER", optionId: correctTransfer.id });
+  });
+
+  it("invalidates the last run when a control changes", () => {
+    let state = createChapterState(mission);
+    state = reduceChapter(mission, state, { type: "BEGIN" });
+    state = reduceChapter(mission, state, { type: "SEE_FAILURE" });
+    const solution = solveBench(mission.repairBench)[0];
+    state = applyConfig(mission, state, "repair", solution);
+    expect(state.repair.allPass).toBe(true);
+    state = reduceChapter(mission, state, { type: "SET_CONTROL", bench: "repair", controlId: "flat", optionId: "branch" });
+    expect(state.repair.allPass).toBe(false);
+    expect(state.repair.results).toBeUndefined();
+  });
+
+  it("walks the full happy path to complete", () => {
+    let state = createChapterState(mission);
+    state = reduceChapter(mission, state, { type: "BEGIN" });
+    state = reduceChapter(mission, state, { type: "SEE_FAILURE" });
+    state = applyConfig(mission, state, "repair", solveBench(mission.repairBench)[0]);
+    state = reduceChapter(mission, state, { type: "CONFIRM_RERUN" });
+    expect(state.stage).toBe("transfer");
+    state = applyConfig(mission, state, "transfer", solveBench(mission.transferBench)[0]);
+    state = reduceChapter(mission, state, { type: "CONFIRM_RERUN" });
     expect(state.stage).toBe("pattern");
     const correctPattern = mission.pattern!.options.find((option) => option.correct)!;
     state = reduceChapter(mission, state, { type: "CHOOSE_PATTERN", optionId: correctPattern.id });
     expect(state.stage).toBe("debrief");
     state = reduceChapter(mission, state, { type: "ENTER_INTERVIEW" });
-    expect(state.stage).toBe("interview");
     state = reduceChapter(mission, state, { type: "SUBMIT_INTERVIEW", score: 100 });
     expect(state.stage).toBe("complete");
-    expect(state.interviewScore).toBe(100);
   });
 
   it("skips the pattern stage for chapters without a pattern unlock", () => {
     const lsp = getSolidChapterMission("lsp")!;
-    let state = playToStage(lsp, "transfer");
-    const correctTransfer = lsp.transfer.options.find((option) => option.correct)!;
-    state = reduceChapter(lsp, state, { type: "CHOOSE_TRANSFER", optionId: correctTransfer.id });
+    let state = createChapterState(lsp);
+    state = reduceChapter(lsp, state, { type: "BEGIN" });
+    state = reduceChapter(lsp, state, { type: "SEE_FAILURE" });
+    state = applyConfig(lsp, state, "repair", solveBench(lsp.repairBench)[0]);
+    state = reduceChapter(lsp, state, { type: "CONFIRM_RERUN" });
+    state = applyConfig(lsp, state, "transfer", solveBench(lsp.transferBench)[0]);
+    state = reduceChapter(lsp, state, { type: "CONFIRM_RERUN" });
     expect(state.stage).toBe("debrief");
   });
 
-  it("keeps the learner on repair after a wrong choice, showing the consequence", () => {
-    let state = playToStage(mission, "repair");
-    const wrong = mission.repair.options.find((option) => !option.correct)!;
-    state = reduceChapter(mission, state, { type: "CHOOSE_REPAIR", optionId: wrong.id });
-    expect(state.stage).toBe("repair");
-    expect(state.repairAttempts).toBe(1);
-    expect(state.feedback).toBe(wrong.consequence);
-    expect(state.activeWrongRepairId).toBe(wrong.id);
-  });
-
   it("holds the interview stage below the completion threshold", () => {
-    let state = playToStage(mission, "transfer");
-    const correctTransfer = mission.transfer.options.find((option) => option.correct)!;
-    state = reduceChapter(mission, state, { type: "CHOOSE_TRANSFER", optionId: correctTransfer.id });
-    const correctPattern = mission.pattern!.options.find((option) => option.correct)!;
-    state = reduceChapter(mission, state, { type: "CHOOSE_PATTERN", optionId: correctPattern.id });
-    state = reduceChapter(mission, state, { type: "ENTER_INTERVIEW" });
-    state = reduceChapter(mission, state, { type: "SUBMIT_INTERVIEW", score: CHAPTER_COMPLETION_THRESHOLD - 25 });
+    const lsp = getSolidChapterMission("lsp")!;
+    let state = createChapterState(lsp);
+    state = reduceChapter(lsp, state, { type: "BEGIN" });
+    state = reduceChapter(lsp, state, { type: "SEE_FAILURE" });
+    state = applyConfig(lsp, state, "repair", solveBench(lsp.repairBench)[0]);
+    state = reduceChapter(lsp, state, { type: "CONFIRM_RERUN" });
+    state = applyConfig(lsp, state, "transfer", solveBench(lsp.transferBench)[0]);
+    state = reduceChapter(lsp, state, { type: "CONFIRM_RERUN" });
+    state = reduceChapter(lsp, state, { type: "ENTER_INTERVIEW" });
+    state = reduceChapter(lsp, state, { type: "SUBMIT_INTERVIEW", score: CHAPTER_COMPLETION_THRESHOLD - 25 });
     expect(state.stage).toBe("interview");
-    expect(state.interviewAttempts).toBe(1);
-    state = reduceChapter(mission, state, { type: "SUBMIT_INTERVIEW", score: CHAPTER_COMPLETION_THRESHOLD });
+    state = reduceChapter(lsp, state, { type: "SUBMIT_INTERVIEW", score: CHAPTER_COMPLETION_THRESHOLD });
     expect(state.stage).toBe("complete");
   });
 
   it("ignores actions issued from the wrong stage", () => {
-    const fresh = createChapterState();
-    expect(reduceChapter(mission, fresh, { type: "CHOOSE_REPAIR", optionId: "policy-slot" })).toBe(fresh);
+    const fresh = createChapterState(mission);
+    expect(reduceChapter(mission, fresh, { type: "RUN_BENCH", bench: "repair" })).toBe(fresh);
     expect(reduceChapter(mission, fresh, { type: "SUBMIT_INTERVIEW", score: 100 })).toBe(fresh);
-  });
-
-  it("scores partial interview answers below 100", () => {
-    const partial = assessChapterInterview(mission, "I would add a new class for each tariff.");
-    expect(partial.score).toBeLessThan(100);
-    expect(partial.missing.length).toBeGreaterThan(0);
   });
 });

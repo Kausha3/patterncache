@@ -720,7 +720,7 @@ function CompletionStage({
       <header>
         <span>SRP mission debrief</span>
         <h2 id="complete-title">You completed the full LLD loop.</h2>
-        <p>The score reflects design evidence—not how many buttons you clicked.</p>
+        <p>The score reflects design evidence, not how many buttons you clicked.</p>
       </header>
       <div className="solid-score-card"><strong>{score.total}</strong><span>/ 100</span><p>Clarify {score.clarification} · Classes {score.classModel} · Methods {score.methodOwnership} · Relationships {score.relationships} · Change {score.changeContainment} · Defense {score.interviewDefense}</p></div>
       <section className="solid-reference-answer">
@@ -823,7 +823,7 @@ function BeginnerGuide({
             <span>Your mission</span>
             <strong>{mission.mutation}</strong>
             <p>{selected
-              ? "Now choose the class that should own this job. You cannot break anything—every choice teaches you something."
+              ? "Now choose the class that should own this job. You cannot break anything. Every choice teaches you something."
               : `${mission.responsibility.label} currently lives in ${initialOwnerLabel}. Move it only if another class is a better owner.`}</p>
             <details>
               <summary>Need a beginner hint?</summary>

@@ -5931,3 +5931,21 @@ body:has(.living-garage-page) .app-header {
   .chapter-before-after { grid-template-columns: 1fr; }
   .chapter-before-after > svg { transform: rotate(90deg); justify-self: center; }
 }
+
+/* Workbench: configure-and-run controls for SOLID chapters */
+.chapter-workbench { display: grid; gap: 14px; }
+.chapter-workbench h3 { font-family: var(--sans); font-size: 15px; font-weight: 850; color: #fdf9e5; line-height: 1.5; }
+.chapter-control { display: grid; gap: 7px; }
+.chapter-control-label { font-family: var(--sans); font-size: 12.5px; font-weight: 800; color: #b9cdc4; }
+.chapter-control-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.chapter-pill {
+  text-align: left; border: 1px solid rgba(145, 229, 197, .28); border-radius: 12px;
+  background: rgba(9, 32, 25, .6); color: #cfe0d8;
+  padding: 9px 13px; font-size: 12.5px; line-height: 1.45; cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+  max-width: 100%;
+}
+.chapter-pill:hover { border-color: #91e5c5; }
+.chapter-pill.is-selected { border-color: #91e5c5; background: rgba(145, 229, 197, .14); color: #f5f7ed; font-weight: 700; }
+.chapter-run-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.chapter-run-count { font-size: 12px; color: #9fbcb1; }

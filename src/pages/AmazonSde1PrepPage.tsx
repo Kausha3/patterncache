@@ -336,7 +336,7 @@ function ReadinessGate({ counts }: { counts: { ready: number; must: number; dsaR
           <li className={counts.lldReady === counts.lldTotal ? "passed" : ""}>Every must-do LLD can be clarified, modeled, and defended in 45–55 minutes.</li>
           <li>Two 70-minute coding mocks finish with working code and edge-case tests.</li>
           <li>Two unseen LLD mocks survive one changed requirement without a rewrite.</li>
-          <li>Six metric-backed Leadership Principle stories are ready—technical prep does not replace Amazon behavioral prep.</li>
+          <li>Six metric-backed Leadership Principle stories are ready. Technical prep does not replace Amazon behavioral prep.</li>
         </ul>
       </div>
     </section>
