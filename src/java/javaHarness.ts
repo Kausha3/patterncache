@@ -27,7 +27,7 @@ export type JavaType =
   | "ListNode"
   | "Map<String,List<String>>";
 
-export type JavaComparison = "ordered" | "unordered-rows" | "unordered-elements" | "topological-order";
+export type JavaComparison = "ordered" | "unordered-rows" | "unordered-elements" | "unordered-strings" | "topological-order";
 
 export interface JavaCombatSpec {
   /** The method PcTestMain calls on the learner's Solution class. */
@@ -224,6 +224,9 @@ function javaEquality(
         ? `unorderedIntArrayEquals(${expected}, ${actual})`
         : `java.util.Arrays.equals(${expected}, ${actual})`;
     case "String[]":
+      return comparison === "unordered-strings"
+        ? `unorderedStringArrayEquals(${expected}, ${actual})`
+        : `java.util.Arrays.equals(${expected}, ${actual})`;
     case "double[]":
       return `java.util.Arrays.equals(${expected}, ${actual})`;
     case "int[][]":
@@ -243,7 +246,8 @@ function javaEquality(
 
 function javaDisplay(type: JavaType, expression: string): string {
   if (type === "int[][]") return `java.util.Arrays.deepToString(${expression})`;
-  if (type === "int[]" || type === "String[]" || type === "double[]") {
+  if (type === "String[]") return `stringArrayView(${expression})`;
+  if (type === "int[]" || type === "double[]") {
     return `java.util.Arrays.toString(${expression})`;
   }
   if (type === "String") return `quote(${expression})`;
@@ -266,6 +270,9 @@ export function validateJavaSpec(
   }
   if (spec.comparison === "unordered-elements" && spec.returnType !== "int[]") {
     problems.push("The unordered-elements comparison is only supported for int[] results.");
+  }
+  if (spec.comparison === "unordered-strings" && spec.returnType !== "String[]") {
+    problems.push("The unordered-strings comparison is only supported for String[] results.");
   }
   if (
     spec.comparison === "topological-order"
@@ -567,6 +574,16 @@ ${methods}
     return value == null ? "null" : "\\"" + value + "\\"";
   }
 
+  private static String stringArrayView(String[] values) {
+    if (values == null) return "null";
+    StringBuilder out = new StringBuilder("[");
+    for (int index = 0; index < values.length; index += 1) {
+      if (index > 0) out.append(", ");
+      out.append(quote(values[index]));
+    }
+    return out.append("]").toString();
+  }
+
   private static boolean unorderedIntMatrixEquals(int[][] expected, int[][] actual) {
     if (expected == actual) return true;
     if (expected == null || actual == null || expected.length != actual.length) return false;
@@ -591,6 +608,16 @@ ${methods}
     if (expected == null || actual == null || expected.length != actual.length) return false;
     int[] expectedCopy = expected.clone();
     int[] actualCopy = actual.clone();
+    java.util.Arrays.sort(expectedCopy);
+    java.util.Arrays.sort(actualCopy);
+    return java.util.Arrays.equals(expectedCopy, actualCopy);
+  }
+
+  private static boolean unorderedStringArrayEquals(String[] expected, String[] actual) {
+    if (expected == actual) return true;
+    if (expected == null || actual == null || expected.length != actual.length) return false;
+    String[] expectedCopy = expected.clone();
+    String[] actualCopy = actual.clone();
     java.util.Arrays.sort(expectedCopy);
     java.util.Arrays.sort(actualCopy);
     return java.util.Arrays.equals(expectedCopy, actualCopy);

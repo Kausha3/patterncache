@@ -69,6 +69,17 @@ function auditQuestion(question: AmazonPrepQuestion): AmazonCoverageEntry {
         : "Visible and hidden JVM tests verify the exact problem contract.",
     };
   }
+  if (question.id === "lld-parking-lot") {
+    return {
+      questionId: question.id,
+      title: question.title,
+      track: question.track,
+      level: "machine-verified",
+      route: "/arena/lld-world/parking-lot",
+      practiceLabel: "Six-incident Parking Lot gauntlet",
+      reason: "The exact design is verified by six persistent system incidents, live responsibility mutation, reruns against the complete model, and a rubric-graded free-form defense.",
+    };
+  }
   if (question.track === "lld") {
     return {
       questionId: question.id,

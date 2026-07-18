@@ -34,6 +34,15 @@ const START_HERE: PracticeCard[] = [
 
 const MORE_REPS: PracticeCard[] = [
   {
+    title: "Parking Lot Design Gauntlet",
+    route: "/arena/lld-world/parking-lot",
+    blurb: "Take the exact Amazon-style Parking Lot prompt through six live failures: entry, compatibility, concurrency, tickets, pricing, and payment. Move real state and behavior, rerun every incident, then defend the design without answer choices.",
+    icon: "gauge",
+    accent: color.teal,
+    tag: "Exact simulation · verified LLD",
+    tagTone: color.teal,
+  },
+  {
     title: "Cold Design Drills",
     route: "/drill",
     blurb: "A bare prompt and a blank page. Name the classes, list the edge cases, then compare against a reference. Best after the campaign, when you have something to transfer.",

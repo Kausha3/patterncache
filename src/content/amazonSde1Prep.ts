@@ -229,6 +229,17 @@ export const AMAZON_COMBAT_MISSION_BY_QUESTION: Partial<Record<string, CodingCom
   "dsa-path-sum": "path-sum-tree",
   "dsa-sliding-window-max": "sliding-window-max",
   "dsa-course-schedule-ii": "course-schedule-ii",
+  "dsa-product-except-self": "product-except-self",
+  "dsa-subarray-sum-k": "subarray-sum-k",
+  "dsa-min-stack": "min-stack",
+  "dsa-top-k-frequent": "top-k-frequent",
+  "dsa-task-scheduler": "task-scheduler",
+  "dsa-lru-cache": "lru-cache",
+  "dsa-generate-parentheses": "generate-parentheses",
+  "dsa-word-search": "word-search",
+  "dsa-house-robber-ii": "house-robber-ii",
+  "dsa-coin-change": "coin-change",
+  "dsa-maximum-subarray": "maximum-subarray",
 };
 
 export function getAmazonCombatMissionId(questionId: string): CodingCombatMissionId | undefined {

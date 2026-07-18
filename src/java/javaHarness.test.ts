@@ -252,6 +252,19 @@ describe("generateTestMain", () => {
       [{ id: "unordered", label: "unordered", args: [[1, 2]], expected: [2, 1] }],
     );
     expect(unordered).toContain("unorderedIntArrayEquals(expected, returned)");
+    const unorderedStrings = generateTestMain(
+      {
+        methodName: "values",
+        signature: "public String[] values(String[] input)",
+        argTypes: ["String[]"],
+        returnType: "String[]",
+        comparison: "unordered-strings",
+        starterCode: "",
+      },
+      [{ id: "strings", label: "strings", args: [["", "()"]], expected: ["()", ""] }],
+    );
+    expect(unorderedStrings).toContain("unorderedStringArrayEquals(expected, returned)");
+    expect(unorderedStrings).toContain("stringArrayView(returned)");
     expect(validateJavaSpec(
       {
         methodName: "bad",

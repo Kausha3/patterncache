@@ -62,6 +62,17 @@ export const CODING_COMBAT_MISSION_IDS = [
   "linked-list-cycle",
   "sliding-window-max",
   "course-schedule-ii",
+  "product-except-self",
+  "subarray-sum-k",
+  "min-stack",
+  "top-k-frequent",
+  "task-scheduler",
+  "lru-cache",
+  "generate-parentheses",
+  "word-search",
+  "house-robber-ii",
+  "coin-change",
+  "maximum-subarray",
 ] as const;
 export type CodingCombatMissionId = (typeof CODING_COMBAT_MISSION_IDS)[number];
 export type CodingCombatScores = Partial<Record<CodingCombatMissionId, ArenaScoreRecord>>;

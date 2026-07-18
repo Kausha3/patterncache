@@ -1,0 +1,635 @@
+.app-main:has(.parking-gauntlet) {
+  max-width: 1240px;
+}
+
+.parking-gauntlet {
+  --pg-ink: #eff7ef;
+  --pg-muted: #9eb0ad;
+  --pg-line: rgba(130, 197, 180, 0.18);
+  --pg-panel: rgba(10, 27, 30, 0.93);
+  display: grid;
+  gap: 18px;
+  color: var(--pg-ink);
+}
+
+.parking-gauntlet h1,
+.parking-gauntlet h2,
+.parking-gauntlet p {
+  margin: 0;
+}
+
+.parking-gauntlet button,
+.parking-gauntlet textarea {
+  font: inherit;
+}
+
+.parking-gauntlet-hero,
+.parking-gauntlet-mission,
+.parking-gauntlet-workshop,
+.parking-gauntlet-defense {
+  overflow: hidden;
+  border: 1px solid var(--pg-line);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(12, 34, 36, 0.98), rgba(8, 23, 26, 0.98));
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+}
+
+.parking-gauntlet-hero {
+  padding: 22px;
+  background:
+    radial-gradient(520px 210px at 88% 4%, rgba(91, 176, 173, 0.18), transparent 70%),
+    linear-gradient(145deg, rgba(11, 39, 38, 0.98), rgba(8, 24, 27, 0.98));
+}
+
+.parking-gauntlet-breadcrumb,
+.parking-gauntlet-footer,
+.parking-gauntlet-workshop-help,
+.parking-gauntlet-defense-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--pg-muted);
+  font: 650 11px var(--mono);
+}
+
+.parking-gauntlet-breadcrumb a,
+.parking-gauntlet-footer button,
+.parking-gauntlet-workshop-help button,
+.parking-gauntlet-java-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  padding: 0;
+  color: #90d6c2;
+  background: transparent;
+  cursor: pointer;
+}
+
+.parking-gauntlet-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 36px;
+  margin-top: 26px;
+}
+
+.parking-gauntlet-hero h1 {
+  margin-top: 5px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.02;
+  letter-spacing: -2.2px;
+}
+
+.parking-gauntlet-hero-grid > div:first-child > p {
+  max-width: 730px;
+  margin-top: 14px;
+  color: #b7c8c5;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.parking-gauntlet-how {
+  display: grid;
+  gap: 9px;
+  min-width: 215px;
+}
+
+.parking-gauntlet-how span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b7c8c5;
+  font: 700 11px var(--mono);
+}
+
+.parking-gauntlet-how b,
+.parking-gauntlet-progress b {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  place-content: center;
+  border: 1px solid rgba(143, 213, 193, 0.38);
+  border-radius: 50%;
+  color: #91dbc5;
+}
+
+.parking-gauntlet-progress {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 26px;
+}
+
+.parking-gauntlet-progress > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 9px;
+  color: #708581;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.parking-gauntlet-progress span {
+  overflow: hidden;
+  font: 700 9.5px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parking-gauntlet-progress .active {
+  border-color: rgba(217, 169, 78, 0.45);
+  color: #efd188;
+  background: rgba(217, 169, 78, 0.07);
+}
+
+.parking-gauntlet-progress .active b {
+  border-color: rgba(217, 169, 78, 0.6);
+  color: #efd188;
+}
+
+.parking-gauntlet-progress .cleared {
+  color: #9bd8b5;
+}
+
+.parking-gauntlet-progress .locked {
+  opacity: 0.52;
+}
+
+.parking-gauntlet-mission {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.42fr) minmax(0, 1fr);
+  min-height: 430px;
+}
+
+.parking-gauntlet-brief {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border-right: 1px solid var(--pg-line);
+  padding: 27px;
+}
+
+.parking-gauntlet-brief h2,
+.parking-gauntlet-workshop h2,
+.parking-gauntlet-defense h2 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.12;
+  letter-spacing: -0.9px;
+}
+
+.parking-gauntlet-brief > p,
+.parking-gauntlet-workshop > header p,
+.parking-gauntlet-defense > p {
+  color: var(--pg-muted);
+  line-height: 1.65;
+}
+
+.parking-gauntlet-goal {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0 auto;
+  border-left: 3px solid var(--amber);
+  padding: 12px 13px;
+  color: #d7e1df;
+  background: rgba(217, 169, 78, 0.07);
+}
+
+.parking-gauntlet-goal svg {
+  margin-top: 2px;
+  color: var(--amber);
+}
+
+.parking-gauntlet-goal span {
+  display: grid;
+  gap: 3px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.parking-gauntlet-goal small {
+  color: var(--amber);
+  font: 800 9px var(--mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.parking-gauntlet-nudge {
+  max-width: 300px;
+  color: #758c88;
+  font: 600 10px/1.5 var(--mono);
+}
+
+.parking-gauntlet-world {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 430px;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+}
+
+.parking-gauntlet-world::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(6, 18, 21, 0.96), transparent 64%);
+}
+
+.parking-gauntlet-world.passed {
+  box-shadow: inset 0 0 80px rgba(83, 204, 153, 0.12);
+}
+
+.parking-gauntlet-world.failed {
+  box-shadow: inset 0 0 80px rgba(208, 123, 110, 0.14);
+}
+
+.parking-gauntlet-world-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 17px 20px;
+  color: #9fb4b1;
+  font: 800 9.5px var(--mono);
+  letter-spacing: 0.8px;
+}
+
+.parking-gauntlet-world-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.parking-gauntlet-world-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6ed2ac;
+  box-shadow: 0 0 12px #6ed2ac;
+}
+
+.parking-gauntlet-world.failed .parking-gauntlet-world-status strong {
+  color: #f18b79;
+}
+
+.parking-gauntlet-world.passed .parking-gauntlet-world-status strong {
+  color: #85dab1;
+}
+
+.parking-gauntlet-trace {
+  display: grid;
+  width: min(500px, calc(100% - 40px));
+  gap: 5px;
+  margin: 64px 20px 14px;
+}
+
+.parking-gauntlet-trace > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 9px 11px;
+  color: #80918f;
+  background: rgba(5, 18, 20, 0.76);
+  backdrop-filter: blur(8px);
+  font: 650 11px var(--mono);
+}
+
+.parking-gauntlet-trace b {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-content: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 9px;
+}
+
+.parking-gauntlet-trace .pass { color: #87cba9; }
+.parking-gauntlet-trace .fail { border-color: rgba(241, 139, 121, 0.32); color: #f18b79; }
+
+.parking-gauntlet-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 20px;
+  background: rgba(6, 19, 22, 0.94);
+}
+
+.parking-gauntlet-verdict strong {
+  font: 800 11px var(--mono);
+}
+
+.parking-gauntlet-verdict p {
+  margin-top: 3px;
+  color: #9fb0ae;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.parking-gauntlet-verdict.fail { color: #f18b79; }
+.parking-gauntlet-verdict.pass { color: #85dab1; }
+
+.parking-gauntlet-workshop {
+  display: grid;
+  gap: 22px;
+  padding: 26px;
+}
+
+.parking-gauntlet-workshop > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 20px;
+}
+
+.parking-gauntlet-workshop > header p {
+  max-width: 800px;
+  margin-top: 8px;
+}
+
+.parking-gauntlet-health {
+  display: grid;
+  min-width: 100px;
+  gap: 2px;
+  border: 1px solid var(--pg-line);
+  border-radius: 14px;
+  padding: 11px 14px;
+}
+
+.parking-gauntlet-health small { color: #78908c; font: 700 9px var(--mono); }
+.parking-gauntlet-health strong { color: #8ed6bb; font: 800 22px var(--mono); }
+
+.parking-gauntlet-piece-tray {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.parking-gauntlet-piece-tray > button {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  border: 1px solid rgba(135, 190, 178, 0.18);
+  border-radius: 14px;
+  padding: 14px;
+  color: #d8e4e1;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.025);
+  cursor: grab;
+}
+
+.parking-gauntlet-piece-tray > button:hover,
+.parking-gauntlet-piece-tray > button.selected {
+  border-color: rgba(217, 169, 78, 0.66);
+  background: rgba(217, 169, 78, 0.07);
+  transform: translateY(-1px);
+}
+
+.parking-gauntlet-piece-tray > button.misplaced::after {
+  content: "CHECK THIS";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #ee8c7c;
+  font: 800 8px var(--mono);
+  letter-spacing: 0.7px;
+}
+
+.parking-gauntlet-piece-tray > button.fixed {
+  border-color: rgba(91, 176, 133, 0.38);
+  cursor: default;
+}
+
+.parking-gauntlet-piece-tray strong { padding-right: 46px; font: 800 13px var(--mono); }
+.parking-gauntlet-piece-tray small { color: #8fa19e; font-size: 11px; line-height: 1.45; }
+.parking-gauntlet-piece-tray em { color: #d8bd76; font: normal 700 9px var(--mono); }
+
+.parking-gauntlet-kind {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: #75b7d6;
+  background: rgba(106, 166, 219, 0.1);
+  font: 800 8px var(--mono);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.parking-gauntlet-kind.behavior {
+  color: #d9b85f;
+  background: rgba(217, 169, 78, 0.1);
+}
+
+.parking-gauntlet-install { display: grid; gap: 13px; }
+
+.parking-gauntlet-hand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 3px solid var(--amber);
+  padding: 10px 13px;
+  color: #aebdbb;
+  background: rgba(217, 169, 78, 0.05);
+  font-size: 12px;
+}
+
+.parking-gauntlet-hand strong { color: #f0cf80; }
+
+.parking-gauntlet-class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+  gap: 9px;
+}
+
+.parking-gauntlet-class-grid > button {
+  display: grid;
+  min-height: 126px;
+  gap: 6px;
+  align-content: start;
+  border: 1px solid rgba(138, 188, 178, 0.14);
+  border-radius: 13px;
+  padding: 13px;
+  color: #d6e2df;
+  text-align: left;
+  background: rgba(4, 16, 19, 0.45);
+  cursor: pointer;
+}
+
+.parking-gauntlet-class-grid > button:not(:disabled):hover {
+  border-color: rgba(143, 213, 193, 0.58);
+  background: rgba(91, 176, 173, 0.08);
+  transform: translateY(-1px);
+}
+
+.parking-gauntlet-class-grid > button.current {
+  border-color: rgba(217, 169, 78, 0.4);
+}
+
+.parking-gauntlet-class-grid > button:disabled { cursor: not-allowed; opacity: 0.62; }
+.parking-gauntlet-class-grid span { color: #71918a; font: 800 8px var(--mono); letter-spacing: 0.5px; text-transform: uppercase; }
+.parking-gauntlet-class-grid strong { font: 800 13px var(--mono); }
+.parking-gauntlet-class-grid p { color: #849995; font-size: 10.5px; line-height: 1.45; }
+
+.parking-gauntlet-workshop-help {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+
+.parking-gauntlet-discovery { display: grid; gap: 14px; }
+
+.parking-gauntlet-mappings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 9px;
+}
+
+.parking-gauntlet-mappings > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.8fr) auto minmax(130px, 1fr);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(99, 188, 153, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(67, 145, 112, 0.055);
+}
+
+.parking-gauntlet-mappings span { color: #9bacaa; font-size: 11px; }
+.parking-gauntlet-mappings strong { color: #9ddebd; font: 700 11px var(--mono); }
+.parking-gauntlet-mappings p { grid-column: 1 / -1; color: #7f9691; font-size: 10.5px; line-height: 1.45; }
+
+.parking-gauntlet-java-toggle {
+  width: fit-content;
+  border: 1px solid rgba(143, 213, 193, 0.25);
+  border-radius: 9px;
+  padding: 8px 10px;
+  font: 700 10px var(--mono);
+}
+
+.parking-gauntlet-discovery pre {
+  max-height: 440px;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid rgba(143, 213, 193, 0.15);
+  border-radius: 13px;
+  padding: 17px;
+  color: #a7d6c4;
+  background: #071517;
+  font: 11px/1.65 var(--mono);
+}
+
+.parking-gauntlet-defense {
+  display: grid;
+  gap: 12px;
+  padding: 27px;
+  border-color: rgba(217, 169, 78, 0.34);
+  background:
+    radial-gradient(520px 220px at 100% 0, rgba(217, 169, 78, 0.09), transparent 70%),
+    linear-gradient(145deg, rgba(27, 34, 27, 0.98), rgba(9, 25, 27, 0.98));
+}
+
+.parking-gauntlet-defense > p { max-width: 820px; }
+
+.parking-gauntlet-defense textarea {
+  min-height: 180px;
+  resize: vertical;
+  border: 1px solid rgba(217, 169, 78, 0.25);
+  border-radius: 13px;
+  padding: 15px;
+  color: #e9ede8;
+  outline: none;
+  background: rgba(5, 17, 19, 0.66);
+  line-height: 1.6;
+}
+
+.parking-gauntlet-defense textarea:focus { border-color: rgba(217, 169, 78, 0.68); }
+.parking-gauntlet-defense-footer span { color: #7e918d; }
+
+.parking-gauntlet-grade {
+  border-left: 3px solid #d88878;
+  padding: 11px 13px;
+  color: #e99a8b;
+  background: rgba(208, 123, 110, 0.07);
+}
+
+.parking-gauntlet-grade.pass {
+  border-color: #77c89f;
+  color: #94ddb8;
+  background: rgba(91, 176, 133, 0.07);
+}
+
+.parking-gauntlet-grade strong { font: 800 11px var(--mono); }
+.parking-gauntlet-grade p { margin-top: 4px; color: #a4b1ae; font-size: 11px; }
+
+.parking-gauntlet-defense.complete {
+  box-shadow: 0 0 70px rgba(91, 176, 133, 0.12);
+}
+
+.parking-gauntlet-footer {
+  padding: 4px 6px;
+}
+
+@media (max-width: 900px) {
+  .parking-gauntlet-progress {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .parking-gauntlet-mission {
+    grid-template-columns: 1fr;
+  }
+
+  .parking-gauntlet-brief {
+    border-right: 0;
+    border-bottom: 1px solid var(--pg-line);
+  }
+}
+
+@media (max-width: 640px) {
+  .app-main:has(.parking-gauntlet) { padding: 12px 10px 48px; }
+  .parking-gauntlet { gap: 12px; }
+  .parking-gauntlet-hero,
+  .parking-gauntlet-workshop,
+  .parking-gauntlet-defense { border-radius: 16px; padding: 17px; }
+  .parking-gauntlet-hero-grid { grid-template-columns: 1fr; gap: 20px; }
+  .parking-gauntlet-hero h1 { font-size: 38px; letter-spacing: -1.5px; }
+  .parking-gauntlet-how { grid-template-columns: 1fr; }
+  .parking-gauntlet-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .parking-gauntlet-progress > div { padding: 7px; }
+  .parking-gauntlet-mission { border-radius: 16px; }
+  .parking-gauntlet-brief { padding: 19px 17px; }
+  .parking-gauntlet-world { min-height: 460px; }
+  .parking-gauntlet-world-status { align-items: flex-start; flex-direction: column; }
+  .parking-gauntlet-trace { width: calc(100% - 24px); margin: 90px 12px 10px; }
+  .parking-gauntlet-verdict { padding: 14px; }
+  .parking-gauntlet-workshop > header { grid-template-columns: 1fr; }
+  .parking-gauntlet-health { width: 100%; grid-template-columns: 1fr auto; align-items: center; }
+  .parking-gauntlet-piece-tray,
+  .parking-gauntlet-class-grid,
+  .parking-gauntlet-mappings { grid-template-columns: minmax(0, 1fr); }
+  .parking-gauntlet-class-grid > button { min-height: 0; }
+  .parking-gauntlet-workshop-help,
+  .parking-gauntlet-defense-footer,
+  .parking-gauntlet-footer,
+  .parking-gauntlet-breadcrumb { align-items: flex-start; flex-direction: column; }
+  .parking-gauntlet-defense-footer button { width: 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parking-gauntlet * { transition: none !important; }
+}

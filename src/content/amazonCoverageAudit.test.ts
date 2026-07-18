@@ -13,8 +13,8 @@ describe("Amazon must-do product coverage audit", () => {
   });
 
   it("requires every machine-verified DSA entry to resolve to a real executable mission", () => {
-    const verified = AMAZON_MUST_DO_COVERAGE.filter((entry) => entry.level === "machine-verified");
-    expect(verified).toHaveLength(17);
+    const verified = AMAZON_MUST_DO_COVERAGE.filter((entry) => entry.track === "dsa" && entry.level === "machine-verified");
+    expect(verified).toHaveLength(28);
     for (const entry of verified) {
       const missionId = getAmazonCombatMissionId(entry.questionId);
       expect(missionId, entry.questionId).toBeDefined();
@@ -25,13 +25,17 @@ describe("Amazon must-do product coverage audit", () => {
 
   it("reports the current DSA and LLD gaps without rounding them away", () => {
     expect(AMAZON_MUST_DO_COVERAGE_SUMMARY).toEqual({
-      dsa: { total: 28, machineVerified: 17, guidedOnly: 0, uncovered: 11 },
-      lld: { total: 6, machineVerified: 0, guidedOnly: 6, uncovered: 0 },
+      dsa: { total: 28, machineVerified: 28, guidedOnly: 0, uncovered: 0 },
+      lld: { total: 6, machineVerified: 1, guidedOnly: 5, uncovered: 0 },
     });
   });
 
   it("does not call option-based or self-reviewed LLD practice machine verified", () => {
     const lld = AMAZON_MUST_DO_COVERAGE.filter((entry) => entry.track === "lld");
-    expect(lld.every((entry) => entry.level === "guided-only" && entry.route?.startsWith("/"))).toBe(true);
+    expect(lld.filter((entry) => entry.questionId !== "lld-parking-lot").every((entry) => entry.level === "guided-only" && entry.route?.startsWith("/"))).toBe(true);
+    expect(lld.find((entry) => entry.questionId === "lld-parking-lot")).toMatchObject({
+      level: "machine-verified",
+      route: "/arena/lld-world/parking-lot",
+    });
   });
 });

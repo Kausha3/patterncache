@@ -87,3 +87,18 @@ export function createCombatEvidence(missionId: string, title: string, recordedA
     summary: `Passed visible and hidden JVM tests for ${title}, then completed the defense round.`,
   };
 }
+
+export function createVerifiedPracticeEvidence(
+  refId: string,
+  summary: string,
+  recordedAt = new Date(),
+): AmazonPrepEvidence {
+  if (!refId.trim() || !summary.trim()) throw new Error("Verified practice evidence requires a reference and summary.");
+  return {
+    kind: "verified-practice",
+    verified: true,
+    recordedAt: recordedAt.toISOString(),
+    refId: refId.trim().slice(0, 120),
+    summary: summary.trim().slice(0, 1600),
+  };
+}

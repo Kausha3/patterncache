@@ -7,6 +7,7 @@ import { generateTestMain, parseJavaTestReport } from "./javaHarness";
 import { CODING_COMBAT_MISSIONS, getCodingCombatMission } from "@/arena/codingCombatMissions";
 import { SLIDING_WINDOW_REFERENCE_SOLUTION } from "@/arena/slidingWindowWorld";
 import { COURSE_SCHEDULE_REFERENCE_SOLUTION } from "@/arena/courseScheduleWorld";
+import { CODING_COMBAT_WAVE_THREE_JAVA_REFERENCES } from "@/arena/codingCombatWaveThreeMissions";
 
 /**
  * Golden proof for the codegen: compile each mission's generated harness
@@ -444,6 +445,7 @@ public class Solution {
 `,
   "sliding-window-max": SLIDING_WINDOW_REFERENCE_SOLUTION,
   "course-schedule-ii": COURSE_SCHEDULE_REFERENCE_SOLUTION,
+  ...CODING_COMBAT_WAVE_THREE_JAVA_REFERENCES,
 };
 
 function compileAndRun(

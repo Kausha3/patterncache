@@ -32,6 +32,7 @@ import {
 } from "@/hooks/useAmazonPrepProgress";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { getCodingCombatMission, getCodingCombatMissionRoute } from "@/arena/codingCombatMissions";
+import { loadParkingLotGauntletProgress } from "@/game/parkingLotGauntletProgress";
 import "@/theme/amazon-sde1.css";
 
 type TrackFilter = AmazonPrepTrack | "all";
@@ -55,6 +56,7 @@ export function AmazonSde1PrepPage() {
   const [query, setQuery] = useState("");
   const { records, setStatus, recordProof, logReview, resetAll } = useAmazonPrepProgress();
   const { codingCombatScores } = useGameProgress();
+  const parkingLotCompleted = !!loadParkingLotGauntletProgress().record;
 
   const counts = useMemo(() => {
     const must = AMAZON_SDE1_QUESTIONS.filter((question) => question.tier === "must");
@@ -114,7 +116,7 @@ export function AmazonSde1PrepPage() {
           <span>CORE READINESS</span>
           <strong>{completion}%</strong>
           <div className="amazon-prep-rank-bar"><span style={{ width: `${completion}%` }} /></div>
-          <small>{counts.ready} of {counts.must} have proof · {counts.verified} JVM-verified</small>
+          <small>{counts.ready} of {counts.must} have proof · {counts.verified} machine-verified</small>
         </div>
       </header>
 
@@ -235,6 +237,7 @@ export function AmazonSde1PrepPage() {
                   const missionId = getAmazonCombatMissionId(question.id);
                   return !!(missionId && codingCombatScores[missionId]);
                 })()}
+                parkingLotCompleted={parkingLotCompleted}
               />
             ))}
           </div>
@@ -286,6 +289,7 @@ function QuestionCard({
   onProof,
   onReview,
   combatCompleted,
+  parkingLotCompleted,
 }: {
   question: AmazonPrepQuestion;
   number: number;
@@ -295,6 +299,7 @@ function QuestionCard({
   onProof: (evidence: AmazonPrepEvidence) => void;
   onReview: () => void;
   combatCompleted: boolean;
+  parkingLotCompleted: boolean;
 }) {
   const [proofOpen, setProofOpen] = useState(false);
   const status = record?.status ?? "not-started";
@@ -303,6 +308,17 @@ function QuestionCard({
   const combatMissionId = getAmazonCombatMissionId(question.id);
   const combatMission = combatMissionId ? getCodingCombatMission(combatMissionId) : undefined;
   const coverage = question.tier === "must" ? getAmazonCoverageEntry(question.id) : undefined;
+  const verifiedPractice = combatMissionId ? {
+    refId: combatMissionId,
+    label: combatMission?.worldRoute ? "the code-driven Algorithm World" : "the hidden-JVM Coding Combat mission",
+    completed: combatCompleted,
+    summary: `Passed visible and hidden JVM tests for ${question.title}, then completed the defense round.`,
+  } : question.id === "lld-parking-lot" ? {
+    refId: "parking-lot-gauntlet",
+    label: "the six-incident Parking Lot Design Gauntlet",
+    completed: parkingLotCompleted,
+    summary: "Repaired and reran all six Parking Lot incidents—entry, compatibility, concurrency, tickets, pricing, and payment—then passed the free-form design defense.",
+  } : undefined;
   const originalAction = isExternalPrepHref(question.href) ? (
     <a className="amazon-practice-link" href={question.href} target="_blank" rel="noreferrer">Open problem <Icon name="arrowRight" size={13} /></a>
   ) : (
@@ -316,6 +332,11 @@ function QuestionCard({
       {isExternalPrepHref(question.href) ? (
         <a className="amazon-reference-link" href={question.href} target="_blank" rel="noreferrer">Original statement</a>
       ) : null}
+    </div>
+  ) : question.id === "lld-parking-lot" && coverage?.route ? (
+    <div className="amazon-practice-links">
+      <Link className="amazon-practice-link" to={coverage.route}>Enter LLD World <Icon name="layers" size={13} /></Link>
+      <Link className="amazon-reference-link" to={question.href}>Open guided lesson</Link>
     </div>
   ) : originalAction;
 
@@ -367,8 +388,7 @@ function QuestionCard({
         <AmazonReadinessProof
           questionTitle={question.title}
           track={question.track}
-          combatMissionId={combatMissionId}
-          combatCompleted={combatCompleted}
+          verifiedPractice={verifiedPractice}
           evidence={record?.evidence}
           onProof={(evidence) => {
             onProof(evidence);
@@ -411,8 +431,8 @@ function CoverageAudit() {
         </article>
         <article>
           <div><span>LLD must-dos</span><strong>{summary.lld.machineVerified}/{summary.lld.total}</strong></div>
-          <div className="amazon-coverage-meter lld"><span style={{ width: `${(summary.lld.guidedOnly / summary.lld.total) * 100}%` }} /></div>
-          <p><b>{summary.lld.guidedOnly} guided lessons or cold drills</b>, but no exact prompt yet has the full simulation → mutation → transfer → free-form defense proof.</p>
+          <div className="amazon-coverage-meter lld"><span style={{ width: `${(summary.lld.machineVerified / summary.lld.total) * 100}%` }} /></div>
+          <p><b>{summary.lld.machineVerified} exact verified simulation</b> and {summary.lld.guidedOnly} guided lessons or cold drills. Guided material is not counted as mastery.</p>
           <details>
             <summary>Why guided LLD is not marked verified</summary>
             <ul>{guidedLld.map((entry) => <li key={entry.questionId}><b>{entry.title}</b> — {entry.practiceLabel}</li>)}</ul>
@@ -437,7 +457,7 @@ function ReadinessGate({ counts }: { counts: { ready: number; verified: number; 
       <div>
         <Eyebrow tone={technicalReady ? "var(--green)" : "var(--amber)"}>Confidence gate</Eyebrow>
         <h2 id="readiness-title">{technicalReady ? "Every core question has evidence" : "Ready means you can defend, not recognize"}</h2>
-        <p>{counts.verified} of {counts.ready} recorded proofs are machine-verified JVM clears. The rest are explicitly marked structured self-review.</p>
+        <p>{counts.verified} of {counts.ready} recorded proofs are machine-verified executable clears. The rest are explicitly marked structured self-review.</p>
         <p>Before saying “I prepared well enough,” verify all five:</p>
         <ul>
           <li className={counts.dsaReady === counts.dsaTotal ? "passed" : ""}>Every must-do DSA can be solved cold, tested, and explained in 35–45 minutes.</li>

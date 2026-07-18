@@ -55,6 +55,9 @@ describe("garage refactor game", () => {
 
   it("requires evidence and trade-offs in the interview defense", () => {
     expect(assessGarageDefense("I used classes because SOLID is good.").ready).toBe(false);
+    expect(assessGarageDefense(
+      "ParkingSpot owns and protects occupancy. The race simulation proved the invariant. PricingPolicy contains future EV rate changes and PaymentService contains the gateway provider outage.",
+    ).ready).toBe(false);
     const strong = assessGarageDefense(
       "ParkingSpot owns and atomically protects occupancy instead of leaking it into a god object. The last-spot race simulation proved the invariant. PricingPolicy now contains future EV rate changes without coupling them to ParkingLot.",
     );

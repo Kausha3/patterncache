@@ -4,6 +4,7 @@ import { CODING_COMBAT_WAVE_ONE_MISSIONS } from "./codingCombatWaveOneMissions";
 import { CODING_COMBAT_WAVE_TWO_MISSIONS } from "./codingCombatWaveTwoMissions";
 import { SLIDING_WINDOW_WORLD_MISSION } from "./slidingWindowWorld";
 import { COURSE_SCHEDULE_WORLD_MISSION } from "./courseScheduleWorld";
+import { CODING_COMBAT_WAVE_THREE_MISSIONS } from "./codingCombatWaveThreeMissions";
 
 export interface CodingCombatTestCase {
   id: string;
@@ -575,6 +576,7 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
   ...CODING_COMBAT_WAVE_TWO_MISSIONS,
   SLIDING_WINDOW_WORLD_MISSION,
   COURSE_SCHEDULE_WORLD_MISSION,
+  ...CODING_COMBAT_WAVE_THREE_MISSIONS,
 ];
 
 export function getCodingCombatMission(id: string): CodingCombatMission | undefined {

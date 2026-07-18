@@ -17,6 +17,14 @@ const VERIFIED_EVIDENCE: AmazonPrepEvidence = {
   summary: "Passed hidden JVM tests and completed the defense round.",
 };
 
+const VERIFIED_LLD_EVIDENCE: AmazonPrepEvidence = {
+  kind: "verified-practice",
+  verified: true,
+  recordedAt: "2026-07-18T12:00:00.000Z",
+  refId: "parking-lot-gauntlet",
+  summary: "All six incidents and the free-form defense passed.",
+};
+
 describe("Amazon preparation progress", () => {
   it("recovers safely from missing or malformed storage", () => {
     expect(parseAmazonPrepState(null)).toEqual({ version: 2, records: {} });
@@ -41,6 +49,17 @@ describe("Amazon preparation progress", () => {
         proved: { status: "ready", practiceCount: 1, evidence: VERIFIED_EVIDENCE },
       },
     });
+  });
+
+  it("round-trips generic verified practice without weakening legacy combat evidence", () => {
+    const parsed = parseAmazonPrepState(JSON.stringify({
+      records: {
+        parking: { status: "ready", practiceCount: 1, evidence: VERIFIED_LLD_EVIDENCE },
+        forged: { status: "ready", practiceCount: 1, evidence: { ...VERIFIED_LLD_EVIDENCE, verified: false } },
+      },
+    }));
+    expect(parsed.records.parking?.evidence).toEqual(VERIFIED_LLD_EVIDENCE);
+    expect(parsed.records.forged).toMatchObject({ status: "learning", practiceCount: 1 });
   });
 
   it("does not count clicking Learning as a practice pass", () => {

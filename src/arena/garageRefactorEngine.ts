@@ -248,7 +248,7 @@ export function assessGarageDefense(answer: string): {
   const met = checks.filter((check) => check.met).length;
   return {
     score: met * 20,
-    ready: met >= 4 && answer.trim().length >= 120,
+    ready: met === checks.length && answer.trim().length >= 160,
     missing: checks.filter((check) => !check.met).map((check) => check.label),
   };
 }

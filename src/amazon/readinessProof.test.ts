@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createColdProofEvidence, createCombatEvidence, validateColdProof } from "./readinessProof";
+import { createColdProofEvidence, createCombatEvidence, createVerifiedPracticeEvidence, validateColdProof } from "./readinessProof";
 
 const DSA_PROOF = {
   ownership: "The left pointer only moves past values that cannot improve the current best answer.",
@@ -36,6 +36,13 @@ describe("Amazon readiness proof", () => {
       recordedAt: at.toISOString(),
       refId: "two-sum",
       summary: "Passed visible and hidden JVM tests for Two Sum, then completed the defense round.",
+    });
+    expect(createVerifiedPracticeEvidence("parking-lot-gauntlet", "Six incidents and the defense passed.", at)).toEqual({
+      kind: "verified-practice",
+      verified: true,
+      recordedAt: at.toISOString(),
+      refId: "parking-lot-gauntlet",
+      summary: "Six incidents and the defense passed.",
     });
   });
 });

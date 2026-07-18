@@ -12,6 +12,13 @@ export type AmazonPrepEvidence =
       summary: string;
     }
   | {
+      kind: "verified-practice";
+      verified: true;
+      recordedAt: string;
+      refId: string;
+      summary: string;
+    }
+  | {
       kind: "cold-proof";
       verified: false;
       recordedAt: string;
@@ -48,6 +55,15 @@ function parseEvidence(value: unknown): AmazonPrepEvidence | undefined {
   if (candidate.kind === "combat-clear" && candidate.verified === true && typeof candidate.refId === "string" && candidate.refId.trim()) {
     return {
       kind: "combat-clear",
+      verified: true,
+      recordedAt: candidate.recordedAt,
+      refId: candidate.refId.trim().slice(0, 120),
+      summary,
+    };
+  }
+  if (candidate.kind === "verified-practice" && candidate.verified === true && typeof candidate.refId === "string" && candidate.refId.trim()) {
+    return {
+      kind: "verified-practice",
       verified: true,
       recordedAt: candidate.recordedAt,
       refId: candidate.refId.trim().slice(0, 120),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CODING_COMBAT_MISSIONS } from "./codingCombatMissions";
 import { evaluateCodingCombatLocally } from "./codingCombatEngine";
+import { CODING_COMBAT_WAVE_THREE_JS_REFERENCES } from "./codingCombatWaveThreeMissions";
 
 const REFERENCE_SOLUTIONS: Record<string, string> = {
   "target-pair": `function findTargetPair(nums, target) {
@@ -282,11 +283,12 @@ const REFERENCE_SOLUTIONS: Record<string, string> = {
     }
     return order.length === numCourses ? order : [];
   }`,
+  ...CODING_COMBAT_WAVE_THREE_JS_REFERENCES,
 };
 
 describe("Coding Combat mission pack", () => {
   it("has stable IDs, executable contracts, hidden coverage, and exactly one defensible answer", () => {
-    expect(CODING_COMBAT_MISSIONS).toHaveLength(22);
+    expect(CODING_COMBAT_MISSIONS).toHaveLength(33);
     expect(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).toEqual([
       "target-pair",
       "unique-window",
@@ -310,6 +312,17 @@ describe("Coding Combat mission pack", () => {
       "linked-list-cycle",
       "sliding-window-max",
       "course-schedule-ii",
+      "product-except-self",
+      "subarray-sum-k",
+      "min-stack",
+      "top-k-frequent",
+      "task-scheduler",
+      "lru-cache",
+      "generate-parentheses",
+      "word-search",
+      "house-robber-ii",
+      "coin-change",
+      "maximum-subarray",
     ]);
     expect(new Set(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).size).toBe(CODING_COMBAT_MISSIONS.length);
 
@@ -344,6 +357,22 @@ describe("Coding Combat mission pack", () => {
       expect(result.results, mission.id).toHaveLength(tests.length);
       expect(result.passed, mission.id).toBe(true);
     }
+  });
+
+  it.each([
+    ["product-except-self", `function productExceptSelf(nums) { const all = nums.reduce((a,b) => a*b, 1); return nums.map(n => all / n); }`, "two-zeroes"],
+    ["subarray-sum-k", `function subarraySum(nums, target) { let left=0,sum=0,count=0; for(let right=0;right<nums.length;right++){sum+=nums[right]; while(sum>target&&left<=right)sum-=nums[left++]; if(sum===target)count++;} return count; }`, "all-zero"],
+    ["min-stack", `function minStackTrace(ops, values) { const stack=[]; let min=Infinity; const out=[]; ops.forEach((op,i)=>{if(op==="push"){stack.push(values[i]);min=Math.min(min,values[i]);}else if(op==="pop")stack.pop();else if(op==="top")out.push(stack.at(-1));else out.push(min);});return out;}`, "restore"],
+    ["lru-cache", `function lruTrace(capacity, ops, args) { const cache=new Map(),out=[]; ops.forEach((op,i)=>{const key=args[i][0];if(op==="get")out.push(cache.get(key)??-1);else{cache.set(key,args[i][1]);if(cache.size>capacity)cache.delete(cache.keys().next().value);}});return out;}`, "read-refresh"],
+    ["house-robber-ii", `function robCircular(nums) { let a=0,b=0; for(const n of nums){const next=Math.max(b,a+n);a=b;b=next;}return b;}`, "tempting-ends"],
+    ["coin-change", `function coinChange(coins, amount) { let used=0; for(const coin of [...coins].sort((a,b)=>b-a)){used+=Math.floor(amount/coin);amount%=coin;}return amount===0?used:-1;}`, "greedy-trap"],
+    ["maximum-subarray", `function maxSubArray(nums) { let current=0,best=0; for(const n of nums){current=Math.max(0,current+n);best=Math.max(best,current);}return best;}`, "all-negative"],
+  ])("rejects a plausible but incorrect %s solution", async (missionId, buggy, expectedFailureId) => {
+    const mission = CODING_COMBAT_MISSIONS.find((candidate) => candidate.id === missionId)!;
+    const tests = [...mission.visibleTests, ...mission.hiddenTests].map((test) => ({ ...test, hidden: true }));
+    const result = await evaluateCodingCombatLocally(buggy, mission.functionName, tests);
+    expect(result.passed).toBe(false);
+    expect(result.results.find((entry) => entry.id === expectedFailureId)?.passed).toBe(false);
   });
 
   it("uses hidden cases that catch a plausible sliding-window boundary regression", async () => {

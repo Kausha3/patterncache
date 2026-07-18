@@ -258,6 +258,7 @@ function cloneTestValue(value: unknown): unknown {
 
 function deepEqual(actual: unknown, expected: unknown, seen = new WeakSet<object>()): boolean {
   if (Object.is(actual, expected)) return true;
+  if (typeof actual === "number" && typeof expected === "number" && actual === expected) return true;
   if (!actual || !expected || typeof actual !== "object" || typeof expected !== "object") return false;
   if (seen.has(actual)) return false;
   seen.add(actual);
@@ -287,6 +288,7 @@ function errorMessage(error, fallback) {
 
 function deepEqual(actual, expected, seen = new WeakSet()) {
   if (Object.is(actual, expected)) return true;
+  if (typeof actual === "number" && typeof expected === "number" && actual === expected) return true;
   if (!actual || !expected || typeof actual !== "object" || typeof expected !== "object") return false;
   if (seen.has(actual)) return false;
   seen.add(actual);
