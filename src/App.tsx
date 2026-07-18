@@ -15,6 +15,7 @@ import { color, font } from "@/theme/tokens";
 const CoursePage = lazy(() => import("@/pages/CoursePage").then((module) => ({ default: module.CoursePage })));
 const ArenaPage = lazy(() => import("@/pages/ArenaPage").then((module) => ({ default: module.ArenaPage })));
 const CodingCombatPage = lazy(() => import("@/pages/CodingCombatPage").then((module) => ({ default: module.CodingCombatPage })));
+const SlidingWindowWorldPage = lazy(() => import("@/pages/SlidingWindowWorldPage").then((module) => ({ default: module.SlidingWindowWorldPage })));
 const LldStudioPage = lazy(() => import("@/pages/LldStudioPage").then((module) => ({ default: module.LldStudioPage })));
 const PatternGenomePage = lazy(() => import("@/pages/PatternGenomePage").then((module) => ({ default: module.PatternGenomePage })));
 const AmazonSde1PrepPage = lazy(() => import("@/pages/AmazonSde1PrepPage").then((module) => ({ default: module.AmazonSde1PrepPage })));
@@ -52,6 +53,14 @@ export function App() {
             element={
               <Suspense fallback={<PageFallback label="Loading Coding Combat…" />}>
                 <CodingCombatPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/arena/algorithm-world/sliding-window-maximum"
+            element={
+              <Suspense fallback={<PageFallback label="Starting the Sliding Window world…" />}>
+                <SlidingWindowWorldPage />
               </Suspense>
             }
           />

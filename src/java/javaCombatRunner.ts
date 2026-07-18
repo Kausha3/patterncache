@@ -47,6 +47,7 @@ export async function runJavaCombat(
     [
       { fileName: "Solution.java", content: code },
       { fileName: "PcTestMain.java", content: harness },
+      ...(mission.java.supportSources ?? []),
     ],
     "PcTestMain",
     options,

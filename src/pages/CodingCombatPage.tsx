@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { CODING_COMBAT_MISSIONS } from "@/arena/codingCombatMissions";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { CODING_COMBAT_MISSIONS, getCodingCombatMissionRoute } from "@/arena/codingCombatMissions";
 import { CodingCombatWorkbench } from "@/components/CodingCombatWorkbench";
 import { Button, Eyebrow } from "@/components/ui";
 import { Icon } from "@/components/Icon";
@@ -22,6 +22,8 @@ export function CodingCombatPage() {
   const [runVersion, setRunVersion] = useState(0);
   const activeMissionId = resolveCodingCombatMissionId(searchParams.get("mission"));
   const mission = CODING_COMBAT_MISSIONS.find((candidate) => candidate.id === activeMissionId);
+
+  if (mission?.worldRoute) return <Navigate to={mission.worldRoute} replace />;
 
   if (!mission) {
     const completed = CODING_COMBAT_MISSIONS.filter((candidate) => codingCombatScores[candidate.id]).length;
@@ -74,12 +76,14 @@ export function CodingCombatPage() {
                   <div className="combat-mission-tags">
                     <span>{candidate.minutes} min</span>
                     <span>{candidate.visibleTests.length + candidate.hiddenTests.length} tests</span>
-                    <span>3 defenses</span>
+                    <span>{candidate.worldRoute ? "Code-driven world" : `${candidate.defense.length} defenses`}</span>
                   </div>
                   <Button
                     icon="code"
                     aria-label={`${record ? "Replay" : "Start"} ${candidate.title}`}
-                    onClick={() => setSearchParams({ mission: candidate.id })}
+                    onClick={() => candidate.worldRoute
+                      ? navigate(getCodingCombatMissionRoute(candidate.id))
+                      : setSearchParams({ mission: candidate.id })}
                   >
                     {record ? "Replay build" : "Start build"}
                   </Button>

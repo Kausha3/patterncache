@@ -70,6 +70,15 @@ const INTERVIEW_WORK: PracticeCard[] = [
 
 const CODING_WORK: PracticeCard[] = [
   {
+    title: "Algorithm World · Sliding Window",
+    route: "/arena/algorithm-world/sliding-window-maximum",
+    blurb: "Run a correct-but-slow Java solution until rush hour jams, repair the actual algorithm, then watch your own deque operations animate. Hidden JVM tests and a free-form interview defense decide whether the world clears.",
+    icon: "gauge",
+    accent: color.teal,
+    tag: "Prototype · code drives the world",
+    tagTone: color.teal,
+  },
+  {
     title: "Amazon SDE I board",
     route: "/companies/amazon/sde1",
     blurb: "The scheduled problem list with evidence tiers, recall cues, follow-up variations, and 1/3/7-day reviews. Work these in Java, the language you'll interview in.",

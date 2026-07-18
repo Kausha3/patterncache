@@ -60,6 +60,7 @@ export const CODING_COMBAT_MISSION_IDS = [
   "reorder-list",
   "reverse-linked-list",
   "linked-list-cycle",
+  "sliding-window-max",
 ] as const;
 export type CodingCombatMissionId = (typeof CODING_COMBAT_MISSION_IDS)[number];
 export type CodingCombatScores = Partial<Record<CodingCombatMissionId, ArenaScoreRecord>>;

@@ -249,11 +249,24 @@ const REFERENCE_SOLUTIONS: Record<string, string> = {
   "linked-list-cycle": `function hasCycle(serialized) {
     return !Array.isArray(serialized) && serialized.cycleAt >= 0;
   }`,
+  "sliding-window-max": `function maxSlidingWindow(nums, k) {
+    if (!nums.length || k <= 0 || k > nums.length) return [];
+    const answer = [];
+    const deque = [];
+    for (let right = 0; right < nums.length; right += 1) {
+      const left = right - k + 1;
+      while (deque.length && deque[0] < left) deque.shift();
+      while (deque.length && nums[deque[deque.length - 1]] <= nums[right]) deque.pop();
+      deque.push(right);
+      if (left >= 0) answer.push(nums[deque[0]]);
+    }
+    return answer;
+  }`,
 };
 
 describe("Coding Combat mission pack", () => {
   it("has stable IDs, executable contracts, hidden coverage, and exactly one defensible answer", () => {
-    expect(CODING_COMBAT_MISSIONS).toHaveLength(20);
+    expect(CODING_COMBAT_MISSIONS).toHaveLength(21);
     expect(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).toEqual([
       "target-pair",
       "unique-window",
@@ -275,6 +288,7 @@ describe("Coding Combat mission pack", () => {
       "reorder-list",
       "reverse-linked-list",
       "linked-list-cycle",
+      "sliding-window-max",
     ]);
     expect(new Set(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).size).toBe(CODING_COMBAT_MISSIONS.length);
 
@@ -282,8 +296,13 @@ describe("Coding Combat mission pack", () => {
       expect(mission.functionName).toMatch(/^[A-Za-z_$][\w$]*$/);
       expect(mission.visibleTests.length).toBeGreaterThanOrEqual(3);
       expect(mission.hiddenTests.length).toBeGreaterThanOrEqual(4);
-      expect(mission.hints).toHaveLength(3);
-      expect(mission.defense).toHaveLength(3);
+      if (mission.worldRoute) {
+        expect(mission.hints).toHaveLength(0);
+        expect(mission.defense).toHaveLength(0);
+      } else {
+        expect(mission.hints).toHaveLength(3);
+        expect(mission.defense).toHaveLength(3);
+      }
       const testIds = [...mission.visibleTests, ...mission.hiddenTests].map((test) => test.id);
       expect(new Set(testIds).size).toBe(testIds.length);
       for (const question of mission.defense) {

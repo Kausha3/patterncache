@@ -47,6 +47,8 @@ export interface JavaCombatSpec {
   comparison?: JavaComparison;
   /** The full Solution.java the learner starts from and edits. */
   starterCode: string;
+  /** Instrumentation compiled beside Solution.java but kept out of the learner's editor. */
+  supportSources?: { fileName: string; content: string }[];
 }
 
 export interface JavaTestReportEntry {
@@ -546,7 +548,7 @@ ${methods}
     } catch (java.io.UnsupportedEncodingException impossible) {
       return "";
     }
-    return text.length() > 500 ? text.substring(text.length() - 500) : text;
+    return text.length() > 6000 ? text.substring(text.length() - 6000) : text;
   }
 
   private static String quote(String value) {

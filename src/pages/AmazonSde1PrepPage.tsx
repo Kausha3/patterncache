@@ -25,6 +25,7 @@ import {
   type EditableAmazonPrepStatus,
 } from "@/hooks/useAmazonPrepProgress";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { getCodingCombatMissionRoute } from "@/arena/codingCombatMissions";
 import "@/theme/amazon-sde1.css";
 
 type TrackFilter = AmazonPrepTrack | "all";
@@ -299,8 +300,8 @@ function QuestionCard({
   );
   const action = combatMissionId ? (
     <div className="amazon-practice-links">
-      <Link className="amazon-practice-link" to={`/arena/coding-lab?mission=${combatMissionId}`}>
-        Solve in Java <Icon name="code" size={13} />
+      <Link className="amazon-practice-link" to={getCodingCombatMissionRoute(combatMissionId)}>
+        {combatMissionId === "sliding-window-max" ? "Enter Algorithm World" : "Solve in Java"} <Icon name="code" size={13} />
       </Link>
       {isExternalPrepHref(question.href) ? (
         <a className="amazon-reference-link" href={question.href} target="_blank" rel="noreferrer">Original statement</a>

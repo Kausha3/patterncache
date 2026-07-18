@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateTestMain, parseJavaTestReport } from "./javaHarness";
 import { CODING_COMBAT_MISSIONS, getCodingCombatMission } from "@/arena/codingCombatMissions";
+import { SLIDING_WINDOW_REFERENCE_SOLUTION } from "@/arena/slidingWindowWorld";
 
 /**
  * Golden proof for the codegen: compile each mission's generated harness
@@ -440,15 +441,25 @@ public class Solution {
     }
 }
 `,
+  "sliding-window-max": SLIDING_WINDOW_REFERENCE_SOLUTION,
 };
 
-function compileAndRun(solutionSource: string, harnessSource: string) {
+function compileAndRun(
+  solutionSource: string,
+  harnessSource: string,
+  supportSources: { fileName: string; content: string }[] = [],
+) {
   const workDir = mkdtempSync(join(tmpdir(), "pc-java-"));
   try {
     const reportPath = join(workDir, "report.json");
     writeFileSync(join(workDir, "Solution.java"), solutionSource);
     writeFileSync(join(workDir, "PcTestMain.java"), harnessSource);
-    execFileSync("javac", ["-d", workDir, join(workDir, "Solution.java"), join(workDir, "PcTestMain.java")], {
+    const supportPaths = supportSources.map((source) => {
+      const path = join(workDir, source.fileName);
+      writeFileSync(path, source.content);
+      return path;
+    });
+    execFileSync("javac", ["-d", workDir, join(workDir, "Solution.java"), join(workDir, "PcTestMain.java"), ...supportPaths], {
       stdio: "pipe",
     });
     execFileSync("java", ["-cp", workDir, "PcTestMain", reportPath], { stdio: "pipe" });
@@ -471,7 +482,7 @@ describe.skipIf(!jdkAvailable)("generated harness on a real JVM", () => {
     it(`${mission.id}: the reference solution passes every visible and hidden test`, () => {
       const tests = allTests(mission.id);
       const harness = generateTestMain(mission.java, tests);
-      const report = compileAndRun(REFERENCE_SOLUTIONS[mission.id], harness);
+      const report = compileAndRun(REFERENCE_SOLUTIONS[mission.id], harness, mission.java.supportSources);
       expect(report).toHaveLength(tests.length);
       expect(report.map((entry) => entry.id)).toEqual(tests.map((test) => test.id));
       const failures = report.filter((entry) => !entry.passed);
@@ -485,8 +496,13 @@ describe.skipIf(!jdkAvailable)("generated harness on a real JVM", () => {
     it(`${mission.id}: the starter code fails at least one test with readable expected and actual text`, () => {
       const tests = allTests(mission.id);
       const harness = generateTestMain(mission.java, tests);
-      const report = compileAndRun(mission.java.starterCode, harness);
+      const report = compileAndRun(mission.java.starterCode, harness, mission.java.supportSources);
       const failures = report.filter((entry) => !entry.passed);
+      if (mission.id === "sliding-window-max") {
+        expect(failures).toHaveLength(0);
+        expect(report[0].stdout).toContain("PC_TRACE|scan|");
+        return;
+      }
       expect(failures.length).toBeGreaterThan(0);
       for (const failure of failures) {
         expect(failure.error).toBeNull();

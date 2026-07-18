@@ -2,6 +2,7 @@ import type { CodingCombatMissionId } from "./types";
 import type { JavaCombatSpec } from "@/java/javaHarness";
 import { CODING_COMBAT_WAVE_ONE_MISSIONS } from "./codingCombatWaveOneMissions";
 import { CODING_COMBAT_WAVE_TWO_MISSIONS } from "./codingCombatWaveTwoMissions";
+import { SLIDING_WINDOW_WORLD_MISSION } from "./slidingWindowWorld";
 
 export interface CodingCombatTestCase {
   id: string;
@@ -44,6 +45,8 @@ export interface CodingCombatMission {
   hiddenTests: CodingCombatTestCase[];
   hints: string[];
   defense: CodingCombatDefenseQuestion[];
+  /** A code-driven world can replace the standard editor/MCQ workbench. */
+  worldRoute?: string;
 }
 
 const CODING_COMBAT_CORE_MISSIONS: CodingCombatMission[] = [
@@ -569,8 +572,14 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
   ...CODING_COMBAT_CORE_MISSIONS,
   ...CODING_COMBAT_WAVE_ONE_MISSIONS,
   ...CODING_COMBAT_WAVE_TWO_MISSIONS,
+  SLIDING_WINDOW_WORLD_MISSION,
 ];
 
 export function getCodingCombatMission(id: string): CodingCombatMission | undefined {
   return CODING_COMBAT_MISSIONS.find((mission) => mission.id === id);
+}
+
+export function getCodingCombatMissionRoute(id: string): string {
+  const mission = getCodingCombatMission(id);
+  return mission?.worldRoute ?? `/arena/coding-lab?mission=${encodeURIComponent(id)}`;
 }

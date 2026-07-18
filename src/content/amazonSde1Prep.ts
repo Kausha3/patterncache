@@ -227,6 +227,7 @@ export const AMAZON_COMBAT_MISSION_BY_QUESTION: Partial<Record<string, CodingCom
   "dsa-lca": "lowest-common-ancestor",
   "dsa-distance-k": "distance-k-tree",
   "dsa-path-sum": "path-sum-tree",
+  "dsa-sliding-window-max": "sliding-window-max",
 };
 
 export function getAmazonCombatMissionId(questionId: string): CodingCombatMissionId | undefined {
