@@ -1,18 +1,18 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import { LibraryPage } from "@/pages/LibraryPage";
-import { PracticeHubPage } from "@/pages/PracticeHubPage";
-import { LessonPage } from "@/pages/LessonPage";
-import { ProgressPage } from "@/pages/ProgressPage";
-import { CompaniesPage } from "@/pages/CompaniesPage";
-import { CompanyPage } from "@/pages/CompanyPage";
-import { ColdDrillsPage } from "@/pages/ColdDrillsPage";
-import { ColdDrillPage } from "@/pages/ColdDrillPage";
-import { PatternsPage } from "@/pages/PatternsPage";
 import { GameStatusPill } from "@/components/GameStatusPill";
 import { color, font } from "@/theme/tokens";
 
 const CoursePage = lazy(() => import("@/pages/CoursePage").then((module) => ({ default: module.CoursePage })));
+const PracticeHubPage = lazy(() => import("@/pages/PracticeHubPage").then((module) => ({ default: module.PracticeHubPage })));
+const LibraryPage = lazy(() => import("@/pages/LibraryPage").then((module) => ({ default: module.LibraryPage })));
+const LessonPage = lazy(() => import("@/pages/LessonPage").then((module) => ({ default: module.LessonPage })));
+const ProgressPage = lazy(() => import("@/pages/ProgressPage").then((module) => ({ default: module.ProgressPage })));
+const CompaniesPage = lazy(() => import("@/pages/CompaniesPage").then((module) => ({ default: module.CompaniesPage })));
+const CompanyPage = lazy(() => import("@/pages/CompanyPage").then((module) => ({ default: module.CompanyPage })));
+const ColdDrillsPage = lazy(() => import("@/pages/ColdDrillsPage").then((module) => ({ default: module.ColdDrillsPage })));
+const ColdDrillPage = lazy(() => import("@/pages/ColdDrillPage").then((module) => ({ default: module.ColdDrillPage })));
+const PatternsPage = lazy(() => import("@/pages/PatternsPage").then((module) => ({ default: module.PatternsPage })));
 const ArenaPage = lazy(() => import("@/pages/ArenaPage").then((module) => ({ default: module.ArenaPage })));
 const CodingCombatPage = lazy(() => import("@/pages/CodingCombatPage").then((module) => ({ default: module.CodingCombatPage })));
 const SlidingWindowWorldPage = lazy(() => import("@/pages/SlidingWindowWorldPage").then((module) => ({ default: module.SlidingWindowWorldPage })));
@@ -42,9 +42,9 @@ export function App() {
             }
           />
           <Route path="/course" element={<Navigate to="/" replace />} />
-          <Route path="/practice" element={<PracticeHubPage />} />
-          <Route path="/library" element={<LibraryPage />} />
-          <Route path="/lesson/:id" element={<LessonPage />} />
+          <Route path="/practice" element={<Suspense fallback={<PageFallback label="Loading practice…" />}><PracticeHubPage /></Suspense>} />
+          <Route path="/library" element={<Suspense fallback={<PageFallback label="Loading the library…" />}><LibraryPage /></Suspense>} />
+          <Route path="/lesson/:id" element={<Suspense fallback={<PageFallback label="Loading the lesson…" />}><LessonPage /></Suspense>} />
           <Route
             path="/arena"
             element={
@@ -125,7 +125,7 @@ export function App() {
               </Suspense>
             }
           />
-          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/companies" element={<Suspense fallback={<PageFallback label="Loading companies…" />}><CompaniesPage /></Suspense>} />
           <Route
             path="/companies/amazon/sde1"
             element={
@@ -134,11 +134,11 @@ export function App() {
               </Suspense>
             }
           />
-          <Route path="/companies/:id" element={<CompanyPage />} />
-          <Route path="/drill" element={<ColdDrillsPage />} />
-          <Route path="/drill/:id" element={<ColdDrillPage />} />
-          <Route path="/patterns" element={<PatternsPage />} />
-          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/companies/:id" element={<Suspense fallback={<PageFallback label="Loading the company pack…" />}><CompanyPage /></Suspense>} />
+          <Route path="/drill" element={<Suspense fallback={<PageFallback label="Loading cold drills…" />}><ColdDrillsPage /></Suspense>} />
+          <Route path="/drill/:id" element={<Suspense fallback={<PageFallback label="Loading the design drill…" />}><ColdDrillPage /></Suspense>} />
+          <Route path="/patterns" element={<Suspense fallback={<PageFallback label="Loading pattern recall…" />}><PatternsPage /></Suspense>} />
+          <Route path="/progress" element={<Suspense fallback={<PageFallback label="Loading progress…" />}><ProgressPage /></Suspense>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
