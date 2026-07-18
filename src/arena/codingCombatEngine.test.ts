@@ -69,8 +69,7 @@ describe("Coding Combat evaluator", () => {
       durationMs: 1,
       results: [{ id: "ok", label: "ok", hidden: false, passed: true, expected: 1, actual: 1, durationMs: 1 }],
     };
-    let respondingWorker: CodingCombatWorkerLike;
-    respondingWorker = {
+    const respondingWorker: CodingCombatWorkerLike = {
       onmessage: null,
       onerror: null,
       postMessage: () => queueMicrotask(() => respondingWorker.onmessage?.({ data: successResult })),

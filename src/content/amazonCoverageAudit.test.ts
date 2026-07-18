@@ -26,13 +26,15 @@ describe("Amazon must-do product coverage audit", () => {
   it("reports the current DSA and LLD gaps without rounding them away", () => {
     expect(AMAZON_MUST_DO_COVERAGE_SUMMARY).toEqual({
       dsa: { total: 28, machineVerified: 28, guidedOnly: 0, uncovered: 0 },
-      lld: { total: 6, machineVerified: 1, guidedOnly: 5, uncovered: 0 },
+      lld: { total: 6, machineVerified: 6, guidedOnly: 0, uncovered: 0 },
     });
   });
 
-  it("does not call option-based or self-reviewed LLD practice machine verified", () => {
+  it("routes every machine-verified LLD prompt to a distinct exact verification world", () => {
     const lld = AMAZON_MUST_DO_COVERAGE.filter((entry) => entry.track === "lld");
-    expect(lld.filter((entry) => entry.questionId !== "lld-parking-lot").every((entry) => entry.level === "guided-only" && entry.route?.startsWith("/"))).toBe(true);
+    expect(lld).toHaveLength(6);
+    expect(lld.every((entry) => entry.level === "machine-verified" && entry.route?.startsWith("/arena/lld-world/"))).toBe(true);
+    expect(new Set(lld.map((entry) => entry.route)).size).toBe(6);
     expect(lld.find((entry) => entry.questionId === "lld-parking-lot")).toMatchObject({
       level: "machine-verified",
       route: "/arena/lld-world/parking-lot",

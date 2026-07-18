@@ -197,7 +197,7 @@ export function runBFS(input: string): TraceStep<BFSState>[] {
   const visited = [startKey];
   const dist: Record<string, number> = { [startKey]: 0 };
   const parent: Record<string, string> = {};
-  let queue = [startKey];
+  const queue = [startKey];
 
   const snap = (current: string | null, path?: string[]): BFSState => ({
     grid, rows, cols, startKey, targetKey,
@@ -215,7 +215,7 @@ export function runBFS(input: string): TraceStep<BFSState>[] {
     }
     const added: string[] = [];
     for (const nb of neighbors(cur, rows, cols)) {
-      if (isOpen(grid, nb) && !dist.hasOwnProperty(nb)) {
+      if (isOpen(grid, nb) && !Object.prototype.hasOwnProperty.call(dist, nb)) {
         dist[nb] = dist[cur] + 1;
         parent[nb] = cur;
         visited.push(nb);
@@ -254,7 +254,7 @@ function bfsOptimal(input: string): number {
     const cur = q.shift()!;
     if (cur === targetKey) return dist[cur];
     for (const nb of neighbors(cur, rows, cols)) {
-      if (isOpen(grid, nb) && !dist.hasOwnProperty(nb)) { dist[nb] = dist[cur] + 1; q.push(nb); }
+      if (isOpen(grid, nb) && !Object.prototype.hasOwnProperty.call(dist, nb)) { dist[nb] = dist[cur] + 1; q.push(nb); }
     }
   }
   return -1;
@@ -273,7 +273,7 @@ function processCell(state: BFSState, cur: string): { state: BFSState; added: st
   const added: string[] = [];
   let foundTarget = false;
   for (const nb of neighbors(cur, state.rows, state.cols)) {
-    if (isOpen(state.grid, nb) && !dist.hasOwnProperty(nb)) {
+    if (isOpen(state.grid, nb) && !Object.prototype.hasOwnProperty.call(dist, nb)) {
       dist[nb] = dist[cur] + 1;
       parent[nb] = cur;
       visited.push(nb);

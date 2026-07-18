@@ -1,0 +1,103 @@
+.lld-verification-page {
+  --pg-line: color-mix(in srgb, var(--world-accent) 23%, transparent);
+}
+
+.lld-world-hero {
+  background:
+    radial-gradient(560px 250px at 88% 3%, color-mix(in srgb, var(--world-accent) 19%, transparent), transparent 72%),
+    linear-gradient(145deg, rgba(11, 35, 38, 0.98), rgba(8, 23, 27, 0.98));
+}
+
+.lld-world-hero .parking-gauntlet-how b,
+.lld-verification-page .parking-gauntlet-progress .active b {
+  border-color: color-mix(in srgb, var(--world-accent) 66%, transparent);
+  color: var(--world-accent);
+}
+
+.lld-world-tagline {
+  margin-top: 18px !important;
+  border-left: 3px solid var(--world-accent);
+  padding: 9px 12px;
+  color: #c5d4d1;
+  background: color-mix(in srgb, var(--world-accent) 7%, transparent);
+  font: 650 12px/1.5 var(--mono);
+}
+
+.lld-world-stage {
+  background:
+    radial-gradient(420px 230px at 70% 34%, color-mix(in srgb, var(--world-accent) 13%, transparent), transparent 72%),
+    linear-gradient(145deg, #0b2024, #071417);
+}
+
+.lld-world-schematic {
+  position: absolute;
+  z-index: 0;
+  inset: 54px 18px auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  opacity: 0.56;
+  pointer-events: none;
+}
+
+.lld-world-stage .parking-gauntlet-world-status,
+.lld-world-stage .parking-gauntlet-trace,
+.lld-world-stage .parking-gauntlet-verdict {
+  position: relative;
+  z-index: 1;
+}
+
+.lld-world-schematic span {
+  min-height: 58px;
+  border: 1px solid color-mix(in srgb, var(--world-accent) 35%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+  color: color-mix(in srgb, var(--world-accent) 75%, white);
+  background: rgba(3, 15, 18, 0.72);
+  font: 700 9px/1.35 var(--mono);
+}
+
+.parking-gauntlet-kind.policy {
+  color: #d79ce9;
+  background: rgba(196, 111, 217, 0.12);
+}
+
+.lld-world-principle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid color-mix(in srgb, var(--world-accent) 32%, transparent);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--world-accent) 6%, transparent);
+}
+
+.lld-world-principle span {
+  color: #839893;
+  font: 800 9px var(--mono);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.lld-world-principle strong {
+  color: color-mix(in srgb, var(--world-accent) 78%, white);
+  font: 800 11px var(--mono);
+}
+
+.lld-world-return {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--world-accent) 45%, transparent);
+  border-radius: 10px;
+  padding: 10px 13px;
+  color: color-mix(in srgb, var(--world-accent) 74%, white);
+  font: 750 11px var(--mono);
+}
+
+@media (max-width: 640px) {
+  .lld-world-schematic { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lld-world-principle { align-items: flex-start; flex-direction: column; }
+}

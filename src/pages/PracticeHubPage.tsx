@@ -34,12 +34,12 @@ const START_HERE: PracticeCard[] = [
 
 const MORE_REPS: PracticeCard[] = [
   {
-    title: "Parking Lot Design Gauntlet",
-    route: "/arena/lld-world/parking-lot",
-    blurb: "Take the exact Amazon-style Parking Lot prompt through six live failures: entry, compatibility, concurrency, tickets, pricing, and payment. Move real state and behavior, rerun every incident, then defend the design without answer choices.",
+    title: "Amazon LLD Verification Worlds",
+    route: "/arena/lld-worlds",
+    blurb: "Prove all six must-do designs—Parking Lot, Circular Buffer, LRU Cache, Amazon Locker, Vending Machine, and Elevator. Each exact system fails live, accepts real responsibility moves, and ends with an evidence-based interview defense.",
     icon: "gauge",
     accent: color.teal,
-    tag: "Exact simulation · verified LLD",
+    tag: "6/6 exact simulations · verified LLD",
     tagTone: color.teal,
   },
   {

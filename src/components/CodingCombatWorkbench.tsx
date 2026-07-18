@@ -295,7 +295,7 @@ function TestConsole({
           <span className="combat-console-dot" aria-hidden />
           <strong id="combat-console-heading">Test console</strong>
         </div>
-        {result && !isRunning ? <span>{passedCount}/{result.results.length} passed · {(result.durationMs / 1000).toFixed(1)}s</span> : null}
+        {result && !isRunning ? <span>{passedCount}/{result.results.length} passed · {result.reusedCompilation ? "prepared JVM proof" : `${(result.durationMs / 1000).toFixed(1)}s`}</span> : null}
       </header>
       {isRunning ? (
         <div className="combat-console-empty">
@@ -329,7 +329,7 @@ function TestConsole({
             </article>
           ))}
           {runScope === "visible" && result.passed ? (
-            <p className="combat-console-callout">Visible tests are green. Hidden tests will probe duplicates, boundaries, and invalid assumptions.</p>
+            <p className="combat-console-callout">Visible tests are green. The sealed hidden suite is already prepared from this exact compiled code; Submit reveals it without compiling again.</p>
           ) : null}
         </div>
       ) : (

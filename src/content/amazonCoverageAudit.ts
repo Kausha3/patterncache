@@ -5,6 +5,7 @@ import {
   type AmazonPrepQuestion,
   type AmazonPrepTrack,
 } from "./amazonSde1Prep";
+import { getLldVerificationWorldByQuestion, getLldVerificationWorldRoute } from "@/arena/lldVerificationWorlds";
 
 export type AmazonCoverageLevel = "machine-verified" | "guided-only" | "uncovered";
 
@@ -78,6 +79,18 @@ function auditQuestion(question: AmazonPrepQuestion): AmazonCoverageEntry {
       route: "/arena/lld-world/parking-lot",
       practiceLabel: "Six-incident Parking Lot gauntlet",
       reason: "The exact design is verified by six persistent system incidents, live responsibility mutation, reruns against the complete model, and a rubric-graded free-form defense.",
+    };
+  }
+  const lldWorld = getLldVerificationWorldByQuestion(question.id);
+  if (lldWorld) {
+    return {
+      questionId: question.id,
+      title: question.title,
+      track: question.track,
+      level: "machine-verified",
+      route: getLldVerificationWorldRoute(lldWorld.id),
+      practiceLabel: `${lldWorld.incidents.length}-incident ${lldWorld.systemName} world`,
+      reason: `The exact design is verified by ${lldWorld.incidents.length} persistent incidents, live responsibility mutation, complete-model reruns, and a rubric-graded free-form defense.`,
     };
   }
   if (question.track === "lld") {

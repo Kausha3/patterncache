@@ -18,6 +18,8 @@ const CodingCombatPage = lazy(() => import("@/pages/CodingCombatPage").then((mod
 const SlidingWindowWorldPage = lazy(() => import("@/pages/SlidingWindowWorldPage").then((module) => ({ default: module.SlidingWindowWorldPage })));
 const CourseScheduleWorldPage = lazy(() => import("@/pages/CourseScheduleWorldPage").then((module) => ({ default: module.CourseScheduleWorldPage })));
 const ParkingLotGauntletPage = lazy(() => import("@/pages/ParkingLotGauntletPage").then((module) => ({ default: module.ParkingLotGauntletPage })));
+const LldWorldsPage = lazy(() => import("@/pages/LldWorldsPage").then((module) => ({ default: module.LldWorldsPage })));
+const LldVerificationWorldPage = lazy(() => import("@/pages/LldVerificationWorldPage").then((module) => ({ default: module.LldVerificationWorldPage })));
 const LldStudioPage = lazy(() => import("@/pages/LldStudioPage").then((module) => ({ default: module.LldStudioPage })));
 const PatternGenomePage = lazy(() => import("@/pages/PatternGenomePage").then((module) => ({ default: module.PatternGenomePage })));
 const AmazonSde1PrepPage = lazy(() => import("@/pages/AmazonSde1PrepPage").then((module) => ({ default: module.AmazonSde1PrepPage })));
@@ -76,10 +78,26 @@ export function App() {
             }
           />
           <Route
+            path="/arena/lld-worlds"
+            element={
+              <Suspense fallback={<PageFallback label="Opening the LLD verification map…" />}>
+                <LldWorldsPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/arena/lld-world/parking-lot"
             element={
               <Suspense fallback={<PageFallback label="Opening the Parking Lot gauntlet…" />}>
                 <ParkingLotGauntletPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/arena/lld-world/:worldId"
+            element={
+              <Suspense fallback={<PageFallback label="Opening the LLD verification world…" />}>
+                <LldVerificationWorldPage />
               </Suspense>
             }
           />

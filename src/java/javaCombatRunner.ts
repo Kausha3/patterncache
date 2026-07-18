@@ -4,6 +4,28 @@ import { generateTestMain } from "./javaHarness";
 import { runJavaProgram } from "./javaProgram";
 import type { JavaRunStage } from "./javaProgram";
 
+const MAX_PREPARED_RUNS = 4;
+const preparedRuns = new Map<string, CodingCombatRunResult>();
+
+function runKey(code: string, mission: CodingCombatMission): string {
+  return `${mission.id}\u0000${code}`;
+}
+
+function rememberPreparedRun(key: string, result: CodingCombatRunResult): void {
+  preparedRuns.delete(key);
+  preparedRuns.set(key, result);
+  while (preparedRuns.size > MAX_PREPARED_RUNS) {
+    const oldest = preparedRuns.keys().next().value;
+    if (oldest === undefined) break;
+    preparedRuns.delete(oldest);
+  }
+}
+
+/** Clears the small in-memory cache between isolated test cases. */
+export function resetPreparedJavaCombatRuns(): void {
+  preparedRuns.clear();
+}
+
 /**
  * Run a Coding Combat mission for real: compile the learner's Solution.java
  * together with a generated test main inside the in-browser JVM, execute it,
@@ -18,7 +40,10 @@ export async function runJavaCombat(
   code: string,
   mission: CodingCombatMission,
   includeHidden: boolean,
-  options: { onStage?: (stage: JavaRunStage) => void } = {},
+  options: {
+    onStage?: (stage: JavaRunStage) => void;
+    execute?: typeof runJavaProgram;
+  } = {},
 ): Promise<CodingCombatRunResult> {
   const startedAt = performance.now();
   const finish = (partial: Omit<CodingCombatRunResult, "durationMs">): CodingCombatRunResult => ({
@@ -26,9 +51,18 @@ export async function runJavaCombat(
     durationMs: performance.now() - startedAt,
   });
 
+  const key = runKey(code, mission);
+  const prepared = preparedRuns.get(key);
+  if (includeHidden && prepared) {
+    return { ...prepared, durationMs: 0, reusedCompilation: true };
+  }
+
+  // Compile and execute the complete sealed suite once. A visible run only
+  // reveals public assertions, but prepares the exact hidden submission so an
+  // unchanged solution never pays a second multi-minute javac startup.
   const tests = [
     ...mission.visibleTests.map((test) => ({ ...test, hidden: false })),
-    ...(includeHidden ? mission.hiddenTests.map((test) => ({ ...test, hidden: true })) : []),
+    ...mission.hiddenTests.map((test) => ({ ...test, hidden: true })),
   ];
 
   let harness: string;
@@ -43,7 +77,7 @@ export async function runJavaCombat(
     });
   }
 
-  const outcome = await runJavaProgram(
+  const outcome = await (options.execute ?? runJavaProgram)(
     [
       { fileName: "Solution.java", content: code },
       { fileName: "PcTestMain.java", content: harness },
@@ -93,9 +127,18 @@ export async function runJavaCombat(
     };
   });
 
-  return finish({
+  const completeResult = finish({
     passed: results.length > 0 && results.every((result) => result.passed),
     timedOut: false,
     results,
   });
+  rememberPreparedRun(key, completeResult);
+
+  if (includeHidden) return completeResult;
+  const visibleResults = completeResult.results.filter((result) => !result.hidden);
+  return {
+    ...completeResult,
+    passed: visibleResults.length > 0 && visibleResults.every((result) => result.passed),
+    results: visibleResults,
+  };
 }

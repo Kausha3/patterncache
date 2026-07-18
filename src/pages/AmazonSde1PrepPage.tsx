@@ -33,6 +33,8 @@ import {
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { getCodingCombatMission, getCodingCombatMissionRoute } from "@/arena/codingCombatMissions";
 import { loadParkingLotGauntletProgress } from "@/game/parkingLotGauntletProgress";
+import { getLldVerificationWorldByQuestion } from "@/arena/lldVerificationWorlds";
+import { loadCompletedLldVerificationWorldIds } from "@/game/lldVerificationProgress";
 import "@/theme/amazon-sde1.css";
 
 type TrackFilter = AmazonPrepTrack | "all";
@@ -57,6 +59,7 @@ export function AmazonSde1PrepPage() {
   const { records, setStatus, recordProof, logReview, resetAll } = useAmazonPrepProgress();
   const { codingCombatScores } = useGameProgress();
   const parkingLotCompleted = !!loadParkingLotGauntletProgress().record;
+  const completedLldWorlds = useMemo(() => loadCompletedLldVerificationWorldIds(), []);
 
   const counts = useMemo(() => {
     const must = AMAZON_SDE1_QUESTIONS.filter((question) => question.tier === "must");
@@ -237,7 +240,10 @@ export function AmazonSde1PrepPage() {
                   const missionId = getAmazonCombatMissionId(question.id);
                   return !!(missionId && codingCombatScores[missionId]);
                 })()}
-                parkingLotCompleted={parkingLotCompleted}
+                verifiedLldCompleted={question.id === "lld-parking-lot" ? parkingLotCompleted : (() => {
+                  const world = getLldVerificationWorldByQuestion(question.id);
+                  return !!world && completedLldWorlds.has(world.id);
+                })()}
               />
             ))}
           </div>
@@ -289,7 +295,7 @@ function QuestionCard({
   onProof,
   onReview,
   combatCompleted,
-  parkingLotCompleted,
+  verifiedLldCompleted,
 }: {
   question: AmazonPrepQuestion;
   number: number;
@@ -299,7 +305,7 @@ function QuestionCard({
   onProof: (evidence: AmazonPrepEvidence) => void;
   onReview: () => void;
   combatCompleted: boolean;
-  parkingLotCompleted: boolean;
+  verifiedLldCompleted: boolean;
 }) {
   const [proofOpen, setProofOpen] = useState(false);
   const status = record?.status ?? "not-started";
@@ -308,6 +314,7 @@ function QuestionCard({
   const combatMissionId = getAmazonCombatMissionId(question.id);
   const combatMission = combatMissionId ? getCodingCombatMission(combatMissionId) : undefined;
   const coverage = question.tier === "must" ? getAmazonCoverageEntry(question.id) : undefined;
+  const lldWorld = getLldVerificationWorldByQuestion(question.id);
   const verifiedPractice = combatMissionId ? {
     refId: combatMissionId,
     label: combatMission?.worldRoute ? "the code-driven Algorithm World" : "the hidden-JVM Coding Combat mission",
@@ -316,8 +323,13 @@ function QuestionCard({
   } : question.id === "lld-parking-lot" ? {
     refId: "parking-lot-gauntlet",
     label: "the six-incident Parking Lot Design Gauntlet",
-    completed: parkingLotCompleted,
+    completed: verifiedLldCompleted,
     summary: "Repaired and reran all six Parking Lot incidents—entry, compatibility, concurrency, tickets, pricing, and payment—then passed the free-form design defense.",
+  } : lldWorld ? {
+    refId: `lld-world-${lldWorld.id}`,
+    label: `the ${lldWorld.incidents.length}-incident ${lldWorld.systemName} Verification World`,
+    completed: verifiedLldCompleted,
+    summary: lldWorld.defense.verifiedSummary,
   } : undefined;
   const originalAction = isExternalPrepHref(question.href) ? (
     <a className="amazon-practice-link" href={question.href} target="_blank" rel="noreferrer">Open problem <Icon name="arrowRight" size={13} /></a>
@@ -333,7 +345,7 @@ function QuestionCard({
         <a className="amazon-reference-link" href={question.href} target="_blank" rel="noreferrer">Original statement</a>
       ) : null}
     </div>
-  ) : question.id === "lld-parking-lot" && coverage?.route ? (
+  ) : question.track === "lld" && coverage?.level === "machine-verified" && coverage.route ? (
     <div className="amazon-practice-links">
       <Link className="amazon-practice-link" to={coverage.route}>Enter LLD World <Icon name="layers" size={13} /></Link>
       <Link className="amazon-reference-link" to={question.href}>Open guided lesson</Link>
@@ -432,11 +444,13 @@ function CoverageAudit() {
         <article>
           <div><span>LLD must-dos</span><strong>{summary.lld.machineVerified}/{summary.lld.total}</strong></div>
           <div className="amazon-coverage-meter lld"><span style={{ width: `${(summary.lld.machineVerified / summary.lld.total) * 100}%` }} /></div>
-          <p><b>{summary.lld.machineVerified} exact verified simulation</b> and {summary.lld.guidedOnly} guided lessons or cold drills. Guided material is not counted as mastery.</p>
-          <details>
-            <summary>Why guided LLD is not marked verified</summary>
-            <ul>{guidedLld.map((entry) => <li key={entry.questionId}><b>{entry.title}</b> — {entry.practiceLabel}</li>)}</ul>
-          </details>
+          <p><b>{summary.lld.machineVerified} exact verification worlds</b> with persistent incidents, live responsibility moves, complete-model reruns, and free-form defenses. Reading a lesson alone never counts as mastery.</p>
+          {guidedLld.length > 0 ? (
+            <details>
+              <summary>Why {guidedLld.length} guided LLD prompt{guidedLld.length === 1 ? " is" : "s are"} not marked verified</summary>
+              <ul>{guidedLld.map((entry) => <li key={entry.questionId}><b>{entry.title}</b> — {entry.practiceLabel}</li>)}</ul>
+            </details>
+          ) : <span className="amazon-coverage-complete">All six exact Amazon LLD must-dos now have runnable proof.</span>}
         </article>
       </div>
       <p className="amazon-coverage-honesty"><Icon name="shield" size={15} /> This measures the product’s coverage, not your personal readiness. Your proof and review records remain separate above.</p>

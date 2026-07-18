@@ -39,7 +39,7 @@ export interface LldStudioMutation {
   options: LldStudioMutationOption[];
 }
 
-export interface LldStudioDefenseOption extends LldStudioMutationOption {}
+export type LldStudioDefenseOption = LldStudioMutationOption;
 
 export interface LldStudioMission {
   id: LldStudioMissionId;
