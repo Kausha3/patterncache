@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Divider, Eyebrow, Panel } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { InterviewSpeechControls } from "@/components/InterviewSpeechControls";
+import { AdaptiveInterviewFeedback, AdaptiveInterviewSetup } from "@/components/AdaptiveInterviewControls";
 import { COMPANY_PROFILES, getCompanyProfile } from "@/interview/companyProfiles";
 import { computeFit, parseJobDescription, parseResume } from "@/interview/resumeParser";
 import type { FitReport, ResumeFacts } from "@/interview/resumeParser";
@@ -11,6 +12,8 @@ import type { InterviewPlan, PlannedQuestion } from "@/interview/questionGenerat
 import { assessAnswer, debriefSession } from "@/interview/answerJudge";
 import type { AnswerAssessment } from "@/interview/answerJudge";
 import { saveMockSession } from "@/interview/mockSessionStore";
+import { createAdaptiveFollowUp, requestAdaptiveInterviewTurn } from "@/interview/adaptiveInterviewer";
+import type { AdaptiveInterviewConfig, AdaptiveInterviewTurn } from "@/interview/adaptiveInterviewer";
 import { color, font, radius } from "@/theme/tokens";
 
 /**
@@ -41,9 +44,31 @@ export function MockInterviewPage() {
   const [answerDraft, setAnswerDraft] = useState("");
   const [currentAssessment, setCurrentAssessment] = useState<AnswerAssessment>();
   const [answered, setAnswered] = useState<AnsweredQuestion[]>([]);
+  const [adaptiveConfig, setAdaptiveConfig] = useState<AdaptiveInterviewConfig>({
+    enabled: false,
+    apiKey: "",
+    consent: false,
+    model: "gpt-5-mini",
+    maxTurns: 1,
+  });
+  const [adaptiveTurn, setAdaptiveTurn] = useState<AdaptiveInterviewTurn>();
+  const [adaptiveError, setAdaptiveError] = useState<string>();
+  const [adaptiveLoading, setAdaptiveLoading] = useState(false);
+  const [adaptiveRequestsUsed, setAdaptiveRequestsUsed] = useState(0);
+  const adaptiveRequest = useRef<AbortController>();
   const [sessionId] = useState(() => `mock-${Date.now().toString(36)}`);
 
   const profile = getCompanyProfile(companyId)!;
+
+  useEffect(() => () => adaptiveRequest.current?.abort(), []);
+
+  const clearAdaptiveResponse = () => {
+    adaptiveRequest.current?.abort();
+    adaptiveRequest.current = undefined;
+    setAdaptiveTurn(undefined);
+    setAdaptiveError(undefined);
+    setAdaptiveLoading(false);
+  };
 
   const runParse = () => {
     const parsedResume = parseResume(resumeText);
@@ -62,6 +87,8 @@ export function MockInterviewPage() {
     setAnswered([]);
     setAnswerDraft("");
     setCurrentAssessment(undefined);
+    setAdaptiveRequestsUsed(0);
+    clearAdaptiveResponse();
     setStep("interview");
   };
 
@@ -71,12 +98,57 @@ export function MockInterviewPage() {
     const assessment = assessAnswer(answerDraft, question, profile);
     setCurrentAssessment(assessment);
     setAnswered((current) => [...current, { question, answer: answerDraft, assessment }]);
+
+    clearAdaptiveResponse();
+    const adaptiveReady =
+      adaptiveConfig.enabled &&
+      adaptiveConfig.consent &&
+      adaptiveConfig.apiKey.trim().length >= 20 &&
+      adaptiveRequestsUsed < adaptiveConfig.maxTurns;
+    if (!adaptiveReady) return;
+
+    const controller = new AbortController();
+    adaptiveRequest.current = controller;
+    setAdaptiveLoading(true);
+    setAdaptiveRequestsUsed((current) => current + 1);
+    void requestAdaptiveInterviewTurn({
+      apiKey: adaptiveConfig.apiKey,
+      model: adaptiveConfig.model,
+      input: { profile, question, answer: answerDraft, assessment },
+      signal: controller.signal,
+    })
+      .then((turn) => {
+        if (!controller.signal.aborted) setAdaptiveTurn(turn);
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setAdaptiveError(error instanceof Error ? error.message : "Adaptive coaching failed. Continue with the deterministic interview.");
+        }
+      })
+      .finally(() => {
+        if (adaptiveRequest.current === controller) {
+          adaptiveRequest.current = undefined;
+          setAdaptiveLoading(false);
+        }
+      });
   };
 
   const nextQuestion = () => {
+    const currentQuestion = flatQuestions[questionIndex];
+    const followUp = adaptiveTurn && currentQuestion
+      ? createAdaptiveFollowUp(currentQuestion, adaptiveTurn, adaptiveRequestsUsed)
+      : undefined;
+    clearAdaptiveResponse();
     setAnswerDraft("");
     setCurrentAssessment(undefined);
-    if (questionIndex + 1 >= flatQuestions.length) {
+    if (followUp) {
+      setFlatQuestions((current) => [
+        ...current.slice(0, questionIndex + 1),
+        followUp,
+        ...current.slice(questionIndex + 1),
+      ]);
+      setQuestionIndex((current) => current + 1);
+    } else if (questionIndex + 1 >= flatQuestions.length) {
       finishSession();
     } else {
       setQuestionIndex((current) => current + 1);
@@ -89,6 +161,7 @@ export function MockInterviewPage() {
   );
 
   const finishSession = () => {
+    clearAdaptiveResponse();
     if (plan) {
       saveMockSession({
         id: sessionId,
@@ -107,15 +180,16 @@ export function MockInterviewPage() {
   return (
     <div style={{ display: "grid", gap: 24 }}>
       <header style={{ display: "grid", gap: 8 }}>
-        <Eyebrow tone={color.violet}>Mock interview · resume parsing stays on this device</Eyebrow>
+        <Eyebrow tone={color.violet}>Mock interview · local by default</Eyebrow>
         <h1 style={{ fontSize: 27, fontWeight: 700, letterSpacing: "-0.5px" }}>
           {step === "debrief" ? "The debrief" : "Interview like they interview"}
         </h1>
         <p style={{ color: color.textDim, maxWidth: 700 }}>
           Paste the job description and the resume you submitted. Your interview is built from what interviewers
           actually mine: your quantified claims, the gaps between the JD and your resume, and the company's own
-          evaluation culture. Nothing you paste leaves this browser. Optional speaking mode explains the browser's
-          voice-processing behavior before it asks for microphone access.
+          evaluation culture. Resume and JD parsing stay in this browser. Speaking mode explains voice processing
+          before microphone access. Optional BYOK mode sends only the current question, answer, and coaching signals
+          to OpenAI after explicit consent.
         </p>
       </header>
 
@@ -130,6 +204,8 @@ export function MockInterviewPage() {
           onParse={runParse}
           howTheyJudge={profile.howTheyJudge}
           rubricName={profile.rubricName}
+          adaptiveConfig={adaptiveConfig}
+          onAdaptiveConfig={setAdaptiveConfig}
         />
       )}
 
@@ -157,6 +233,12 @@ export function MockInterviewPage() {
           onSubmit={submitAnswer}
           onNext={nextQuestion}
           onFinishEarly={finishSession}
+          adaptiveTurn={adaptiveTurn}
+          adaptiveLoading={adaptiveLoading}
+          adaptiveError={adaptiveError}
+          adaptiveRequestsUsed={adaptiveRequestsUsed}
+          adaptiveRequestLimit={adaptiveConfig.maxTurns}
+          adaptiveEnabled={adaptiveConfig.enabled && adaptiveConfig.consent && adaptiveConfig.apiKey.trim().length >= 20}
         />
       )}
 
@@ -172,6 +254,8 @@ export function MockInterviewPage() {
             setPlan(undefined);
             setAnswered([]);
             setQuestionIndex(0);
+            setAdaptiveRequestsUsed(0);
+            clearAdaptiveResponse();
           }}
           onPractice={() => navigate("/practice")}
         />
@@ -204,6 +288,8 @@ function SetupStep({
   onParse,
   howTheyJudge,
   rubricName,
+  adaptiveConfig,
+  onAdaptiveConfig,
 }: {
   companyId: string;
   onCompany: (id: string) => void;
@@ -214,6 +300,8 @@ function SetupStep({
   onParse: () => void;
   howTheyJudge: string;
   rubricName: string;
+  adaptiveConfig: AdaptiveInterviewConfig;
+  onAdaptiveConfig: (config: AdaptiveInterviewConfig) => void;
 }) {
   const ready = resumeText.trim().length > 80 && jdText.trim().length > 40;
   return (
@@ -270,6 +358,8 @@ function SetupStep({
           />
         </div>
       </div>
+
+      <AdaptiveInterviewSetup config={adaptiveConfig} onChange={onAdaptiveConfig} />
 
       <div>
         <Button icon="arrowRight" disabled={!ready} onClick={onParse}>
@@ -410,6 +500,12 @@ function InterviewStep({
   onSubmit,
   onNext,
   onFinishEarly,
+  adaptiveTurn,
+  adaptiveLoading,
+  adaptiveError,
+  adaptiveRequestsUsed,
+  adaptiveRequestLimit,
+  adaptiveEnabled,
 }: {
   profileName: string;
   rubricName: string;
@@ -423,8 +519,20 @@ function InterviewStep({
   onSubmit: () => void;
   onNext: () => void;
   onFinishEarly: () => void;
+  adaptiveTurn?: AdaptiveInterviewTurn;
+  adaptiveLoading: boolean;
+  adaptiveError?: string;
+  adaptiveRequestsUsed: number;
+  adaptiveRequestLimit: number;
+  adaptiveEnabled: boolean;
 }) {
   const round = plan.rounds.find((candidate) => candidate.round.id === question.roundId)!.round;
+  const isLast = index + 1 >= total;
+  const nextLabel = adaptiveTurn
+    ? "Answer the adaptive follow-up"
+    : adaptiveLoading
+      ? isLast ? "Skip AI and finish" : "Skip AI and continue"
+      : isLast ? "Finish and see the debrief" : "Next question";
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
@@ -488,9 +596,19 @@ function InterviewStep({
               The follow-up an interviewer would push: <span style={{ color: color.textDim }}>{question.followUps[0]}</span>
             </p>
           ) : null}
+          {adaptiveEnabled ? (
+            <AdaptiveInterviewFeedback
+              turn={adaptiveTurn}
+              loading={adaptiveLoading}
+              error={adaptiveError}
+              requestsUsed={adaptiveRequestsUsed}
+              requestLimit={adaptiveRequestLimit}
+              limitReached={adaptiveRequestsUsed >= adaptiveRequestLimit}
+            />
+          ) : null}
           <div>
             <Button icon="arrowRight" onClick={onNext}>
-              {index + 1 >= total ? "Finish and see the debrief" : "Next question"}
+              {nextLabel}
             </Button>
           </div>
         </Panel>

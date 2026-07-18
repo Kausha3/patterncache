@@ -112,18 +112,40 @@ describe("competency ledger derivation", () => {
     expect(entries[0].verified).toBe(false);
   });
 
-  it("counts Amazon board questions only when marked ready with real practice", () => {
+  it("counts Amazon readiness only when proof is attached and preserves verification honesty", () => {
     const inputs = emptyInputs();
     inputs.amazonPrepRecords = {
-      "dsa-two-sum": { status: "ready", practiceCount: 2, lastPracticed: "2026-07-14" },
+      "dsa-two-sum": {
+        status: "ready",
+        practiceCount: 2,
+        evidence: {
+          kind: "combat-clear",
+          verified: true,
+          recordedAt: "2026-07-14T12:00:00.000Z",
+          refId: "pair-sum-map",
+          summary: "Passed hidden JVM tests.",
+        },
+      },
+      "lld-parking-lot": {
+        status: "ready",
+        practiceCount: 1,
+        evidence: {
+          kind: "cold-proof",
+          verified: false,
+          recordedAt: "2026-07-14T11:00:00.000Z",
+          summary: "Responsibilities, change test, and tradeoff were explained.",
+        },
+      },
+      "dsa-insert-interval": { status: "ready", practiceCount: 2 },
       "dsa-merge-intervals": { status: "learning", practiceCount: 1 },
       "not-a-real-question": { status: "ready", practiceCount: 3 },
     };
     const entries = deriveLedger(inputs);
-    expect(entries).toHaveLength(1);
+    expect(entries).toHaveLength(2);
     expect(entries[0].refId).toBe("dsa-two-sum");
     expect(entries[0].kind).toBe("coded");
-    expect(entries[0].verified).toBe(false);
+    expect(entries[0].verified).toBe(true);
+    expect(entries[1]).toMatchObject({ refId: "lld-parking-lot", kind: "explained", verified: false });
   });
 });
 

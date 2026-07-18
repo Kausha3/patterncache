@@ -14,8 +14,17 @@ import {
   type AmazonPrepTrack,
 } from "@/content/amazonSde1Prep";
 import { Icon } from "@/components/Icon";
+import { AmazonReadinessProof } from "@/components/AmazonReadinessProof";
 import { Button, Eyebrow } from "@/components/ui";
-import { isReviewDue, useAmazonPrepProgress, type AmazonPrepStatus } from "@/hooks/useAmazonPrepProgress";
+import {
+  isReviewDue,
+  useAmazonPrepProgress,
+  type AmazonPrepEvidence,
+  type AmazonPrepRecord,
+  type AmazonPrepStatus,
+  type EditableAmazonPrepStatus,
+} from "@/hooks/useAmazonPrepProgress";
+import { useGameProgress } from "@/hooks/useGameProgress";
 import "@/theme/amazon-sde1.css";
 
 type TrackFilter = AmazonPrepTrack | "all";
@@ -37,17 +46,20 @@ export function AmazonSde1PrepPage() {
   const [tier, setTier] = useState<AmazonPrepTier>("must");
   const [track, setTrack] = useState<TrackFilter>("all");
   const [query, setQuery] = useState("");
-  const { records, setStatus, logReview, resetAll } = useAmazonPrepProgress();
+  const { records, setStatus, recordProof, logReview, resetAll } = useAmazonPrepProgress();
+  const { codingCombatScores } = useGameProgress();
 
   const counts = useMemo(() => {
     const must = AMAZON_SDE1_QUESTIONS.filter((question) => question.tier === "must");
     const ready = must.filter((question) => records[question.id]?.status === "ready").length;
+    const verified = must.filter((question) => records[question.id]?.evidence?.verified === true).length;
     const learning = must.filter((question) => records[question.id]?.status === "learning").length;
     const dsa = must.filter((question) => question.track === "dsa");
     const lld = must.filter((question) => question.track === "lld");
     return {
       must: must.length,
       ready,
+      verified,
       learning,
       dsaReady: dsa.filter((question) => records[question.id]?.status === "ready").length,
       dsaTotal: dsa.length,
@@ -95,7 +107,7 @@ export function AmazonSde1PrepPage() {
           <span>CORE READINESS</span>
           <strong>{completion}%</strong>
           <div className="amazon-prep-rank-bar"><span style={{ width: `${completion}%` }} /></div>
-          <small>{counts.ready} of {counts.must} can be defended</small>
+          <small>{counts.ready} of {counts.must} have proof · {counts.verified} JVM-verified</small>
         </div>
       </header>
 
@@ -108,8 +120,8 @@ export function AmazonSde1PrepPage() {
       </section>
 
       <section className="amazon-prep-metrics" aria-label="Preparation progress">
-        <ProgressMetric label="Must-do DSA" value={`${counts.dsaReady}/${counts.dsaTotal}`} detail="can explain + code" tone="teal" />
-        <ProgressMetric label="Must-do LLD" value={`${counts.lldReady}/${counts.lldTotal}`} detail="can model + defend" tone="violet" />
+        <ProgressMetric label="Must-do DSA" value={`${counts.dsaReady}/${counts.dsaTotal}`} detail="readiness proof recorded" tone="teal" />
+        <ProgressMetric label="Must-do LLD" value={`${counts.lldReady}/${counts.lldTotal}`} detail="design defense recorded" tone="violet" />
         <ProgressMetric label="In learning" value={String(counts.learning)} detail="started, not stable" tone="amber" />
         <ProgressMetric label="Reviews due" value={String(counts.due)} detail="1 / 3 / 7-day loop" tone={counts.due > 0 ? "red" : "green"} />
       </section>
@@ -205,12 +217,15 @@ export function AmazonSde1PrepPage() {
                 key={question.id}
                 question={question}
                 number={index + 1}
-                status={records[question.id]?.status ?? "not-started"}
-                practiceCount={records[question.id]?.practiceCount ?? 0}
-                nextReview={records[question.id]?.nextReview}
+                record={records[question.id]}
                 reviewDue={isReviewDue(records[question.id])}
                 onStatus={(status) => setStatus(question.id, status)}
+                onProof={(evidence) => recordProof(question.id, evidence)}
                 onReview={() => logReview(question.id)}
+                combatCompleted={(() => {
+                  const missionId = getAmazonCombatMissionId(question.id);
+                  return !!(missionId && codingCombatScores[missionId]);
+                })()}
               />
             ))}
           </div>
@@ -256,22 +271,26 @@ function ProgressMetric({ label, value, detail, tone }: { label: string; value: 
 function QuestionCard({
   question,
   number,
-  status,
-  practiceCount,
-  nextReview,
+  record,
   reviewDue,
   onStatus,
+  onProof,
   onReview,
+  combatCompleted,
 }: {
   question: AmazonPrepQuestion;
   number: number;
-  status: AmazonPrepStatus;
-  practiceCount: number;
-  nextReview?: string;
+  record?: AmazonPrepRecord;
   reviewDue: boolean;
-  onStatus: (status: AmazonPrepStatus) => void;
+  onStatus: (status: EditableAmazonPrepStatus) => void;
+  onProof: (evidence: AmazonPrepEvidence) => void;
   onReview: () => void;
+  combatCompleted: boolean;
 }) {
+  const [proofOpen, setProofOpen] = useState(false);
+  const status = record?.status ?? "not-started";
+  const practiceCount = record?.practiceCount ?? 0;
+  const nextReview = record?.nextReview;
   const combatMissionId = getAmazonCombatMissionId(question.id);
   const originalAction = isExternalPrepHref(question.href) ? (
     <a className="amazon-practice-link" href={question.href} target="_blank" rel="noreferrer">Open problem <Icon name="arrowRight" size={13} /></a>
@@ -319,29 +338,51 @@ function QuestionCard({
       <div className="amazon-question-actions">
         {action}
         <div className="amazon-status-control" aria-label={`Confidence for ${question.title}`}>
-          {(["not-started", "learning", "ready"] as const).map((value) => (
+          {(["not-started", "learning"] as const).map((value) => (
             <button key={value} aria-pressed={status === value} onClick={() => onStatus(value)}>{STATUS_LABELS[value]}</button>
           ))}
+          <button
+            className="amazon-prove-button"
+            aria-pressed={status === "ready"}
+            aria-expanded={proofOpen}
+            onClick={() => setProofOpen((current) => !current)}
+          >
+            {status === "ready" ? (record?.evidence?.verified ? "Verified clear" : "Proof recorded") : "Prove readiness"}
+          </button>
         </div>
       </div>
+      {proofOpen ? (
+        <AmazonReadinessProof
+          questionTitle={question.title}
+          track={question.track}
+          combatMissionId={combatMissionId}
+          combatCompleted={combatCompleted}
+          evidence={record?.evidence}
+          onProof={(evidence) => {
+            onProof(evidence);
+            setProofOpen(true);
+          }}
+        />
+      ) : null}
       {status !== "not-started" ? (
         <div className="amazon-review-row">
           <span>{practiceCount} practice {practiceCount === 1 ? "pass" : "passes"}{nextReview ? ` · next ${humanDate(nextReview)}` : ""}</span>
-          <button onClick={onReview}>Log review today</button>
+          <button onClick={onReview}>Log completed review</button>
         </div>
       ) : null}
     </article>
   );
 }
 
-function ReadinessGate({ counts }: { counts: { ready: number; must: number; dsaReady: number; dsaTotal: number; lldReady: number; lldTotal: number } }) {
+function ReadinessGate({ counts }: { counts: { ready: number; verified: number; must: number; dsaReady: number; dsaTotal: number; lldReady: number; lldTotal: number } }) {
   const technicalReady = counts.ready === counts.must;
   return (
     <section className="amazon-readiness-gate" aria-labelledby="readiness-title">
       <div className="amazon-readiness-icon"><Icon name={technicalReady ? "trophy" : "shield"} size={26} /></div>
       <div>
         <Eyebrow tone={technicalReady ? "var(--green)" : "var(--amber)"}>Confidence gate</Eyebrow>
-        <h2 id="readiness-title">{technicalReady ? "Core technical set complete" : "Ready means you can defend, not recognize"}</h2>
+        <h2 id="readiness-title">{technicalReady ? "Every core question has evidence" : "Ready means you can defend, not recognize"}</h2>
+        <p>{counts.verified} of {counts.ready} recorded proofs are machine-verified JVM clears. The rest are explicitly marked structured self-review.</p>
         <p>Before saying “I prepared well enough,” verify all five:</p>
         <ul>
           <li className={counts.dsaReady === counts.dsaTotal ? "passed" : ""}>Every must-do DSA can be solved cold, tested, and explained in 35–45 minutes.</li>

@@ -311,7 +311,7 @@
 }
 .amazon-search input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(106, 166, 219, 0.1); }
 
-.amazon-question-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.amazon-question-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .amazon-question-card {
   --track-tone: var(--teal);
   min-width: 0;
@@ -354,6 +354,50 @@
 .amazon-status-control { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .amazon-status-control button { min-width: 0; padding: 7px 4px; border: 1px solid var(--panel-border); border-radius: 6px; background: transparent; color: var(--text-faint); font: 650 8.5px var(--mono); }
 .amazon-status-control button[aria-pressed="true"] { border-color: var(--track-tone); background: color-mix(in srgb, var(--track-tone) 10%, transparent); color: var(--text); }
+.amazon-status-control .amazon-prove-button { border-color: rgba(154, 130, 212, 0.34); color: var(--violet); }
+.amazon-status-control .amazon-prove-button[aria-pressed="true"] { border-color: var(--green); background: rgba(130, 184, 114, 0.09); color: var(--green); }
+.amazon-proof-panel,
+.amazon-proof-record {
+  display: grid;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid rgba(154, 130, 212, 0.35);
+  border-radius: 9px;
+  background: rgba(154, 130, 212, 0.055);
+}
+.amazon-proof-heading { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.amazon-proof-heading > div { display: grid; gap: 5px; }
+.amazon-proof-heading strong,
+.amazon-proof-record strong { font-size: 12.5px; }
+.amazon-proof-heading > span { color: var(--text-faint); font: 650 9px var(--mono); text-align: right; }
+.amazon-combat-proof { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 11px; border: 1px solid var(--panel-border); border-radius: 8px; background: rgba(0, 0, 0, 0.12); }
+.amazon-combat-proof.is-complete { border-color: rgba(130, 184, 114, 0.4); background: rgba(130, 184, 114, 0.06); }
+.amazon-combat-proof > div { display: grid; gap: 3px; }
+.amazon-combat-proof strong { font: 700 10.5px var(--mono); }
+.amazon-combat-proof small { color: var(--text-faint); font-size: 10.5px; line-height: 1.45; }
+.amazon-proof-fields { display: grid; gap: 10px; }
+.amazon-proof-fields label { display: grid; gap: 4px; }
+.amazon-proof-fields label > span { color: var(--text); font: 700 10.5px var(--mono); }
+.amazon-proof-fields label > small { color: var(--text-faint); font-size: 10.5px; line-height: 1.4; }
+.amazon-proof-fields textarea {
+  min-height: 76px;
+  resize: vertical;
+  padding: 9px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 7px;
+  outline: none;
+  background: var(--bg);
+  color: var(--text);
+  font: 11.5px/1.5 var(--body);
+}
+.amazon-proof-fields textarea:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(154, 130, 212, 0.1); }
+.amazon-proof-fields textarea[aria-invalid="true"] { border-color: var(--red); }
+.amazon-proof-fields em { color: var(--red); font: normal 9.5px var(--mono); }
+.amazon-proof-footer { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.amazon-proof-footer p { margin: 0; max-width: 440px; color: var(--text-faint); font-size: 10.5px; line-height: 1.45; }
+.amazon-proof-record.is-verified { border-color: rgba(130, 184, 114, 0.4); background: rgba(130, 184, 114, 0.06); }
+.amazon-proof-record > div { display: grid; gap: 5px; }
+.amazon-proof-record pre { margin: 0; overflow: auto; color: var(--text-dim); font: 10.5px/1.55 var(--mono); white-space: pre-wrap; }
 .amazon-review-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; color: var(--text-faint); font: 600 9px var(--mono); }
 .amazon-review-row button { border: 0; padding: 0; background: transparent; color: var(--blue); font: 700 9px var(--mono); }
 .amazon-empty-state { padding: 28px; border: 1px dashed var(--panel-border); border-radius: 10px; color: var(--text-dim); text-align: center; }
@@ -409,6 +453,10 @@
   .amazon-search input { width: 100%; }
   .amazon-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
   .amazon-readiness-gate { grid-template-columns: 1fr; }
+  .amazon-proof-heading,
+  .amazon-proof-footer,
+  .amazon-combat-proof { align-items: stretch; flex-direction: column; }
+  .amazon-proof-heading > span { text-align: left; }
 }
 
 @media (max-width: 420px) {

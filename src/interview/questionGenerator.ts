@@ -21,7 +21,7 @@ export interface PlannedQuestion {
   kind: RoundKind;
   text: string;
   dimensionIds: string[];
-  source: "claim" | "gap" | "archetype";
+  source: "claim" | "gap" | "archetype" | "adaptive";
   followUps: string[];
 }
 

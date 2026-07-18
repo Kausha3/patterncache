@@ -406,22 +406,25 @@ export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
     });
   }
 
-  // Amazon board: scheduled problems worked outside the app. Real coding
-  // practice, self-attested. "ready" means the learner marked the problem
-  // solved plus its follow-up variations understood.
+  // Amazon board: readiness only exists with attached evidence. Coding
+  // Combat clears are machine-verified; cold explanations remain honestly
+  // self-reviewed and are classified as explanation, not coded proof.
   if (inputs.amazonPrepRecords) {
     for (const [questionId, record] of Object.entries(inputs.amazonPrepRecords)) {
-      if (record.status !== "ready" || record.practiceCount < 1) continue;
+      if (record.status !== "ready" || record.practiceCount < 1 || !record.evidence) continue;
       const question = AMAZON_SDE1_QUESTIONS.find((entry) => entry.id === questionId);
       if (!question) continue;
+      const verified = record.evidence.kind === "combat-clear";
       entries.push({
-        id: `amazon-${questionId}-coded`,
-        kind: "coded",
+        id: `amazon-${questionId}-${verified ? "coded" : "explained"}`,
+        kind: verified ? "coded" : "explained",
         source: "amazon-board",
         refId: questionId,
-        label: `Worked ${question.title} to ready (${question.pattern})`,
-        verified: false,
-        at: record.lastPracticed ? Date.parse(record.lastPracticed) || undefined : undefined,
+        label: verified
+          ? `Passed hidden JVM tests for ${question.title} (${question.pattern})`
+          : `Recorded a cold defense of ${question.title} (${question.pattern})`,
+        verified,
+        at: Date.parse(record.evidence.recordedAt) || undefined,
       });
     }
   }
