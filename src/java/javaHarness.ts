@@ -27,7 +27,7 @@ export type JavaType =
   | "ListNode"
   | "Map<String,List<String>>";
 
-export type JavaComparison = "ordered" | "unordered-rows" | "unordered-elements";
+export type JavaComparison = "ordered" | "unordered-rows" | "unordered-elements" | "topological-order";
 
 export interface JavaCombatSpec {
   /** The method PcTestMain calls on the learner's Solution class. */
@@ -267,6 +267,12 @@ export function validateJavaSpec(
   if (spec.comparison === "unordered-elements" && spec.returnType !== "int[]") {
     problems.push("The unordered-elements comparison is only supported for int[] results.");
   }
+  if (
+    spec.comparison === "topological-order"
+    && (spec.returnType !== "int[]" || spec.argTypes.length !== 2 || spec.argTypes[0] !== "int" || spec.argTypes[1] !== "int[][]")
+  ) {
+    problems.push("The topological-order comparison requires int[] findOrder(int, int[][]) semantics.");
+  }
   const methodReturnType = spec.methodReturnType ?? spec.returnType;
   if (methodReturnType === "void") {
     if (spec.resultProperty !== undefined) {
@@ -348,12 +354,18 @@ function combatTestInner(spec: JavaCombatSpec, test: CodingCombatTestCase): stri
     : spec.resultProperty === "val"
       ? `${javaTypeName(methodReturnType)} rawReturned = solution.${spec.methodName}(${argList});\n      ${returnDecl} returned = rawReturned.val;`
       : `${returnDecl} returned = solution.${spec.methodName}(${argList});`;
+  const expectedDisplay = spec.comparison === "topological-order"
+    ? '"any valid prerequisite order"'
+    : javaDisplay(spec.returnType, "expected");
+  const equality = spec.comparison === "topological-order"
+    ? "topologicalOrderEquals(returned, arg0, arg1, expected)"
+    : javaEquality(spec.returnType, "expected", "returned", spec.comparison);
   return `${argDecls}
       ${returnDecl} expected = ${javaLiteral(spec.returnType, test.expected)};
-      expectedText = ${javaDisplay(spec.returnType, "expected")};
+      expectedText = ${expectedDisplay};
       Solution solution = new Solution();
       ${invocation}
-      passed = ${javaEquality(spec.returnType, "expected", "returned", spec.comparison)};
+      passed = ${equality};
       actualText = ${javaDisplay(spec.returnType, "returned")};`;
 }
 
@@ -582,6 +594,29 @@ ${methods}
     java.util.Arrays.sort(expectedCopy);
     java.util.Arrays.sort(actualCopy);
     return java.util.Arrays.equals(expectedCopy, actualCopy);
+  }
+
+  private static boolean topologicalOrderEquals(int[] actual, int numCourses, int[][] prerequisites, int[] expected) {
+    if (actual == null || numCourses < 0) return false;
+    // An empty reference means the graph contains a cycle, except for the
+    // valid zero-course graph. In either case the only accepted result is [].
+    if (expected.length == 0) return actual.length == 0;
+    if (actual.length != numCourses) return false;
+    int[] position = new int[numCourses];
+    java.util.Arrays.fill(position, -1);
+    for (int index = 0; index < actual.length; index += 1) {
+      int course = actual[index];
+      if (course < 0 || course >= numCourses || position[course] != -1) return false;
+      position[course] = index;
+    }
+    for (int[] edge : prerequisites) {
+      if (edge == null || edge.length != 2) return false;
+      int course = edge[0];
+      int prerequisite = edge[1];
+      if (course < 0 || course >= numCourses || prerequisite < 0 || prerequisite >= numCourses) return false;
+      if (position[prerequisite] >= position[course]) return false;
+    }
+    return true;
   }
 
 ${support.helpers}${support.helpers ? "\n\n" : ""}  private static String str(String value) {

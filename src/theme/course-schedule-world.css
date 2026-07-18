@@ -1,0 +1,164 @@
+.course-world-hero {
+  background:
+    radial-gradient(580px 240px at 12% 10%, rgba(154, 126, 213, 0.16), transparent 70%),
+    linear-gradient(135deg, rgba(27, 29, 35, 0.98), rgba(20, 21, 25, 0.98));
+}
+
+.course-world .window-world-loop .active,
+.course-world .window-world-loop .done {
+  color: var(--violet);
+}
+
+.course-world .window-world-loop .active b,
+.course-world .window-world-loop .done b {
+  border-color: rgba(154, 126, 213, 0.72);
+  background: rgba(154, 126, 213, 0.13);
+  color: var(--violet);
+  box-shadow: 0 0 18px rgba(154, 126, 213, 0.16);
+}
+
+.course-world-board-wrap {
+  overflow-x: auto;
+  padding: 24px 18px 10px;
+  background:
+    linear-gradient(rgba(154, 126, 213, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(154, 126, 213, 0.025) 1px, transparent 1px),
+    #11161a;
+  background-size: 32px 32px;
+}
+
+.course-world-board {
+  position: relative;
+  min-width: 690px;
+  min-height: 330px;
+}
+
+.course-world-board svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.course-world-board line {
+  stroke: rgba(154, 126, 213, 0.38);
+  stroke-width: 0.65;
+  stroke-dasharray: 2 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.course-node {
+  position: absolute;
+  width: 132px;
+  min-height: 70px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  transform: translate(-50%, -50%);
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  background: rgba(20, 21, 25, 0.96);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.course-node small,
+.course-node span {
+  color: var(--text-faint);
+  font: 700 8px var(--mono);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.course-node strong {
+  color: var(--text);
+  font: 700 11.5px var(--mono);
+}
+
+.course-node.ready {
+  border-color: rgba(217, 169, 78, 0.72);
+  background: rgba(217, 169, 78, 0.11);
+  box-shadow: 0 0 24px rgba(217, 169, 78, 0.1);
+}
+
+.course-node.ready span { color: var(--amber); }
+
+.course-node.complete {
+  border-color: rgba(130, 184, 114, 0.68);
+  background: rgba(130, 184, 114, 0.12);
+}
+
+.course-node.complete span { color: var(--green); }
+
+.course-node.focused {
+  z-index: 2;
+  transform: translate(-50%, -55%) scale(1.04);
+  border-color: var(--violet);
+  box-shadow: 0 0 28px rgba(154, 126, 213, 0.18);
+}
+
+.course-node.node-5 { left: 10%; top: 50%; }
+.course-node.node-3 { left: 33%; top: 24%; }
+.course-node.node-4 { left: 33%; top: 74%; }
+.course-node.node-1 { left: 58%; top: 17%; }
+.course-node.node-2 { left: 58%; top: 61%; }
+.course-node.node-0 { left: 88%; top: 41%; }
+
+.course-world-lanes {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr 1.2fr;
+  border-top: 1px solid var(--hairline);
+  background: #11161a;
+}
+
+.course-world-lanes > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 12px 17px;
+  border-right: 1px solid var(--hairline);
+}
+
+.course-world-lanes > div:last-child { border-right: 0; }
+
+.course-world-lanes span {
+  color: var(--text-faint);
+  font: 700 8px var(--mono);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.course-world-lanes strong {
+  overflow: hidden;
+  color: var(--text);
+  font: 700 11px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-world-event {
+  margin: 0;
+  border-top: 1px solid var(--hairline);
+  border-left: 2px solid var(--violet);
+  background: rgba(154, 126, 213, 0.055);
+  color: var(--violet);
+}
+
+@media (max-width: 760px) {
+  .course-world-lanes {
+    grid-template-columns: 1fr;
+  }
+
+  .course-world-lanes > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .course-world-lanes > div:last-child { border-bottom: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .course-node { transition: none; }
+}

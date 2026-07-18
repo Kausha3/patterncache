@@ -264,6 +264,28 @@ describe("generateTestMain", () => {
       [{ id: "bad", label: "bad", args: [[]], expected: [] }],
     )).toContain("A void method must declare a valid resultFromArg index for its observable post-state.");
   });
+
+  it("only enables semantic topological comparison for the Course Schedule signature", () => {
+    const valid = validateJavaSpec({
+      methodName: "findOrder",
+      signature: "public int[] findOrder(int count, int[][] prerequisites)",
+      argTypes: ["int", "int[][]"],
+      returnType: "int[]",
+      comparison: "topological-order",
+      starterCode: "",
+    }, [{ id: "dag", label: "dag", args: [2, [[1, 0]]], expected: [0, 1] }]);
+    expect(valid).toEqual([]);
+
+    const invalid = validateJavaSpec({
+      methodName: "wrong",
+      signature: "public int[] wrong(int[] values)",
+      argTypes: ["int[]"],
+      returnType: "int[]",
+      comparison: "topological-order",
+      starterCode: "",
+    }, [{ id: "wrong", label: "wrong", args: [[1]], expected: [1] }]);
+    expect(invalid).toContain("The topological-order comparison requires int[] findOrder(int, int[][]) semantics.");
+  });
 });
 
 describe("validateJavaSpec on real missions", () => {

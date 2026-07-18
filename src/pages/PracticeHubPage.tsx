@@ -70,6 +70,15 @@ const INTERVIEW_WORK: PracticeCard[] = [
 
 const CODING_WORK: PracticeCard[] = [
   {
+    title: "Algorithm World · Course Schedule II",
+    route: "/arena/algorithm-world/course-schedule-ii",
+    blurb: "Launch a real prerequisite graph with correct-but-wasteful Java, watch repeated polling jam the grid, then replace it with a readiness queue. Any valid topological order passes hidden JVM incidents.",
+    icon: "layers",
+    accent: color.violet,
+    tag: "Code drives the dependency world",
+    tagTone: color.violet,
+  },
+  {
     title: "Algorithm World · Sliding Window",
     route: "/arena/algorithm-world/sliding-window-maximum",
     blurb: "Run a correct-but-slow Java solution until rush hour jams, repair the actual algorithm, then watch your own deque operations animate. Hidden JVM tests and a free-form interview defense decide whether the world clears.",

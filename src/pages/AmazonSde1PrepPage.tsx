@@ -13,6 +13,12 @@ import {
   type AmazonPrepTier,
   type AmazonPrepTrack,
 } from "@/content/amazonSde1Prep";
+import {
+  AMAZON_MUST_DO_COVERAGE,
+  AMAZON_MUST_DO_COVERAGE_SUMMARY,
+  getAmazonCoverageEntry,
+  type AmazonCoverageEntry,
+} from "@/content/amazonCoverageAudit";
 import { Icon } from "@/components/Icon";
 import { AmazonReadinessProof } from "@/components/AmazonReadinessProof";
 import { Button, Eyebrow } from "@/components/ui";
@@ -25,7 +31,7 @@ import {
   type EditableAmazonPrepStatus,
 } from "@/hooks/useAmazonPrepProgress";
 import { useGameProgress } from "@/hooks/useGameProgress";
-import { getCodingCombatMissionRoute } from "@/arena/codingCombatMissions";
+import { getCodingCombatMission, getCodingCombatMissionRoute } from "@/arena/codingCombatMissions";
 import "@/theme/amazon-sde1.css";
 
 type TrackFilter = AmazonPrepTrack | "all";
@@ -126,6 +132,8 @@ export function AmazonSde1PrepPage() {
         <ProgressMetric label="In learning" value={String(counts.learning)} detail="started, not stable" tone="amber" />
         <ProgressMetric label="Reviews due" value={String(counts.due)} detail="1 / 3 / 7-day loop" tone={counts.due > 0 ? "red" : "green"} />
       </section>
+
+      <CoverageAudit />
 
       <section className="amazon-memory-loop" aria-labelledby="memory-loop-title">
         <div>
@@ -293,6 +301,8 @@ function QuestionCard({
   const practiceCount = record?.practiceCount ?? 0;
   const nextReview = record?.nextReview;
   const combatMissionId = getAmazonCombatMissionId(question.id);
+  const combatMission = combatMissionId ? getCodingCombatMission(combatMissionId) : undefined;
+  const coverage = question.tier === "must" ? getAmazonCoverageEntry(question.id) : undefined;
   const originalAction = isExternalPrepHref(question.href) ? (
     <a className="amazon-practice-link" href={question.href} target="_blank" rel="noreferrer">Open problem <Icon name="arrowRight" size={13} /></a>
   ) : (
@@ -301,7 +311,7 @@ function QuestionCard({
   const action = combatMissionId ? (
     <div className="amazon-practice-links">
       <Link className="amazon-practice-link" to={getCodingCombatMissionRoute(combatMissionId)}>
-        {combatMissionId === "sliding-window-max" ? "Enter Algorithm World" : "Solve in Java"} <Icon name="code" size={13} />
+        {combatMission?.worldRoute ? "Enter Algorithm World" : "Solve in Java"} <Icon name="code" size={13} />
       </Link>
       {isExternalPrepHref(question.href) ? (
         <a className="amazon-reference-link" href={question.href} target="_blank" rel="noreferrer">Original statement</a>
@@ -321,6 +331,7 @@ function QuestionCard({
         <span>{question.pattern}</span>
         <span className={`signal-${question.signal}`}>{AMAZON_PREP_SIGNAL_LABELS[question.signal]}</span>
         {reviewDue ? <span className="review-due">Review due</span> : null}
+        {coverage ? <CoverageBadge entry={coverage} /> : null}
       </div>
       <p className="amazon-question-why">{question.why}</p>
       <div className="amazon-recall-cue">
@@ -373,6 +384,49 @@ function QuestionCard({
       ) : null}
     </article>
   );
+}
+
+function CoverageAudit() {
+  const summary = AMAZON_MUST_DO_COVERAGE_SUMMARY;
+  const missingDsa = AMAZON_MUST_DO_COVERAGE.filter((entry) => entry.track === "dsa" && entry.level === "uncovered");
+  const guidedLld = AMAZON_MUST_DO_COVERAGE.filter((entry) => entry.track === "lld" && entry.level === "guided-only");
+  return (
+    <section className="amazon-coverage-audit" aria-labelledby="amazon-coverage-title">
+      <header>
+        <div>
+          <Eyebrow tone="var(--green)">Machine-checked product coverage</Eyebrow>
+          <h2 id="amazon-coverage-title">What this app can actually verify today</h2>
+        </div>
+        <span>Board presence never counts as mastery</span>
+      </header>
+      <div className="amazon-coverage-tracks">
+        <article>
+          <div><span>DSA must-dos</span><strong>{summary.dsa.machineVerified}/{summary.dsa.total}</strong></div>
+          <div className="amazon-coverage-meter"><span style={{ width: `${(summary.dsa.machineVerified / summary.dsa.total) * 100}%` }} /></div>
+          <p><b>{summary.dsa.machineVerified} exact Java missions</b> with visible and hidden JVM tests. {summary.dsa.uncovered} still rely on an external problem.</p>
+          <details>
+            <summary>Show the {summary.dsa.uncovered} executable DSA gaps</summary>
+            <ul>{missingDsa.map((entry) => <li key={entry.questionId}>{entry.title}</li>)}</ul>
+          </details>
+        </article>
+        <article>
+          <div><span>LLD must-dos</span><strong>{summary.lld.machineVerified}/{summary.lld.total}</strong></div>
+          <div className="amazon-coverage-meter lld"><span style={{ width: `${(summary.lld.guidedOnly / summary.lld.total) * 100}%` }} /></div>
+          <p><b>{summary.lld.guidedOnly} guided lessons or cold drills</b>, but no exact prompt yet has the full simulation → mutation → transfer → free-form defense proof.</p>
+          <details>
+            <summary>Why guided LLD is not marked verified</summary>
+            <ul>{guidedLld.map((entry) => <li key={entry.questionId}><b>{entry.title}</b> — {entry.practiceLabel}</li>)}</ul>
+          </details>
+        </article>
+      </div>
+      <p className="amazon-coverage-honesty"><Icon name="shield" size={15} /> This measures the product’s coverage, not your personal readiness. Your proof and review records remain separate above.</p>
+    </section>
+  );
+}
+
+function CoverageBadge({ entry }: { entry: AmazonCoverageEntry }) {
+  const copy = entry.level === "machine-verified" ? "Executable" : entry.level === "guided-only" ? "Guided only" : "Coverage gap";
+  return <span className={`coverage-${entry.level}`} title={entry.reason}>{copy}</span>;
 }
 
 function ReadinessGate({ counts }: { counts: { ready: number; verified: number; must: number; dsaReady: number; dsaTotal: number; lldReady: number; lldTotal: number } }) {

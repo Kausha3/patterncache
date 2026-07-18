@@ -3,6 +3,7 @@ import type { JavaCombatSpec } from "@/java/javaHarness";
 import { CODING_COMBAT_WAVE_ONE_MISSIONS } from "./codingCombatWaveOneMissions";
 import { CODING_COMBAT_WAVE_TWO_MISSIONS } from "./codingCombatWaveTwoMissions";
 import { SLIDING_WINDOW_WORLD_MISSION } from "./slidingWindowWorld";
+import { COURSE_SCHEDULE_WORLD_MISSION } from "./courseScheduleWorld";
 
 export interface CodingCombatTestCase {
   id: string;
@@ -573,6 +574,7 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
   ...CODING_COMBAT_WAVE_ONE_MISSIONS,
   ...CODING_COMBAT_WAVE_TWO_MISSIONS,
   SLIDING_WINDOW_WORLD_MISSION,
+  COURSE_SCHEDULE_WORLD_MISSION,
 ];
 
 export function getCodingCombatMission(id: string): CodingCombatMission | undefined {

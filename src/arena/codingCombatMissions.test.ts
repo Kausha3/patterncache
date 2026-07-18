@@ -262,11 +262,31 @@ const REFERENCE_SOLUTIONS: Record<string, string> = {
     }
     return answer;
   }`,
+  "course-schedule-ii": `function findOrder(numCourses, prerequisites) {
+    const outgoing = Array.from({ length: numCourses }, () => []);
+    const indegree = new Array(numCourses).fill(0);
+    for (const [course, prerequisite] of prerequisites) {
+      outgoing[prerequisite].push(course);
+      indegree[course] += 1;
+    }
+    const queue = [];
+    for (let course = 0; course < numCourses; course += 1) if (indegree[course] === 0) queue.push(course);
+    const order = [];
+    for (let head = 0; head < queue.length; head += 1) {
+      const course = queue[head];
+      order.push(course);
+      for (const dependent of outgoing[course]) {
+        indegree[dependent] -= 1;
+        if (indegree[dependent] === 0) queue.push(dependent);
+      }
+    }
+    return order.length === numCourses ? order : [];
+  }`,
 };
 
 describe("Coding Combat mission pack", () => {
   it("has stable IDs, executable contracts, hidden coverage, and exactly one defensible answer", () => {
-    expect(CODING_COMBAT_MISSIONS).toHaveLength(21);
+    expect(CODING_COMBAT_MISSIONS).toHaveLength(22);
     expect(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).toEqual([
       "target-pair",
       "unique-window",
@@ -289,6 +309,7 @@ describe("Coding Combat mission pack", () => {
       "reverse-linked-list",
       "linked-list-cycle",
       "sliding-window-max",
+      "course-schedule-ii",
     ]);
     expect(new Set(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).size).toBe(CODING_COMBAT_MISSIONS.length);
 

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { generateTestMain, parseJavaTestReport } from "./javaHarness";
 import { CODING_COMBAT_MISSIONS, getCodingCombatMission } from "@/arena/codingCombatMissions";
 import { SLIDING_WINDOW_REFERENCE_SOLUTION } from "@/arena/slidingWindowWorld";
+import { COURSE_SCHEDULE_REFERENCE_SOLUTION } from "@/arena/courseScheduleWorld";
 
 /**
  * Golden proof for the codegen: compile each mission's generated harness
@@ -442,6 +443,7 @@ public class Solution {
 }
 `,
   "sliding-window-max": SLIDING_WINDOW_REFERENCE_SOLUTION,
+  "course-schedule-ii": COURSE_SCHEDULE_REFERENCE_SOLUTION,
 };
 
 function compileAndRun(
@@ -498,9 +500,9 @@ describe.skipIf(!jdkAvailable)("generated harness on a real JVM", () => {
       const harness = generateTestMain(mission.java, tests);
       const report = compileAndRun(mission.java.starterCode, harness, mission.java.supportSources);
       const failures = report.filter((entry) => !entry.passed);
-      if (mission.id === "sliding-window-max") {
+      if (mission.worldRoute) {
         expect(failures).toHaveLength(0);
-        expect(report[0].stdout).toContain("PC_TRACE|scan|");
+        expect(report[0].stdout).toMatch(/PC_(?:TRACE|TOPO)\|/);
         return;
       }
       expect(failures.length).toBeGreaterThan(0);
@@ -587,6 +589,35 @@ describe.skipIf(!jdkAvailable)("generated harness on a real JVM", () => {
     );
     expect(report[0]).toMatchObject({ id: "reordered", passed: true, error: null });
     expect(report[0].expected).not.toBe(report[0].actual);
+  });
+
+  it("accepts any valid topological order and rejects prerequisite violations", () => {
+    const mission = getCodingCombatMission("course-schedule-ii")!;
+    const sample = mission.visibleTests.find((test) => test.id === "launch-plan")!;
+    const harness = generateTestMain(mission.java, [sample]);
+    const valid = compileAndRun(
+      `public class Solution {
+    public int[] findOrder(int count, int[][] prerequisites) {
+        return new int[] { 5, 4, 3, 2, 1, 0 };
+    }
+}
+`,
+      harness,
+      mission.java.supportSources,
+    );
+    expect(valid[0]).toMatchObject({ passed: true, error: null, actual: "[5, 4, 3, 2, 1, 0]" });
+
+    const invalid = compileAndRun(
+      `public class Solution {
+    public int[] findOrder(int count, int[][] prerequisites) {
+        return new int[] { 0, 1, 2, 3, 4, 5 };
+    }
+}
+`,
+      harness,
+      mission.java.supportSources,
+    );
+    expect(invalid[0]).toMatchObject({ passed: false, error: null });
   });
 
   it("catches int overflow in the K Closest squared-distance calculation", () => {

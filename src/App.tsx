@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { LibraryPage } from "@/pages/LibraryPage";
 import { PracticeHubPage } from "@/pages/PracticeHubPage";
@@ -16,6 +16,7 @@ const CoursePage = lazy(() => import("@/pages/CoursePage").then((module) => ({ d
 const ArenaPage = lazy(() => import("@/pages/ArenaPage").then((module) => ({ default: module.ArenaPage })));
 const CodingCombatPage = lazy(() => import("@/pages/CodingCombatPage").then((module) => ({ default: module.CodingCombatPage })));
 const SlidingWindowWorldPage = lazy(() => import("@/pages/SlidingWindowWorldPage").then((module) => ({ default: module.SlidingWindowWorldPage })));
+const CourseScheduleWorldPage = lazy(() => import("@/pages/CourseScheduleWorldPage").then((module) => ({ default: module.CourseScheduleWorldPage })));
 const LldStudioPage = lazy(() => import("@/pages/LldStudioPage").then((module) => ({ default: module.LldStudioPage })));
 const PatternGenomePage = lazy(() => import("@/pages/PatternGenomePage").then((module) => ({ default: module.PatternGenomePage })));
 const AmazonSde1PrepPage = lazy(() => import("@/pages/AmazonSde1PrepPage").then((module) => ({ default: module.AmazonSde1PrepPage })));
@@ -25,6 +26,7 @@ const MockInterviewPage = lazy(() => import("@/pages/MockInterviewPage").then((m
 export function App() {
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
+      <RouteScrollReset />
       <TopNav />
       <main className="app-main">
         <Routes>
@@ -61,6 +63,14 @@ export function App() {
             element={
               <Suspense fallback={<PageFallback label="Starting the Sliding Window world…" />}>
                 <SlidingWindowWorldPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/arena/algorithm-world/course-schedule-ii"
+            element={
+              <Suspense fallback={<PageFallback label="Starting the Dependency Grid…" />}>
+                <CourseScheduleWorldPage />
               </Suspense>
             }
           />
@@ -107,6 +117,14 @@ export function App() {
       </main>
     </div>
   );
+}
+
+function RouteScrollReset() {
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname, search]);
+  return null;
 }
 
 function PageFallback({ label = "Loading your course…" }: { label?: string }) {

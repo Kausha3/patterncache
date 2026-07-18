@@ -138,6 +138,118 @@
   gap: 10px;
 }
 
+.amazon-coverage-audit {
+  display: grid;
+  gap: 15px;
+  padding: 19px;
+  border: 1px solid rgba(130, 184, 114, 0.34);
+  border-radius: 14px;
+  background:
+    radial-gradient(460px 170px at 0 0, rgba(130, 184, 114, 0.08), transparent 70%),
+    var(--panel);
+}
+
+.amazon-coverage-audit > header,
+.amazon-coverage-tracks article > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.amazon-coverage-audit h2 {
+  margin: 5px 0 0;
+  font-size: 20px;
+  letter-spacing: -0.35px;
+}
+
+.amazon-coverage-audit > header > span {
+  color: var(--text-faint);
+  font: 700 9px var(--mono);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.amazon-coverage-tracks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.amazon-coverage-tracks article {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.amazon-coverage-tracks article > div:first-child span {
+  color: var(--text-dim);
+  font: 700 10px var(--mono);
+  text-transform: uppercase;
+}
+
+.amazon-coverage-tracks article > div:first-child strong {
+  color: var(--green);
+  font: 750 22px var(--mono);
+}
+
+.amazon-coverage-tracks p,
+.amazon-coverage-tracks li,
+.amazon-coverage-tracks summary,
+.amazon-coverage-honesty {
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.amazon-coverage-tracks p { margin: 0; }
+.amazon-coverage-tracks p b { color: var(--text); }
+.amazon-coverage-tracks details summary { cursor: pointer; color: var(--amber); }
+.amazon-coverage-tracks ul { margin: 8px 0 0; padding-left: 18px; columns: 2; }
+
+.amazon-coverage-meter {
+  overflow: hidden;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--hairline);
+}
+
+.amazon-coverage-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+}
+
+.amazon-coverage-meter.lld span { background: var(--violet); }
+
+.amazon-coverage-honesty {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--text-faint);
+}
+
+.amazon-question-badges .coverage-machine-verified {
+  border-color: rgba(130, 184, 114, 0.34);
+  color: var(--green);
+}
+
+.amazon-question-badges .coverage-guided-only {
+  border-color: rgba(154, 126, 213, 0.34);
+  color: var(--violet);
+}
+
+.amazon-question-badges .coverage-uncovered {
+  border-color: rgba(208, 123, 110, 0.34);
+  color: var(--red);
+}
+
 .amazon-progress-metric {
   display: grid;
   gap: 3px;
@@ -457,6 +569,9 @@
   .amazon-proof-footer,
   .amazon-combat-proof { align-items: stretch; flex-direction: column; }
   .amazon-proof-heading > span { text-align: left; }
+  .amazon-coverage-audit > header { align-items: flex-start; flex-direction: column; }
+  .amazon-coverage-tracks { grid-template-columns: 1fr; }
+  .amazon-coverage-tracks ul { columns: 1; }
 }
 
 @media (max-width: 420px) {
