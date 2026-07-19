@@ -110,6 +110,7 @@ describe("progress vault", () => {
       "patterncache.game.v1",
       "patterncache.garage.v1",
       "patterncache.hld-worlds.v1",
+      "patterncache.hld-worlds.v2",
       "patterncache.lld-verification.amazon-locker.v1",
       "patterncache.lld-verification.circular-buffer.v1",
       "patterncache.lld-verification.elevator.v1",

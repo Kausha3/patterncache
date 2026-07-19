@@ -1,6 +1,7 @@
 import { color } from "@/theme/tokens";
 
 export type HldModuleKind = "traffic" | "data" | "async" | "reliability";
+export type HldLearningMode = "guided" | "coached" | "independent";
 
 export interface HldZone {
   id: string;
@@ -41,6 +42,7 @@ export interface HldVerificationWorld {
   tagline: string;
   accent: string;
   transferPrompt: string;
+  learningMode: HldLearningMode;
   zones: HldZone[];
   modules: HldModule[];
   incidents: HldIncident[];
@@ -62,6 +64,7 @@ const urlShortener: HldVerificationWorld = {
   tagline: "Traffic becomes visible. Architecture becomes a set of repairable decisions.",
   accent: color.teal,
   transferPrompt: "A product now asks for links that expire after one hour. Explain what changes, what remains stable, and which failure you would test first.",
+  learningMode: "guided",
   zones: sharedZones,
   modules: [
     { id: "hot-link-cache", beginnerName: "Fast shelf for popular links", technicalName: "Read-through cache", description: "Answers repeated redirects without reading permanent storage every time.", kind: "traffic", startsInZoneId: "memory", expectedZoneId: "door", reason: "The fastest safe read happens near incoming traffic, while durable storage remains the source of truth." },
@@ -86,6 +89,7 @@ const notificationService: HldVerificationWorld = {
   tagline: "A message is not delivered just because an API returned 200.",
   accent: color.violet,
   transferPrompt: "A new provider has strict per-tenant quotas. Explain where quota state belongs and how a retry avoids double delivery.",
+  learningMode: "coached",
   zones: sharedZones,
   modules: [
     { id: "preference-gate", beginnerName: "User permission checker", technicalName: "Preference and policy gate", description: "Rejects channels the user disabled before work fans out.", kind: "traffic", startsInZoneId: "crew", expectedZoneId: "door", reason: "Invalid work should be rejected before it consumes queues and provider capacity." },
@@ -110,6 +114,7 @@ const checkout: HldVerificationWorld = {
   tagline: "Correctness is visible when the happy path stops being happy.",
   accent: color.amber,
   transferPrompt: "A flash sale adds a ten-minute reservation timeout. Explain which component owns expiry and how payment completion races with release.",
+  learningMode: "independent",
   zones: sharedZones,
   modules: [
     { id: "request-key", beginnerName: "One-checkout stamp", technicalName: "Idempotency key gate", description: "Recognizes repeated submit attempts as one checkout operation.", kind: "traffic", startsInZoneId: "memory", expectedZoneId: "door", reason: "Duplicate requests should collapse before they repeat expensive side effects." },

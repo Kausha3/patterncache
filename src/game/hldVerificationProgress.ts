@@ -1,7 +1,7 @@
 import { createHldVerificationState, type HldVerificationState } from "@/arena/hldVerificationEngine";
 import { HLD_VERIFICATION_WORLDS, type HldVerificationWorld } from "@/arena/hldVerificationWorlds";
 
-export const HLD_PROGRESS_KEY = "patterncache.hld-worlds.v1";
+export const HLD_PROGRESS_KEY = "patterncache.hld-worlds.v2";
 
 export interface HldVerificationRecord {
   worldId: string;

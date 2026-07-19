@@ -1,4 +1,4 @@
-import type { HldVerificationWorld } from "@/arena/hldVerificationWorlds";
+import type { HldLearningMode, HldVerificationWorld } from "@/arena/hldVerificationWorlds";
 
 export interface HldVerificationState {
   currentIncidentIndex: number;
@@ -21,6 +21,14 @@ export interface HldDefenseGrade {
   missing: string[];
 }
 
+export interface HldRepairTask {
+  moduleId: string;
+  currentZoneId: string;
+  targetZoneId: string;
+  mode: HldLearningMode;
+  allowedZoneIds: string[];
+}
+
 export function createHldVerificationState(world: HldVerificationWorld): HldVerificationState {
   return {
     currentIncidentIndex: 0,
@@ -32,13 +40,30 @@ export function createHldVerificationState(world: HldVerificationWorld): HldVeri
 }
 
 export function installHldModule(world: HldVerificationWorld, state: HldVerificationState, moduleId: string, zoneId: string): HldVerificationState {
-  if (!world.modules.some((module) => module.id === moduleId) || !world.zones.some((zone) => zone.id === zoneId)) return state;
-  if (state.placements[moduleId] === zoneId) return state;
+  const module = world.modules.find((candidate) => candidate.id === moduleId);
+  if (!module || !world.zones.some((zone) => zone.id === zoneId)) return state;
   const current = world.incidents[state.currentIncidentIndex];
+  if (world.learningMode === "guided" && (!current.requiredModuleIds.includes(moduleId) || zoneId !== module.expectedZoneId)) return state;
+  if (state.placements[moduleId] === zoneId) return state;
   return {
     ...state,
     placements: { ...state.placements, [moduleId]: zoneId },
     clearedIncidentIds: state.clearedIncidentIds.filter((id) => id !== current.id),
+  };
+}
+
+export function getHldRepairTask(world: HldVerificationWorld, state: HldVerificationState): HldRepairTask | undefined {
+  const incident = world.incidents[state.currentIncidentIndex];
+  const module = incident.requiredModuleIds
+    .map((id) => world.modules.find((candidate) => candidate.id === id))
+    .find((candidate) => candidate && state.placements[candidate.id] !== candidate.expectedZoneId);
+  if (!module) return undefined;
+  return {
+    moduleId: module.id,
+    currentZoneId: state.placements[module.id],
+    targetZoneId: module.expectedZoneId,
+    mode: world.learningMode,
+    allowedZoneIds: world.learningMode === "guided" ? [module.expectedZoneId] : world.zones.map((zone) => zone.id),
   };
 }
 
@@ -84,6 +109,23 @@ export function hldWorldHealth(world: HldVerificationWorld, placements: Record<s
     total,
     availability: Math.round(55 + (correct / total) * 44.9),
     p95Latency: Math.round(620 - (correct / total) * 500),
+    openFailureModes: total - correct,
+  };
+}
+
+export function hldIncidentHealth(world: HldVerificationWorld, state: HldVerificationState) {
+  const incident = world.incidents[state.currentIncidentIndex];
+  const correct = incident.requiredModuleIds.filter((id) => {
+    const module = world.modules.find((candidate) => candidate.id === id);
+    return module && state.placements[id] === module.expectedZoneId;
+  }).length;
+  const total = incident.requiredModuleIds.length;
+  const ratio = total === 0 ? 1 : correct / total;
+  return {
+    correct,
+    total,
+    availability: Math.round(55 + ratio * 44),
+    p95Latency: Math.round(620 - ratio * 500),
     openFailureModes: total - correct,
   };
 }
