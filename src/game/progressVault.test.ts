@@ -102,12 +102,21 @@ describe("progress vault", () => {
     // If a new store is added to the app but not the vault, exports would
     // silently drop it. This canary hardcodes the current inventory.
     expect(KNOWN_STORES.map((store) => store.key).sort()).toEqual([
+      "patterncache.algorithm-replays.v1",
       "patterncache.amazon-sde1.v1",
+      "patterncache.beginner-study.v1",
       "patterncache.course.v1",
       "patterncache.exercises.v1",
       "patterncache.game.v1",
       "patterncache.garage.v1",
+      "patterncache.hld-worlds.v1",
+      "patterncache.lld-verification.amazon-locker.v1",
+      "patterncache.lld-verification.circular-buffer.v1",
+      "patterncache.lld-verification.elevator.v1",
+      "patterncache.lld-verification.lru-cache.v1",
+      "patterncache.lld-verification.vending-machine.v1",
       "patterncache.mock-interviews.v1",
+      "patterncache.parking-lot-gauntlet.v1",
       "patterncache.pattern-genome.v1",
       "patterncache.progress.v1",
     ]);

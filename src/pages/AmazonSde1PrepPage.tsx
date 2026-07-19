@@ -160,7 +160,7 @@ export function AmazonSde1PrepPage() {
             <Eyebrow tone="var(--blue)">Starting tomorrow</Eyebrow>
             <h2 id="amazon-sprint-title">15-day DSA + LLD sprint</h2>
           </div>
-          <span>2–2¼ focused hours / day</span>
+          <span>2 to 2¼ focused hours / day</span>
         </div>
         <div className="amazon-sprint-grid">
           {AMAZON_SDE1_15_DAY_PLAN.map((day) => {
@@ -324,7 +324,7 @@ function QuestionCard({
     refId: "parking-lot-gauntlet",
     label: "the six-incident Parking Lot Design Gauntlet",
     completed: verifiedLldCompleted,
-    summary: "Repaired and reran all six Parking Lot incidents—entry, compatibility, concurrency, tickets, pricing, and payment—then passed the free-form design defense.",
+    summary: "Repaired and reran all six Parking Lot incidents: entry, compatibility, concurrency, tickets, pricing, and payment. Then passed the free-form design defense.",
   } : lldWorld ? {
     refId: `lld-world-${lldWorld.id}`,
     label: `the ${lldWorld.incidents.length}-incident ${lldWorld.systemName} Verification World`,
@@ -448,7 +448,7 @@ function CoverageAudit() {
           {guidedLld.length > 0 ? (
             <details>
               <summary>Why {guidedLld.length} guided LLD prompt{guidedLld.length === 1 ? " is" : "s are"} not marked verified</summary>
-              <ul>{guidedLld.map((entry) => <li key={entry.questionId}><b>{entry.title}</b> — {entry.practiceLabel}</li>)}</ul>
+              <ul>{guidedLld.map((entry) => <li key={entry.questionId}><b>{entry.title}</b>: {entry.practiceLabel}</li>)}</ul>
             </details>
           ) : <span className="amazon-coverage-complete">All six exact Amazon LLD must-dos now have runnable proof.</span>}
         </article>
@@ -474,8 +474,8 @@ function ReadinessGate({ counts }: { counts: { ready: number; verified: number; 
         <p>{counts.verified} of {counts.ready} recorded proofs are machine-verified executable clears. The rest are explicitly marked structured self-review.</p>
         <p>Before saying “I prepared well enough,” verify all five:</p>
         <ul>
-          <li className={counts.dsaReady === counts.dsaTotal ? "passed" : ""}>Every must-do DSA can be solved cold, tested, and explained in 35–45 minutes.</li>
-          <li className={counts.lldReady === counts.lldTotal ? "passed" : ""}>Every must-do LLD can be clarified, modeled, and defended in 45–55 minutes.</li>
+          <li className={counts.dsaReady === counts.dsaTotal ? "passed" : ""}>Every must-do DSA can be solved cold, tested, and explained in 35-45 minutes.</li>
+          <li className={counts.lldReady === counts.lldTotal ? "passed" : ""}>Every must-do LLD can be clarified, modeled, and defended in 45-55 minutes.</li>
           <li>Two 70-minute coding mocks finish with working code and edge-case tests.</li>
           <li>Two unseen LLD mocks survive one changed requirement without a rewrite.</li>
           <li>Six metric-backed Leadership Principle stories are ready. Technical prep does not replace Amazon behavioral prep.</li>

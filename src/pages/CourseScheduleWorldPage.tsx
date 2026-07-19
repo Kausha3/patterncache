@@ -232,7 +232,7 @@ export function CourseScheduleWorldPage() {
               <p>Do not begin by naming an algorithm. Compile the supplied Java and use measured behavior as the reason to change it.</p>
               <ul>
                 <li>Six courses and seven prerequisite links.</li>
-                <li>Any legal order is accepted—not one memorized sequence.</li>
+                <li>Any legal order is accepted, not one memorized sequence.</li>
                 <li>A cycle must return <InlineCode>new int[0]</InlineCode>.</li>
               </ul>
             </>

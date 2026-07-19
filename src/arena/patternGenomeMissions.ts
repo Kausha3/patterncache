@@ -290,7 +290,7 @@ export const PATTERN_GENOME_MISSIONS: PatternGenomeMission[] = [
     originalPattern: "Monotonic Stack",
     mutation: {
       headline: "The array becomes circular",
-      detail: "After the last item, the search may wrap to the beginning—but an item cannot answer itself.",
+      detail: "After the last item, the search may wrap to the beginning, but an item cannot answer itself.",
       prompt: "How does the pattern survive without duplicating the array?",
       choices: [
         { id: "double-pass", label: "Monotonic stack + 2n modulo scan", detail: "Push only during the first pass; use the second to resolve.", correct: true, feedback: "Pattern survived. Modulo simulates wraparound while the first-pass-only push prevents duplicate candidates." },

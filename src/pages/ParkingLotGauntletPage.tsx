@@ -181,7 +181,7 @@ export function ParkingLotGauntletPage() {
             <div>
               <Eyebrow tone="var(--teal)">{currentCleared ? "Repair verified" : "Workshop unlocked by the run"}</Eyebrow>
               <h2 id="parking-workshop-title">{currentCleared ? "See what the idea means in Java" : "Move one responsibility, then rerun"}</h2>
-              <p>{currentCleared ? incident.repairLesson : "Pick up a responsibility below. Install it in the object that owns the information it needs or the rule it protects. There is no submit button—the next incident run is the judge."}</p>
+              <p>{currentCleared ? incident.repairLesson : "Pick up a responsibility below. Install it in the object that owns the information it needs or the rule it protects. There is no submit button. The next incident run is the judge."}</p>
             </div>
             <div className="parking-gauntlet-health"><small>Model repaired</small><strong>{health.correct}/{health.total}</strong></div>
           </header>
@@ -255,7 +255,7 @@ export function ParkingLotGauntletPage() {
             disabled={completed}
             onChange={(event) => { setDefense(event.target.value); setDefenseSubmitted(false); }}
             aria-label="Parking Lot interview defense"
-            placeholder="Example structure—not an answer: [class] owns [responsibility] because... The [incident] proved... I rejected [alternative] because... When [future change] happens..."
+            placeholder="Example structure, not an answer: [class] owns [responsibility] because... The [incident] proved... I rejected [alternative] because... When [future change] happens..."
           />
           <div className="parking-gauntlet-defense-footer">
             <span>{defense.trim().length} characters · explain the evidence in your own words</span>

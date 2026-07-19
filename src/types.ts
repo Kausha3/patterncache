@@ -399,7 +399,7 @@ export interface NodeDef {
 // ---------------------------------------------------------------------------
 
 export type QuestionBucket = "hld" | "lld";
-export type SdeLevel = "L3" | "L4" | "L5" | "L6";
+export type SdeLevel = "L3" | "L4" | "L5" | "L6" | "E3" | "E4" | "E5" | "E6";
 
 /**
  * Qualitative signal strength, NOT a hard frequency count — no source we

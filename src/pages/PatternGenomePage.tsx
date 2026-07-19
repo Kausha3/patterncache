@@ -1008,8 +1008,8 @@ function WorldPanel({
       </header>
       <div className="forge-world-telemetry">
         <div><span>System</span><strong>{waitingForRun ? "Ready" : `${result.flowStability}%`}</strong></div>
-        <div><span>Tests</span><strong>{waitingForRun ? "—" : `${result.testsPassing}/${result.testsTotal}`}</strong></div>
-        <div><span>Failures</span><strong className={!waitingForRun && result.failures ? "is-danger" : "is-good"}>{waitingForRun ? "—" : result.failures}</strong></div>
+        <div><span>Tests</span><strong>{waitingForRun ? "Not run" : `${result.testsPassing}/${result.testsTotal}`}</strong></div>
+        <div><span>Failures</span><strong className={!waitingForRun && result.failures ? "is-danger" : "is-good"}>{waitingForRun ? "Not run" : result.failures}</strong></div>
       </div>
       <WorldScene kind={mission.world} verdict={sceneVerdict} runState={runState} paused={paused} />
       <div className={`forge-world-status is-${sceneVerdict}`} aria-live="polite">
@@ -1360,7 +1360,7 @@ function defaultPressure(kind: ForgeWorldKind): ForgeOutcome["pressure"] {
       { label: "Refund time", value: "Unknown", trend: "warning" },
       { label: "Duplicate risk", value: "Unknown", trend: "warning" },
       { label: "Stock lock", value: "1", trend: "warning" },
-      { label: "Recovery", value: "—", trend: "warning" },
+      { label: "Recovery", value: "Not run", trend: "warning" },
     ];
   }
   return [

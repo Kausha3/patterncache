@@ -75,7 +75,7 @@ export const theInterview: SDLesson = {
     ],
   },
   recap: [
-    "Never start drawing boxes. Spend the first 3–5 minutes clarifying scope, scale, and constraints.",
+    "Never start drawing boxes. Spend the first 3-5 minutes clarifying scope, scale, and constraints.",
     "Four questions unlock almost any design: What are the core features? What's the scale (and read:write ratio)? What are the latency & consistency needs? What are the data size & retention?",
     "Repeat the requirements back before designing. It aligns you with the interviewer and buys trust.",
     "The interviewer's answers ARE your constraints. The same prompt becomes a different design at 1k/day vs 10B/day, so derive it instead of reciting a template.",

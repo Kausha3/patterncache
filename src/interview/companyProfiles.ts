@@ -450,7 +450,136 @@ const GOOGLE: CompanyInterviewProfile = {
   ],
 };
 
-export const COMPANY_PROFILES: CompanyInterviewProfile[] = [GENERAL, AMAZON, GOOGLE];
+// ---------------------------------------------------------------------------
+// Meta: modeled from Meta's current Software Engineer Full Loop Interview
+// Guide. The behavioral dimensions use the five signals the guide names;
+// the technical dimension reflects the guide's coding and design criteria.
+// ---------------------------------------------------------------------------
+
+const META: CompanyInterviewProfile = {
+  id: "meta",
+  name: "Meta",
+  rubricName: "Meta full-loop signals",
+  howTheyJudge:
+    "Meta's official guide describes a fast, candidate-driven conversation. Coding is judged on communication, problem solving, executable structure, and verification. Design is judged on problem navigation, solution design, technical excellence, and technical communication. Behavioral evidence is organized around conflict, continuous growth, ambiguity, results, and effective communication. This coach looks for those visible signals; it never predicts a hiring decision.",
+  dimensions: [
+    {
+      id: "conflict",
+      name: "Resolving conflict",
+      plain: "You can represent the other view fairly, work through disagreement, and preserve the relationship while reaching a decision.",
+      signals: [
+        ["disagreed", "conflict", "different view", "pushed back", "debated", "tension"],
+        ["their perspective", "listened", "empathized", "understood why", "strongest argument", "asked them"],
+        ["resolved", "aligned", "working agreement", "decision", "relationship", "followed through"],
+      ],
+      antiSignals: ["they did not get it", "i went around them", "i won the argument"],
+      probes: ["What was the other person's strongest argument?", "What changed in the working relationship after the decision?"],
+    },
+    {
+      id: "growth",
+      name: "Growing continuously",
+      plain: "You seek feedback, update your model, and make the learning change a repeatable part of your work.",
+      signals: [
+        ["feedback", "criticism", "mistake", "missed", "i was wrong", "did not know"],
+        ["learned", "practiced", "asked for help", "studied", "experimented", "sought"],
+        ["since then", "changed how", "next time", "new habit", "checklist", "shared the learning"],
+      ],
+      antiSignals: ["nothing i would change", "it was their fault", "i already knew"],
+      probes: ["Which belief or habit changed?", "What evidence shows the learning lasted beyond that project?"],
+    },
+    {
+      id: "ambiguity",
+      name: "Embracing ambiguity",
+      plain: "You create enough clarity to act, state assumptions, and pivot when priorities or evidence change.",
+      signals: [
+        ["ambiguous", "missing information", "unclear", "no specification", "uncertainty", "unknown"],
+        ["assumption", "clarified", "asked", "small experiment", "reversible", "milestone"],
+        ["pivoted", "priority changed", "adapted", "updated", "new evidence", "changed direction"],
+      ],
+      antiSignals: ["waited until everything was clear", "could not start", "someone else decided"],
+      probes: ["Which assumption let you move first?", "What signal told you it was time to pivot?"],
+    },
+    {
+      id: "results",
+      name: "Driving results",
+      plain: "You stay self-directed through roadblocks and can prove the outcome with concrete evidence.",
+      signals: [
+        ["i drove", "i owned", "i delivered", "i shipped", "i unblocked", "i decided"],
+        ["roadblock", "constraint", "deadline", "priority", "tradeoff", "risk"],
+        ["result", "impact", "%", "users", "latency", "revenue", "adoption", "measured"],
+      ],
+      antiSignals: ["we kind of", "probably helped", "not my responsibility"],
+      probes: ["What was your specific action, separate from the team's?", "Which measurable outcome moved?"],
+    },
+    {
+      id: "communication",
+      name: "Communicating effectively",
+      plain: "You make reasoning inspectable and adapt detail to teammates, partners, and technical depth.",
+      signals: [
+        ["context", "the problem was", "goal", "constraints", "first"],
+        ["explained", "documented", "diagram", "audience", "cross-functional", "stakeholder"],
+        ["tradeoff", "because", "feedback", "confirmed", "aligned", "result"],
+      ],
+      antiSignals: ["obviously", "they should know", "too technical to explain"],
+      probes: ["How did you change the explanation for a different audience?", "What did you ask to confirm the message landed?"],
+    },
+    {
+      id: "technical-excellence",
+      name: "Technical excellence and verification",
+      plain: "You compare solutions, expose the mechanism and tradeoffs, then verify correctness and failure behavior.",
+      signals: [
+        ["alternative", "compared", "tradeoff", "constraints", "requirements", "assumption"],
+        ["latency", "complexity", "scalability", "availability", "failure mode", "bottleneck", "data model"],
+        ["tested", "edge case", "dry run", "verified", "monitoring", "correctness", "debugged"],
+      ],
+      antiSignals: ["it just worked", "the framework handled it", "no tradeoff"],
+      probes: ["Which failure point changed your design?", "How would you gain confidence this component is correct?"],
+    },
+  ],
+  loop: [
+    {
+      id: "recruiter-screen",
+      kind: "hr",
+      title: "Recruiter and motivation screen",
+      purpose: "Connect your background, interests, level, and role choice to concrete work at Meta.",
+      dimensionIds: ["results", "communication"],
+      questionCount: 3,
+    },
+    {
+      id: "behavioral",
+      kind: "behavioral",
+      title: "Behavioral interview",
+      purpose: "Evidence that you can thrive in a fast-paced, highly unstructured environment.",
+      dimensionIds: ["conflict", "growth", "ambiguity", "results", "communication"],
+      questionCount: 5,
+    },
+    {
+      id: "technical-story",
+      kind: "technical-story",
+      title: "Technical and design deep dive",
+      purpose: "Make the requirements, alternatives, mechanism, failure points, and verification behind your own work inspectable.",
+      dimensionIds: ["technical-excellence", "communication", "ambiguity", "results"],
+      questionCount: 4,
+    },
+  ],
+  archetypes: [
+    { id: "walkthrough", kind: "hr", dimensionIds: ["results", "communication"], template: "Walk me through your background in two minutes. Which two results best explain why this Meta role is the next step?", followUps: ["What did you personally drive in the stronger result?"] },
+    { id: "why-meta", kind: "hr", dimensionIds: ["results", "communication"], template: "Why Meta, and which product or engineering problem here would you want to understand from the inside?", followUps: ["What evidence have you gathered beyond scale and brand?"] },
+    { id: "impact-choice", kind: "hr", dimensionIds: ["results"], template: "Which project best demonstrates the kind of impact you want to repeat in this role?", followUps: ["What number proves the impact?"] },
+    { id: "conflict", kind: "behavioral", dimensionIds: ["conflict", "communication"], template: "Tell me about a serious disagreement with a colleague or manager. How did you understand their view and resolve it?", followUps: ["What was their strongest argument?", "What happened to the relationship afterward?"] },
+    { id: "feedback", kind: "behavioral", dimensionIds: ["growth"], template: "Tell me about constructive criticism that changed how you work, not only how you felt.", followUps: ["What repeatable behavior changed?"] },
+    { id: "ambiguity", kind: "behavioral", dimensionIds: ["ambiguity", "results"], template: "Tell me about a time you had to remain productive with important information missing.", followUps: ["Which assumption let you move?", "How did you limit the cost of being wrong?"] },
+    { id: "pivot", kind: "behavioral", dimensionIds: ["ambiguity", "growth"], template: "Tell me about a project whose priority changed quickly. How did you decide what to preserve, stop, and restart?", followUps: ["What evidence triggered the pivot?"] },
+    { id: "roadblock", kind: "behavioral", dimensionIds: ["results"], template: "Tell me about a goal you drove through a roadblock that could not simply be escalated away.", followUps: ["What did you personally do?", "Which result moved?"] },
+    { id: "audience", kind: "behavioral", dimensionIds: ["communication", "conflict"], template: "Tell me about a technical decision you had to explain differently to engineers and cross-functional partners.", followUps: ["How did you know each audience understood the tradeoff?"] },
+    { id: "hardest-system", kind: "technical-story", dimensionIds: ["technical-excellence", "communication"], template: "Take {project}. Start with requirements, then compare the two strongest designs and explain why the chosen one won.", followUps: ["Which failure point did you mitigate first?"] },
+    { id: "scale", kind: "technical-story", dimensionIds: ["technical-excellence", "ambiguity"], template: "Suppose {project} receives one hundred times the traffic tomorrow. What fails first, and how would you verify that before rebuilding it?", followUps: ["Which metric or experiment tests the bottleneck theory?"] },
+    { id: "bug", kind: "technical-story", dimensionIds: ["technical-excellence", "growth"], template: "In {project}, walk through a bug where your first theory was wrong and show how verification changed the direction.", followUps: ["Which observation disproved the first theory?"] },
+    { id: "evolution", kind: "technical-story", dimensionIds: ["technical-excellence", "results"], template: "What requirement change would force the biggest redesign in {project}, and which boundary did you create to contain that change?", followUps: ["What complexity did that boundary cost today?"] },
+  ],
+};
+
+export const COMPANY_PROFILES: CompanyInterviewProfile[] = [GENERAL, AMAZON, GOOGLE, META];
 
 export function getCompanyProfile(id: string): CompanyInterviewProfile | undefined {
   return COMPANY_PROFILES.find((profile) => profile.id === id);

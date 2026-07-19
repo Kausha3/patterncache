@@ -256,8 +256,8 @@ function ArenaBriefing({
         </div>
         <div className="arena-briefing-facts">
           <BriefingFact label="encounters" value="3" />
-          <BriefingFact label="clock" value="40–50s" />
-          <BriefingFact label="best score" value={best ? `${best.bestScore}` : "—"} />
+          <BriefingFact label="clock" value="40-50s" />
+          <BriefingFact label="best score" value={best ? `${best.bestScore}` : "Not run"} />
         </div>
         <div className="arena-briefing-actions">
           <Button icon="play" onClick={onStart}>Start {selectedMeta.label}</Button>

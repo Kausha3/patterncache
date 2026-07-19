@@ -237,6 +237,63 @@ const googleHLD: CompanyQuestion[] = [
   },
 ];
 
+const metaHLD: CompanyQuestion[] = [
+  {
+    lessonId: "url-shortener",
+    title: "Design a URL Shortener",
+    blurb: "Key generation, redirect latency, caching, durable mappings, availability, and operational recovery.",
+    bucket: "hld",
+    frequency: "very-high",
+    signalNote: "This is an official example in Meta's current Software Engineer Full Loop Interview Guide. The tier describes source confidence, not observed frequency.",
+    levels: ["E4", "E5", "E6"],
+  },
+  {
+    lessonId: "chat-app",
+    title: "Design Facebook Chat",
+    blurb: "Real-time delivery, sender and receiver latency, online presence, multi-device state, and message history.",
+    bucket: "hld",
+    frequency: "very-high",
+    signalNote: "Facebook Chat is an official system-design example in Meta's current full-loop guide, and chat or feed APIs are official product-architecture examples.",
+    levels: ["E4", "E5", "E6"],
+  },
+  {
+    lessonId: "feed",
+    title: "Design a Feed API",
+    blurb: "Ranking inputs, fan-out, pagination, caching, consistency, and product behavior under scale.",
+    bucket: "hld",
+    frequency: "high",
+    signalNote: "A feed API is named in Meta's official product-architecture examples. This is official scope guidance, not a claim about how often candidates receive it.",
+    levels: ["E4", "E5", "E6"],
+  },
+  {
+    lessonId: "meta-video-distribution",
+    title: "Architect Worldwide Video Distribution",
+    blurb: "Upload, transcoding, origin storage, CDN delivery, adaptive bitrate, abuse resistance, and regional failure.",
+    bucket: "hld",
+    frequency: "very-high",
+    signalNote: "Worldwide video distribution is an official system-design example in Meta's current full-loop guide. The dedicated lesson remains roadmap content.",
+    levels: ["E5", "E6"],
+  },
+  {
+    lessonId: "meta-product-api",
+    title: "Design a Product or Service API",
+    blurb: "API usability, data ownership, protocols, storage models, client-server behavior, and long-term change.",
+    bucket: "hld",
+    frequency: "high",
+    signalNote: "Meta's official guide distinguishes product architecture from systems design and explicitly lists service or product API design as an example.",
+    levels: ["E4", "E5", "E6"],
+  },
+  {
+    lessonId: "cache-layer",
+    title: "Design a Cache at Meta Scale",
+    blurb: "Hot keys, sharding, replicas, invalidation, stampede control, and failure-aware fallbacks.",
+    bucket: "hld",
+    frequency: "emerging",
+    signalNote: "This is a transfer drill derived from the guide's official scalability, availability, performance, and efficiency criteria, not a reported Meta prompt.",
+    levels: ["E4", "E5", "E6"],
+  },
+];
+
 export const COMPANIES: Record<string, Company> = {
   amazon: {
     id: "amazon",
@@ -270,6 +327,25 @@ export const COMPANIES: Record<string, Company> = {
       lld: "No dedicated LLD list is promoted here. The recent SWE reports we found emphasize coding at L3/L4 and distributed system design at L5. If your recruiter names an object-design round, use the LLD library, but do not make it your default Google priority.",
     },
     hld: googleHLD,
+    lld: [],
+  },
+  meta: {
+    id: "meta",
+    name: "Meta",
+    blurb: "A fast, conversational full loop grounded in Meta's own current guide: coding emphasizes communication, problem solving, executable structure, and verification; design tests navigation, solution design, technical excellence, and communication; behavioral tests five named signals in an unstructured environment.",
+    status: "available",
+    loopNotes: [
+      "Meta's official full-loop guide describes 4 to 6 conversations of about 45 minutes across coding, design, and behavioral interviews. Your recruiter defines the exact packet.",
+      "Coding: expect about two problems in roughly 40 minutes. Narrate, compare approaches, write organized code, test edge cases, and practice without a compiler. The official guide says not to prioritize dynamic programming for this loop.",
+      "Design: confirm whether your round is Systems Design or Product Architectural Design. Both are 45-minute, candidate-driven technical discussions with no single right answer.",
+      "Systems Design emphasizes distributed systems, scalability, performance, and efficiency. Product Architecture emphasizes APIs, usability, utility, data ownership, protocols, and evolving product requirements.",
+      "Behavioral: Meta's guide names resolving conflict, growing continuously, embracing ambiguity, driving results, and communicating effectively as the five signals. Concrete examples and measurable impact matter.",
+    ],
+    bucketNotes: {
+      hld: "The first five prompts come directly from examples or scope in Meta's official full-loop guide. Source confidence is high, but no public source provides real prompt frequency. Confirm your exact Systems Design versus Product Architecture round with your recruiter.",
+      lld: "No separate object-oriented LLD bucket is promoted here. Meta's official guide describes Systems Design and Product Architectural Design. Use the LLD library only when your recruiter names an object-design round.",
+    },
+    hld: metaHLD,
     lld: [],
   },
 };

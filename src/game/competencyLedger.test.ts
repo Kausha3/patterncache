@@ -102,6 +102,18 @@ describe("competency ledger derivation", () => {
     expect(entries[0].verified).toBe(true);
   });
 
+  it("unifies completed HLD, exact LLD, and algorithm replay evidence", () => {
+    const inputs = emptyInputs();
+    inputs.hldWorldRecords = { "url-shortener": { completedAt: 7000, bestScore: 90 } };
+    inputs.algorithmReplayRecords = { "prefix-suffix": { completedAt: 8000, bestScore: 85 } };
+    inputs.parkingLotRecord = { completedAt: 6000, bestScore: 88 };
+    const entries = deriveLedger(inputs);
+    expect(entries.filter((entry) => entry.source === "hld-world")).toHaveLength(4);
+    expect(entries.filter((entry) => entry.source === "algorithm-replay")).toHaveLength(2);
+    expect(entries.filter((entry) => entry.source === "lld-world")).toHaveLength(3);
+    expect(entries.every((entry) => entry.verified)).toBe(true);
+  });
+
   it("records defend checkpoints as self-attested explanation evidence", () => {
     const inputs = emptyInputs();
     inputs.challengeCheckpoints = { "2026-07-15": ["recall", "defend"] };

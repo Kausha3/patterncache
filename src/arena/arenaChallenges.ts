@@ -34,7 +34,7 @@ export const ARENA_CHALLENGES: Record<ArenaMode, ArenaChallenge[]> = {
       title: "Target Pair Intercept",
       signal: "sorted input · pair sum · constant extra space",
       context: "A sorted telemetry stream contains negative and positive values. You need two values whose sum equals the target.",
-      prompt: "Which approach satisfies O(n) time and O(1) extra space—and what makes it safe?",
+      prompt: "Which approach satisfies O(n) time and O(1) extra space, and what makes it safe?",
       seconds: 45,
       takeaway: "Sorted order gives a monotonic decision: a small sum can only improve by moving left forward; a large sum can only improve by moving right backward.",
       visualNodes: [
@@ -223,4 +223,3 @@ export const ARENA_CHALLENGES: Record<ArenaMode, ArenaChallenge[]> = {
     },
   ],
 };
-

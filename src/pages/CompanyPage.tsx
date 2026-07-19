@@ -41,6 +41,7 @@ export function CompanyPage() {
   const playableHld = hld.filter((question) => !!getLesson(question.lessonId)).length;
   const playableLld = lld.filter((question) => !!getLesson(question.lessonId)).length;
   const activePrinciple = activeValue ? LEADERSHIP_PRINCIPLES[activeValue] : undefined;
+  const availableLevels = [...new Set([...company.hld, ...company.lld].flatMap((question) => question.levels))];
 
   return (
     <div style={{ display: "grid", gap: 28 }}>
@@ -145,6 +146,7 @@ export function CompanyPage() {
       <FilterBar
         availability={availability}
         level={level}
+        levels={availableLevels}
         onAvailability={setAvailability}
         onLevel={setLevel}
       />
@@ -207,11 +209,13 @@ function QuestionGrid({ questions, onOpen }: { questions: CompanyQuestion[]; onO
 function FilterBar({
   availability,
   level,
+  levels,
   onAvailability,
   onLevel,
 }: {
   availability: "playable" | "all";
   level: SdeLevel | "all";
+  levels: SdeLevel[];
   onAvailability: (value: "playable" | "all") => void;
   onLevel: (value: SdeLevel | "all") => void;
 }) {
@@ -227,7 +231,7 @@ function FilterBar({
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Eyebrow>Level</Eyebrow>
-        {(["all", "L3", "L4", "L5", "L6"] as const).map((value) => (
+        {(["all", ...levels] as const).map((value) => (
           <FilterButton key={value} active={level === value} onClick={() => onLevel(value)}>
             {value === "all" ? "All" : value}
           </FilterButton>

@@ -103,7 +103,7 @@ const SPRINT_15: CourseDay[] = [
     tasks: [
       task("d5-backtracking", "Backtracking pair", 40, "State the choice, constraint, and undo step before coding.", "coding", "/companies/amazon/sde1"),
       task("d5-dp", "Core DP pair", 45, "Define state, transition, base case, and iteration order before implementation.", "coding", "/companies/amazon/sde1"),
-      task("d5-errors", "Pattern error log", 15, "Turn every miss from Days 2–5 into a recognition cue.", "review"),
+      task("d5-errors", "Pattern error log", 15, "Turn every miss from Days 2-5 into a recognition cue.", "review"),
       starStory("d5", "Learn and Be Curious"),
     ],
   },

@@ -32,11 +32,23 @@ const START_HERE: PracticeCard[] = [
   },
 ];
 
+const HLD_WORK: PracticeCard[] = [
+  {
+    title: "System Design Worlds",
+    route: "/arena/hld-worlds",
+    blurb: "Start HLD here. Keep a URL shortener, notification service, and checkout alive through traffic spikes, retries, partial failures, and change. Move real capabilities, rerun the same incident, then defend the architecture without supplied answers.",
+    icon: "gauge",
+    accent: color.blue,
+    tag: "Canonical HLD · 3 living systems",
+    tagTone: color.blue,
+  },
+];
+
 const MORE_REPS: PracticeCard[] = [
   {
     title: "Amazon LLD Verification Worlds",
     route: "/arena/lld-worlds",
-    blurb: "Prove all six must-do designs—Parking Lot, Circular Buffer, LRU Cache, Amazon Locker, Vending Machine, and Elevator. Each exact system fails live, accepts real responsibility moves, and ends with an evidence-based interview defense.",
+    blurb: "Prove all six must-do designs: Parking Lot, Circular Buffer, LRU Cache, Amazon Locker, Vending Machine, and Elevator. Each exact system fails live, accepts real responsibility moves, and ends with an evidence-based interview defense.",
     icon: "gauge",
     accent: color.teal,
     tag: "6/6 exact simulations · verified LLD",
@@ -79,22 +91,13 @@ const INTERVIEW_WORK: PracticeCard[] = [
 
 const CODING_WORK: PracticeCard[] = [
   {
-    title: "Algorithm World · Course Schedule II",
-    route: "/arena/algorithm-world/course-schedule-ii",
-    blurb: "Launch a real prerequisite graph with correct-but-wasteful Java, watch repeated polling jam the grid, then replace it with a readiness queue. Any valid topological order passes hidden JVM incidents.",
+    title: "Algorithm Worlds",
+    route: "/arena/algorithm-worlds",
+    blurb: "See the invariant after you prove the code. Two worlds instrument actual Java operations; six more require a hidden-test Java clear before their canonical and variant replays unlock. Every transfer ends with a free-form defense, never answer choices.",
     icon: "layers",
     accent: color.violet,
-    tag: "Code drives the dependency world",
+    tag: "8 visual pattern worlds · Java-gated",
     tagTone: color.violet,
-  },
-  {
-    title: "Algorithm World · Sliding Window",
-    route: "/arena/algorithm-world/sliding-window-maximum",
-    blurb: "Run a correct-but-slow Java solution until rush hour jams, repair the actual algorithm, then watch your own deque operations animate. Hidden JVM tests and a free-form interview defense decide whether the world clears.",
-    icon: "gauge",
-    accent: color.teal,
-    tag: "Prototype · code drives the world",
-    tagTone: color.teal,
   },
   {
     title: "Amazon SDE I board",
@@ -139,6 +142,7 @@ export function PracticeHubPage() {
       </header>
 
       <Section eyebrow="Learn LLD · one starting point" tone={color.violet} cards={START_HERE} />
+      <Section eyebrow="Learn HLD · one starting point" tone={color.blue} cards={HLD_WORK} />
       <Section eyebrow="Coding" tone={color.amber} cards={CODING_WORK} />
       <Section eyebrow="Interview practice" tone={color.violet} cards={INTERVIEW_WORK} />
       <Section eyebrow="More reps · after the campaign" tone={color.blue} cards={MORE_REPS} />

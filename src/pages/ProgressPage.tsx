@@ -13,6 +13,12 @@ import { loadGarageProgress } from "@/game/garageProgress";
 import { loadExerciseProgress } from "@/game/exerciseProgress";
 import { describeExport, exportProgress, importProgress, parseProgressExport } from "@/game/progressVault";
 import { loadMockSessions } from "@/interview/mockSessionStore";
+import { loadBeginnerStudyStore, studyMetrics } from "@/validation/beginnerStudy";
+import { loadHldVerificationProgress } from "@/game/hldVerificationProgress";
+import { loadAlgorithmReplayProgress } from "@/game/algorithmReplayProgress";
+import { loadLldVerificationProgress } from "@/game/lldVerificationProgress";
+import { loadParkingLotGauntletProgress } from "@/game/parkingLotGauntletProgress";
+import { LLD_VERIFICATION_WORLDS } from "@/arena/lldVerificationWorlds";
 import type { ProgressExport } from "@/game/progressVault";
 import {
   deriveLedger,
@@ -50,6 +56,10 @@ export function ProgressPage() {
   const garageProgress = loadGarageProgress();
   const exerciseProgress = loadExerciseProgress();
   const mockSessions = loadMockSessions();
+  const hldProgress = loadHldVerificationProgress();
+  const algorithmReplayProgress = loadAlgorithmReplayProgress();
+  const lldWorldRecords = Object.fromEntries(LLD_VERIFICATION_WORLDS.map((world) => [world.id, loadLldVerificationProgress(world).record]));
+  const parkingLotRecord = loadParkingLotGauntletProgress().record;
   const ledger = useMemo(
     () =>
       deriveLedger({
@@ -63,8 +73,12 @@ export function ProgressPage() {
         amazonPrepRecords: amazonRecords,
         exerciseRecords: exerciseProgress,
         mockSessions,
+        hldWorldRecords: hldProgress.records,
+        algorithmReplayRecords: algorithmReplayProgress.records,
+        lldWorldRecords,
+        parkingLotRecord,
       }),
-    [forgeProgress, garageProgress, exerciseProgress, mockSessions, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
+    [forgeProgress, garageProgress, exerciseProgress, mockSessions, hldProgress.records, algorithmReplayProgress.records, lldWorldRecords, parkingLotRecord, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
   );
   const summary = useMemo(() => summarizeLedger(ledger), [ledger]);
   const recent = ledger.slice(0, 8);
@@ -174,12 +188,14 @@ export function ProgressPage() {
         </Panel>
       )}
 
+      <BeginnerValidationPanel onOpen={() => navigate("/validation/beginner-study")} />
+
       <section style={{ display: "grid", gap: 10 }}>
-        <Eyebrow tone={color.textDim}>Momentum · derived from the same evidence, never the headline</Eyebrow>
+        <Eyebrow tone={color.textDim}>Legacy momentum · frozen; the evidence ledger above is authoritative</Eyebrow>
         <Panel style={{ display: "flex", alignItems: "center", gap: 26, flexWrap: "wrap" }}>
           <Decoration label="Rank" value={game.summary.rank.name} />
           <Decoration label="XP" value={`${game.summary.xp.toLocaleString()}`} />
-          <Decoration label="Streak" value={game.summary.streak === 0 ? "—" : `${game.summary.streak} day${game.summary.streak === 1 ? "" : "s"}`} />
+          <Decoration label="Streak" value={game.summary.streak === 0 ? "No streak" : `${game.summary.streak} day${game.summary.streak === 1 ? "" : "s"}`} />
         </Panel>
       </section>
 
@@ -214,6 +230,25 @@ export function ProgressPage() {
       <Divider />
       <DataPanel />
     </div>
+  );
+}
+
+function BeginnerValidationPanel({ onOpen }: { onOpen: () => void }) {
+  const store = loadBeginnerStudyStore();
+  const eligible = store.sessions.filter((session) => session.eligibleFirstTimer && studyMetrics(session).verifiedLearningLoop);
+  const latest = store.sessions[store.sessions.length - 1];
+  const latestMetrics = latest ? studyMetrics(latest) : undefined;
+  return (
+    <Panel style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: 18, alignItems: "center", borderColor: `${color.blue}55`, background: `linear-gradient(120deg, rgba(106,166,219,0.08), ${color.panel} 55%)` }}>
+      <div style={{ display: "grid", gap: 6 }}>
+        <Eyebrow tone={color.blue}>Validate the beginner experience</Eyebrow>
+        <strong style={{ fontSize: 17 }}>Does the game create transferable understanding?</strong>
+        <span style={{ color: color.textDim, fontSize: 12.5, lineHeight: 1.55 }}>
+          Run the local baseline, canonical lesson, unseen transfer, and confidence protocol. {eligible.length} eligible first-time session{eligible.length === 1 ? "" : "s"} stored on this device{latestMetrics?.transferScoreChange === undefined ? "." : `; latest transfer change ${latestMetrics.transferScoreChange >= 0 ? "+" : ""}${latestMetrics.transferScoreChange}.`}
+        </span>
+      </div>
+      <Button accent={color.blue} iconRight="arrowRight" onClick={onOpen}>{store.active ? "Continue study" : "Open learning check"}</Button>
+    </Panel>
   );
 }
 

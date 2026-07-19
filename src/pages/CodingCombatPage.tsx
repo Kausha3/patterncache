@@ -40,7 +40,7 @@ export function CodingCombatPage() {
             <p className="combat-java-note">
               You write Solution.java, javac compiles it in your browser, and your class runs on a real JVM
               against visible and hidden tests. Same language as your Amazon loop. The first run downloads
-              the runtime, roughly 20 MB, and may take 1–3 minutes on a slower browser. The visible run also
+              the runtime, roughly 20 MB, and may take 1-3 minutes on a slower browser. The visible run also
               prepares the sealed hidden suite, so unchanged code never compiles twice.
             </p>
           </div>

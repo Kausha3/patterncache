@@ -8,6 +8,9 @@ import type { ExerciseProgress } from "@/game/exerciseProgress";
 import type { ArenaScores, CodingCombatScores, LldStudioScores } from "@/arena/types";
 import { AMAZON_SDE1_QUESTIONS } from "@/content/amazonSde1Prep";
 import type { AmazonPrepRecord } from "@/hooks/useAmazonPrepProgress";
+import { HLD_VERIFICATION_WORLDS } from "@/arena/hldVerificationWorlds";
+import { ALGORITHM_REPLAY_WORLDS } from "@/arena/algorithmReplayWorlds";
+import { LLD_VERIFICATION_WORLDS } from "@/arena/lldVerificationWorlds";
 
 /**
  * The competency ledger: one read-model over everything the learner has
@@ -41,6 +44,9 @@ export type EvidenceSource =
   | "amazon-board"
   | "lesson"
   | "mock-interview"
+  | "hld-world"
+  | "algorithm-replay"
+  | "lld-world"
   | "quick-check";
 
 export interface EvidenceEntry {
@@ -114,6 +120,14 @@ export interface LedgerInputs {
   exerciseRecords?: ExerciseProgress;
   /** Completed mock interview sessions (id, company, weakest dimension). */
   mockSessions?: { id: string; companyId: string; completedAt?: number; answeredCount: number }[];
+  /** Completed simulation-first HLD worlds. */
+  hldWorldRecords?: Record<string, { completedAt: number; bestScore: number } | undefined>;
+  /** Completed code-gated algorithm transfer replays. */
+  algorithmReplayRecords?: Record<string, { completedAt: number; bestScore: number } | undefined>;
+  /** Completed exact-system LLD verification worlds. */
+  lldWorldRecords?: Record<string, { completedAt: number; bestScore: number } | undefined>;
+  /** Completed exact Parking Lot gauntlet. */
+  parkingLotRecord?: { completedAt: number; bestScore: number };
 }
 
 const forgeTitle = (missionId: string): string =>
@@ -167,6 +181,41 @@ const GARAGE_CHAPTER_EVIDENCE: Record<
  */
 export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
   const entries: EvidenceEntry[] = [];
+
+  for (const [worldId, record] of Object.entries(inputs.hldWorldRecords ?? {})) {
+    if (!record) continue;
+    const world = HLD_VERIFICATION_WORLDS.find((candidate) => candidate.id === worldId);
+    if (!world) continue;
+    const evidence = [
+      ["observed-failure", `Observed every live failure in ${world.systemName}`],
+      ["repaired-design", `Repaired ${world.systemName} across ${world.incidents.length} incidents`],
+      ["transferred", `Adapted ${world.systemName} to its unseen requirement change`],
+      ["explained", `Defended ${world.systemName} with ${record.bestScore}% architecture evidence`],
+    ] as const;
+    for (const [kind, label] of evidence) entries.push({ id: `hld-${worldId}-${kind}`, kind, source: "hld-world", refId: worldId, label, verified: true, at: record.completedAt });
+  }
+
+  for (const [worldId, record] of Object.entries(inputs.algorithmReplayRecords ?? {})) {
+    if (!record) continue;
+    const world = ALGORITHM_REPLAY_WORLDS.find((candidate) => candidate.id === worldId);
+    if (!world) continue;
+    entries.push(
+      { id: `replay-${worldId}-transferred`, kind: "transferred", source: "algorithm-replay", refId: worldId, label: `Transferred ${world.family} across a code-gated unseen variant`, verified: true, at: record.completedAt },
+      { id: `replay-${worldId}-explained`, kind: "explained", source: "algorithm-replay", refId: worldId, label: `Defended ${world.problemName} with ${record.bestScore}% invariant evidence`, verified: true, at: record.completedAt },
+    );
+  }
+
+  const lldRecords = { ...(inputs.lldWorldRecords ?? {}), ...(inputs.parkingLotRecord ? { "parking-lot": inputs.parkingLotRecord } : {}) };
+  for (const [worldId, record] of Object.entries(lldRecords)) {
+    if (!record) continue;
+    const world = LLD_VERIFICATION_WORLDS.find((candidate) => candidate.id === worldId);
+    const title = world?.systemName ?? "Parking Lot";
+    entries.push(
+      { id: `lld-world-${worldId}-observed`, kind: "observed-failure", source: "lld-world", refId: worldId, label: `Observed the full ${title} incident set`, verified: true, at: record.completedAt },
+      { id: `lld-world-${worldId}-repaired`, kind: "repaired-design", source: "lld-world", refId: worldId, label: `Repaired the exact ${title} object model`, verified: true, at: record.completedAt },
+      { id: `lld-world-${worldId}-explained`, kind: "explained", source: "lld-world", refId: worldId, label: `Defended ${title} with ${record.bestScore}% evidence`, verified: true, at: record.completedAt },
+    );
+  }
 
   // SOLID garage game: one completed shift is the full mastery loop. The
   // learner ran the manual process into a rush-hour bottleneck, installed

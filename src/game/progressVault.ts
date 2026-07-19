@@ -23,6 +23,15 @@ export const KNOWN_STORES: { key: string; label: string }[] = [
   { key: "patterncache.garage.v1", label: "SOLID campaign" },
   { key: "patterncache.exercises.v1", label: "Runnable Java exercises" },
   { key: "patterncache.mock-interviews.v1", label: "Mock interview sessions" },
+  { key: "patterncache.hld-worlds.v1", label: "HLD verification worlds" },
+  { key: "patterncache.algorithm-replays.v1", label: "Algorithm replay worlds" },
+  { key: "patterncache.beginner-study.v1", label: "Beginner learning-study sessions" },
+  { key: "patterncache.parking-lot-gauntlet.v1", label: "Parking Lot verification world" },
+  { key: "patterncache.lld-verification.circular-buffer.v1", label: "Circular Buffer verification world" },
+  { key: "patterncache.lld-verification.lru-cache.v1", label: "LRU Cache verification world" },
+  { key: "patterncache.lld-verification.amazon-locker.v1", label: "Amazon Locker verification world" },
+  { key: "patterncache.lld-verification.vending-machine.v1", label: "Vending Machine verification world" },
+  { key: "patterncache.lld-verification.elevator.v1", label: "Elevator verification world" },
 ];
 
 export interface ProgressExport {

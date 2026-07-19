@@ -17,13 +17,18 @@ const ArenaPage = lazy(() => import("@/pages/ArenaPage").then((module) => ({ def
 const CodingCombatPage = lazy(() => import("@/pages/CodingCombatPage").then((module) => ({ default: module.CodingCombatPage })));
 const SlidingWindowWorldPage = lazy(() => import("@/pages/SlidingWindowWorldPage").then((module) => ({ default: module.SlidingWindowWorldPage })));
 const CourseScheduleWorldPage = lazy(() => import("@/pages/CourseScheduleWorldPage").then((module) => ({ default: module.CourseScheduleWorldPage })));
+const AlgorithmWorldsPage = lazy(() => import("@/pages/AlgorithmWorldsPage").then((module) => ({ default: module.AlgorithmWorldsPage })));
+const AlgorithmReplayPage = lazy(() => import("@/pages/AlgorithmReplayPage").then((module) => ({ default: module.AlgorithmReplayPage })));
 const ParkingLotGauntletPage = lazy(() => import("@/pages/ParkingLotGauntletPage").then((module) => ({ default: module.ParkingLotGauntletPage })));
 const LldWorldsPage = lazy(() => import("@/pages/LldWorldsPage").then((module) => ({ default: module.LldWorldsPage })));
 const LldVerificationWorldPage = lazy(() => import("@/pages/LldVerificationWorldPage").then((module) => ({ default: module.LldVerificationWorldPage })));
 const LldStudioPage = lazy(() => import("@/pages/LldStudioPage").then((module) => ({ default: module.LldStudioPage })));
+const HldWorldsPage = lazy(() => import("@/pages/HldWorldsPage").then((module) => ({ default: module.HldWorldsPage })));
+const HldVerificationWorldPage = lazy(() => import("@/pages/HldVerificationWorldPage").then((module) => ({ default: module.HldVerificationWorldPage })));
 const PatternGenomePage = lazy(() => import("@/pages/PatternGenomePage").then((module) => ({ default: module.PatternGenomePage })));
 const AmazonSde1PrepPage = lazy(() => import("@/pages/AmazonSde1PrepPage").then((module) => ({ default: module.AmazonSde1PrepPage })));
 const MockInterviewPage = lazy(() => import("@/pages/MockInterviewPage").then((module) => ({ default: module.MockInterviewPage })));
+const BeginnerStudyPage = lazy(() => import("@/pages/BeginnerStudyPage").then((module) => ({ default: module.BeginnerStudyPage })));
 
 /** Persistent primary navigation and routed pages. */
 export function App() {
@@ -78,10 +83,42 @@ export function App() {
             }
           />
           <Route
+            path="/arena/algorithm-worlds"
+            element={
+              <Suspense fallback={<PageFallback label="Opening Algorithm Worlds…" />}>
+                <AlgorithmWorldsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/arena/algorithm-replay/:replayId"
+            element={
+              <Suspense fallback={<PageFallback label="Loading the invariant replay…" />}>
+                <AlgorithmReplayPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/arena/lld-worlds"
             element={
               <Suspense fallback={<PageFallback label="Opening the LLD verification map…" />}>
                 <LldWorldsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/arena/hld-worlds"
+            element={
+              <Suspense fallback={<PageFallback label="Opening System Design Worlds…" />}>
+                <HldWorldsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/arena/hld-world/:worldId"
+            element={
+              <Suspense fallback={<PageFallback label="Starting the system incident…" />}>
+                <HldVerificationWorldPage />
               </Suspense>
             }
           />
@@ -139,6 +176,7 @@ export function App() {
           <Route path="/drill/:id" element={<Suspense fallback={<PageFallback label="Loading the design drill…" />}><ColdDrillPage /></Suspense>} />
           <Route path="/patterns" element={<Suspense fallback={<PageFallback label="Loading pattern recall…" />}><PatternsPage /></Suspense>} />
           <Route path="/progress" element={<Suspense fallback={<PageFallback label="Loading progress…" />}><ProgressPage /></Suspense>} />
+          <Route path="/validation/beginner-study" element={<Suspense fallback={<PageFallback label="Opening the beginner learning check…" />}><BeginnerStudyPage /></Suspense>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -180,7 +218,7 @@ export function activeSection(pathname: string): string {
   ) {
     return "/library";
   }
-  if (pathname.startsWith("/progress")) return "/progress";
+  if (pathname.startsWith("/progress") || pathname.startsWith("/validation")) return "/progress";
   return "/";
 }
 

@@ -176,7 +176,7 @@ function PlayableLldWorld({ world }: { world: LldVerificationWorld }) {
             <div>
               <Eyebrow tone={world.accent}>{cleared ? "Repair verified" : "Workshop unlocked by evidence"}</Eyebrow>
               <h2 id="lld-world-workshop-title">{cleared ? "Name the design you just proved" : "Move one responsibility, then rerun"}</h2>
-              <p>{cleared ? incident.lesson : "Pick up one piece below and install it in the object that owns the information it needs or the rule it protects. The live incident—not a submit button—judges the repair."}</p>
+              <p>{cleared ? incident.lesson : "Pick up one piece below and install it in the object that owns the information it needs or the rule it protects. The live incident, not a submit button, judges the repair."}</p>
             </div>
             <div className="parking-gauntlet-health"><small>Whole model repaired</small><strong>{health.correct}/{health.total}</strong></div>
           </header>
@@ -228,7 +228,7 @@ function PlayableLldWorld({ world }: { world: LldVerificationWorld }) {
           <Eyebrow tone="var(--amber)">{completed ? "Verified evidence saved" : "Final interview room · no supplied answer"}</Eyebrow>
           <h2 id="lld-world-defense-title">Defend your {world.systemName} design</h2>
           <p>{world.defense.prompt} Cite at least one incident you actually observed and reject one coupled alternative.</p>
-          <textarea value={defense} disabled={completed} onChange={(event) => { setDefense(event.target.value); setDefenseSubmitted(false); }} aria-label={`${world.systemName} interview defense`} placeholder="Explain concrete class owners, the invariant they protect, one incident, one future change, and a tradeoff—in your own words." />
+          <textarea value={defense} disabled={completed} onChange={(event) => { setDefense(event.target.value); setDefenseSubmitted(false); }} aria-label={`${world.systemName} interview defense`} placeholder="Explain concrete class owners, the invariant they protect, one incident, one future change, and a tradeoff in your own words." />
           <div className="parking-gauntlet-defense-footer">
             <span>{defense.trim().length} characters · evidence beats terminology</span>
             <Button data-testid="lld-world-defense" icon={completed ? "check" : "microphone"} disabled={completed || defense.trim().length < 100} onClick={submitDefense}>{completed ? `${world.systemName} verified` : "Defend my design"}</Button>

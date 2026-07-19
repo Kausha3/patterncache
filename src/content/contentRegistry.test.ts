@@ -34,7 +34,7 @@ describe("content registry", () => {
   });
 
   it("gives every company question an evidence note, level, and unique bucket id", () => {
-    for (const companyId of ["amazon", "google"]) {
+    for (const companyId of ["amazon", "google", "meta"]) {
       const company = getCompany(companyId)!;
       for (const questions of [company.hld, company.lld]) {
         expect(new Set(questions.map((question) => question.lessonId)).size).toBe(questions.length);
@@ -44,6 +44,15 @@ describe("content registry", () => {
         }
       }
     }
+  });
+
+  it("keeps Meta official examples separate from transfer drills and uses Meta levels", () => {
+    const meta = getCompany("meta")!;
+    expect(meta.status).toBe("available");
+    expect(meta.hld.some((question) => question.lessonId === "url-shortener" && question.signalNote.includes("official"))).toBe(true);
+    expect(meta.hld.some((question) => question.lessonId === "cache-layer" && question.signalNote.includes("transfer drill"))).toBe(true);
+    expect(meta.hld.every((question) => question.levels.every((level) => level.startsWith("E")))).toBe(true);
+    expect(meta.lld).toEqual([]);
   });
 
   it("covers the interview-staple patterns including Factory and Singleton", () => {

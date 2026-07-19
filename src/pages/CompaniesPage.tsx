@@ -62,8 +62,8 @@ export function CompaniesPage() {
         <p style={{ margin: "6px 0 0", fontSize: 13.5, color: color.textDim, lineHeight: 1.6 }}>
           Question lists are put together from public, crowd-sourced interview reports and prep vendors. Nobody
           publishes real frequency counts, so "signal" tags are qualitative tiers, not statistics. Hover any of
-          them for the evidence behind that tier. See <code style={{ fontFamily: font.mono }}>docs/AMAZON.md</code> and{" "}
-          <code style={{ fontFamily: font.mono }}>docs/GOOGLE.md</code> in the repo for full sourcing.
+          them for the evidence behind that tier. See <code style={{ fontFamily: font.mono }}>docs/AMAZON.md</code>,{" "}
+          <code style={{ fontFamily: font.mono }}>docs/GOOGLE.md</code>, and <code style={{ fontFamily: font.mono }}>docs/META.md</code> in the repo for full sourcing.
         </p>
       </Panel>
     </div>

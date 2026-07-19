@@ -46,8 +46,8 @@ Preferred:
 `;
 
 describe("company profiles", () => {
-  it("ships General first, followed by the researched Amazon and Google packs", () => {
-    expect(COMPANY_PROFILES.map((profile) => profile.id)).toEqual(["general", "amazon", "google"]);
+  it("ships General first, followed by the researched Amazon, Google, and Meta packs", () => {
+    expect(COMPANY_PROFILES.map((profile) => profile.id)).toEqual(["general", "amazon", "google", "meta"]);
   });
 
   it("gives every dimension signals, a probe, and archetype coverage for every round kind", () => {
@@ -91,6 +91,20 @@ describe("company profiles", () => {
     ]));
     expect(google.archetypes.some((question) => question.id === "stand-up")).toBe(true);
     expect(google.archetypes.some((question) => question.id === "ambiguous")).toBe(true);
+  });
+
+  it("models Meta from the five official behavioral signals plus technical excellence", () => {
+    const meta = getCompanyProfile("meta")!;
+    expect(meta.rubricName).toContain("Meta");
+    expect(meta.dimensions.map((dimension) => dimension.id)).toEqual(expect.arrayContaining([
+      "conflict",
+      "growth",
+      "ambiguity",
+      "results",
+      "communication",
+      "technical-excellence",
+    ]));
+    expect(meta.archetypes.some((question) => question.id === "pivot")).toBe(true);
   });
 });
 
@@ -149,6 +163,15 @@ describe("question generator", () => {
     const googlePlan = generateInterviewPlan(google, resume, fit);
     expect(googlePlan.companyId).toBe("google");
     for (const planned of googlePlan.rounds) {
+      expect(planned.questions, planned.round.id).toHaveLength(planned.round.questionCount);
+    }
+  });
+
+  it("fills every Meta round without changing the interview engine", () => {
+    const meta = getCompanyProfile("meta")!;
+    const metaPlan = generateInterviewPlan(meta, resume, fit);
+    expect(metaPlan.companyId).toBe("meta");
+    for (const planned of metaPlan.rounds) {
       expect(planned.questions, planned.round.id).toHaveLength(planned.round.questionCount);
     }
   });
