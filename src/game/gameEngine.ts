@@ -85,7 +85,13 @@ export function getCourseTaskXp(task: CourseTask): number {
 
 export function selectDailyTarget(plan: CourseDay[], currentDay: number, progress: ProgressMap): DailyTarget {
   const lessonIds = uniqueLessonIds(plan);
-  const playableIds = lessonIds.filter((id) => !!getLesson(id));
+  // The evidence-driven course routes directly to executable missions and no
+  // longer embeds generic lessons. Keep this frozen legacy challenge stable by
+  // falling back to lessons the learner has actually touched.
+  const touchedLessonIds = Object.keys(progress).filter((id) => !!getLesson(id));
+  const playableIds = lessonIds.length > 0
+    ? lessonIds.filter((id) => !!getLesson(id))
+    : touchedLessonIds;
 
   const shaky = playableIds.find((id) => progress[id]?.confidence === "shaky");
   if (shaky) {

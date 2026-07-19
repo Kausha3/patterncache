@@ -166,6 +166,23 @@ export function buildReviewRecord(previous: AmazonPrepRecord, now: Date): Amazon
   };
 }
 
+export function syncAmazonPrepProofRecord(
+  evidence: Extract<AmazonPrepEvidence, { verified: true }>,
+  previous: AmazonPrepRecord | undefined,
+): AmazonPrepRecord {
+  const previousEvidence = previous?.evidence;
+  if (
+    previous &&
+    previousEvidence?.verified === true &&
+    previousEvidence.refId === evidence.refId &&
+    previousEvidence.recordedAt >= evidence.recordedAt
+  ) {
+    return previous;
+  }
+  const completedAt = new Date(evidence.recordedAt);
+  return buildProofRecord(evidence, previous, Number.isNaN(completedAt.getTime()) ? new Date() : completedAt);
+}
+
 function loadState(): AmazonPrepState {
   try {
     return parseAmazonPrepState(localStorage.getItem(STORAGE_KEY));
@@ -209,6 +226,15 @@ export function useAmazonPrepProgress() {
     }));
   }, []);
 
+  const syncProof = useCallback((questionId: string, evidence: Extract<AmazonPrepEvidence, { verified: true }>) => {
+    setState((current) => {
+      const previous = current.records[questionId];
+      const next = syncAmazonPrepProofRecord(evidence, previous);
+      if (next === previous) return current;
+      return { ...current, records: { ...current.records, [questionId]: next } };
+    });
+  }, []);
+
   const logReview = useCallback((questionId: string) => {
     setState((current) => {
       const previous = current.records[questionId];
@@ -226,7 +252,7 @@ export function useAmazonPrepProgress() {
   const resetAll = useCallback(() => setState(EMPTY_STATE), []);
 
   return useMemo(
-    () => ({ records: state.records, setStatus, recordProof, logReview, resetAll }),
-    [state.records, setStatus, recordProof, logReview, resetAll],
+    () => ({ records: state.records, setStatus, recordProof, syncProof, logReview, resetAll }),
+    [state.records, setStatus, recordProof, syncProof, logReview, resetAll],
   );
 }

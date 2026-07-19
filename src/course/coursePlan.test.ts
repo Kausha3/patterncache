@@ -6,6 +6,7 @@ import {
   getDayMinutes,
   getDaysUntil,
 } from "./coursePlan";
+import { AMAZON_SDE1_QUESTIONS } from "@/content/amazonSde1Prep";
 
 describe("course plan", () => {
   it("builds complete 15-day and 30-day plans with unique task ids", () => {
@@ -37,34 +38,27 @@ describe("course plan", () => {
     expect(formatLocalDate(new Date(2026, 6, 5, 23, 45))).toBe("2026-07-05");
   });
 
-  it("schedules the complete LLD arc in both plans", () => {
-    // The arc, per the July 2026 research pass: basics, then the six lessons
-    // ordered responsibility -> allocation -> state machine -> policy, plus
-    // the two constrained-structure drills with dated Amazon SDE-1 evidence
-    // (LRU/LFU cache Dec 2024, Circular Buffer 2025), plus cold transfer.
-    const lldLessons15 = ["lld-101", "parking-lot", "amazon-locker", "vending-machine", "discount-coupon-system"];
-    const lldLessons30 = [...lldLessons15, "elevator-system", "chess-game"];
-    const lldDrillRoutes = ["/drill/lru-cache", "/drill/circular-buffer"];
+  it("schedules every Amazon must-do exactly once with an executable proof route", () => {
+    const mustDoIds = AMAZON_SDE1_QUESTIONS
+      .filter((question) => question.tier === "must")
+      .map((question) => question.id)
+      .sort();
 
-    for (const [length, lessons] of [[15, lldLessons15], [30, lldLessons30]] as const) {
+    for (const length of [15, 30] as const) {
       const plan = buildCoursePlan(length);
-      const lessonIds = plan.flatMap((day) => day.tasks.map((task) => task.lessonId).filter(Boolean));
-      const routes = plan.flatMap((day) => day.tasks.map((task) => task.route).filter(Boolean));
-
-      for (const id of lessons) {
-        expect(lessonIds, `${length}-day plan should schedule lesson ${id}`).toContain(id);
+      const exactTasks = plan.flatMap((day) => day.tasks).filter((task) => task.questionId);
+      expect(exactTasks.map((task) => task.questionId).sort()).toEqual(mustDoIds);
+      for (const item of exactTasks) {
+        expect(item.evidence, item.questionId).toBeDefined();
+        expect(item.route, item.questionId).toMatch(/^\/arena\//);
       }
-      for (const route of lldDrillRoutes) {
-        expect(routes, `${length}-day plan should route to ${route}`).toContain(route);
-      }
-      // Transfer practice: at least one open-ended cold drill day.
-      expect(routes.some((route) => route === "/drill"), `${length}-day plan needs a cold transfer day`).toBe(true);
     }
   });
 
-  it("keeps Chess out of the 15-day sprint (stretch tier, no dated SDE-1 evidence)", () => {
-    const plan = buildCoursePlan(15);
-    const lessonIds = plan.flatMap((day) => day.tasks.map((task) => task.lessonId).filter(Boolean));
-    expect(lessonIds).not.toContain("chess-game");
+  it("adds HLD transfer only to the longer runway without displacing must-dos", () => {
+    const shortEvidence = buildCoursePlan(15).flatMap((day) => day.tasks.map((task) => task.evidence));
+    const longEvidence = buildCoursePlan(30).flatMap((day) => day.tasks.map((task) => task.evidence));
+    expect(shortEvidence.some((evidence) => evidence?.kind === "hld-world")).toBe(false);
+    expect(longEvidence).toContainEqual(expect.objectContaining({ kind: "hld-world", refId: "url-shortener" }));
   });
 });

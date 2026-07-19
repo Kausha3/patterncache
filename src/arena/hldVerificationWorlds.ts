@@ -2,6 +2,7 @@ import { color } from "@/theme/tokens";
 
 export type HldModuleKind = "traffic" | "data" | "async" | "reliability";
 export type HldLearningMode = "guided" | "coached" | "independent";
+export type HldVerificationWorldId = "url-shortener" | "notification-service" | "checkout";
 
 export interface HldZone {
   id: string;
@@ -35,7 +36,7 @@ export interface HldIncident {
 }
 
 export interface HldVerificationWorld {
-  id: string;
+  id: HldVerificationWorldId;
   systemName: string;
   title: string;
   intro: string;

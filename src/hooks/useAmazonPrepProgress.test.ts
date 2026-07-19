@@ -6,6 +6,7 @@ import {
   isReviewDue,
   nextReviewDate,
   parseAmazonPrepState,
+  syncAmazonPrepProofRecord,
   type AmazonPrepEvidence,
 } from "./useAmazonPrepProgress";
 
@@ -80,6 +81,25 @@ describe("Amazon preparation progress", () => {
     expect(proved).toMatchObject({ status: "ready", practiceCount: 1, nextReview: "2026-07-16", evidence: VERIFIED_EVIDENCE });
     const reviewed = buildReviewRecord(proved, new Date(2026, 6, 16, 12));
     expect(reviewed).toMatchObject({ status: "ready", practiceCount: 2, nextReview: "2026-07-19", evidence: VERIFIED_EVIDENCE });
+  });
+
+  it("syncs machine proof once and ignores the same or older completion", () => {
+    const first = syncAmazonPrepProofRecord(VERIFIED_EVIDENCE, undefined);
+    expect(first).toMatchObject({ status: "ready", practiceCount: 1, lastPracticed: "2026-07-15", nextReview: "2026-07-16" });
+    expect(syncAmazonPrepProofRecord(VERIFIED_EVIDENCE, first)).toBe(first);
+    expect(syncAmazonPrepProofRecord({
+      ...VERIFIED_EVIDENCE,
+      recordedAt: "2026-07-15T11:00:00.000Z",
+    }, first)).toBe(first);
+  });
+
+  it("treats a newer machine clear as a real repeated practice", () => {
+    const first = syncAmazonPrepProofRecord(VERIFIED_EVIDENCE, undefined);
+    const second = syncAmazonPrepProofRecord({
+      ...VERIFIED_EVIDENCE,
+      recordedAt: "2026-07-16T12:00:00.000Z",
+    }, first);
+    expect(second).toMatchObject({ status: "ready", practiceCount: 2, lastPracticed: "2026-07-16", nextReview: "2026-07-19" });
   });
 
   it("uses the 1, 3, and 7-day review cadence", () => {

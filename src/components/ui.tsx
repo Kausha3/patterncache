@@ -8,9 +8,20 @@ export function Eyebrow({ children, tone = color.textDim, style }: { children: R
   return <div style={{ ...eyebrowStyle, color: tone, ...style }}>{children}</div>;
 }
 
-export function Panel({ children, style, raised }: { children: ReactNode; style?: CSSProperties; raised?: boolean }) {
+export function Panel({
+  children,
+  style,
+  raised,
+  className,
+}: {
+  children: ReactNode;
+  style?: CSSProperties;
+  raised?: boolean;
+  className?: string;
+}) {
   return (
     <div
+      className={className}
       style={{
         background: color.panel,
         border: `1px solid ${color.panelBorder}`,

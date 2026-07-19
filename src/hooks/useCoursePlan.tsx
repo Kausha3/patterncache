@@ -16,11 +16,30 @@ interface CoursePlanContextValue extends CourseState {
 
 const STORAGE_KEY = "patterncache.course.v1";
 const CoursePlanContext = createContext<CoursePlanContextValue | null>(null);
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-function loadCourseState(): CourseState {
+function sanitizePreferences(value: unknown): CoursePreferences | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as Partial<CoursePreferences>;
+  const dailyMinutes = candidate.dailyMinutes;
+  if (candidate.length !== 15 && candidate.length !== 30) return undefined;
+  if (typeof dailyMinutes !== "number" || !Number.isFinite(dailyMinutes) || dailyMinutes <= 0) return undefined;
+  if (typeof candidate.startDate !== "string" || !DATE_PATTERN.test(candidate.startDate)) return undefined;
+  return {
+    company: "amazon",
+    level: "L4",
+    length: candidate.length,
+    dailyMinutes: Math.floor(dailyMinutes),
+    startDate: candidate.startDate,
+    ...(typeof candidate.interviewDate === "string" && DATE_PATTERN.test(candidate.interviewDate)
+      ? { interviewDate: candidate.interviewDate }
+      : {}),
+  };
+}
+
+export function parseCourseState(raw: string | null): CourseState {
+  if (!raw) return { completedTaskIds: [], completedTaskDates: {} };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { completedTaskIds: [], completedTaskDates: {} };
     const parsed = JSON.parse(raw) as Partial<CourseState>;
     const completedTaskDates = parsed.completedTaskDates && typeof parsed.completedTaskDates === "object"
       ? Object.fromEntries(
@@ -28,10 +47,20 @@ function loadCourseState(): CourseState {
         )
       : {};
     return {
-      preferences: parsed.preferences,
-      completedTaskIds: Array.isArray(parsed.completedTaskIds) ? parsed.completedTaskIds : [],
+      preferences: sanitizePreferences(parsed.preferences),
+      completedTaskIds: Array.isArray(parsed.completedTaskIds)
+        ? [...new Set(parsed.completedTaskIds.filter((id): id is string => typeof id === "string"))]
+        : [],
       completedTaskDates,
     };
+  } catch {
+    return { completedTaskIds: [], completedTaskDates: {} };
+  }
+}
+
+function loadCourseState(): CourseState {
+  try {
+    return parseCourseState(localStorage.getItem(STORAGE_KEY));
   } catch {
     return { completedTaskIds: [], completedTaskDates: {} };
   }
@@ -53,7 +82,7 @@ export function CoursePlanProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   const savePreferences = useCallback((preferences: CoursePreferences) => {
-    setState((current) => ({ ...current, preferences }));
+    setState((current) => ({ ...current, preferences: { ...preferences, company: "amazon", level: "L4" } }));
   }, []);
 
   const toggleTask = useCallback((taskId: string) => {

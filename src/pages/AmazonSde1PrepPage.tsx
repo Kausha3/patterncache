@@ -56,7 +56,7 @@ export function AmazonSde1PrepPage() {
   const [tier, setTier] = useState<AmazonPrepTier>("must");
   const [track, setTrack] = useState<TrackFilter>("all");
   const [query, setQuery] = useState("");
-  const { records, setStatus, recordProof, logReview, resetAll } = useAmazonPrepProgress();
+  const { records, setStatus, recordProof, syncProof, logReview, resetAll } = useAmazonPrepProgress();
   const { codingCombatScores } = useGameProgress();
   const parkingLotCompleted = !!loadParkingLotGauntletProgress().record;
   const completedLldWorlds = useMemo(() => loadCompletedLldVerificationWorldIds(), []);
@@ -234,7 +234,9 @@ export function AmazonSde1PrepPage() {
                 record={records[question.id]}
                 reviewDue={isReviewDue(records[question.id])}
                 onStatus={(status) => setStatus(question.id, status)}
-                onProof={(evidence) => recordProof(question.id, evidence)}
+                onProof={(evidence) => evidence.verified
+                  ? syncProof(question.id, evidence)
+                  : recordProof(question.id, evidence)}
                 onReview={() => logReview(question.id)}
                 combatCompleted={(() => {
                   const missionId = getAmazonCombatMissionId(question.id);
