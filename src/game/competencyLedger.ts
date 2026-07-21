@@ -11,6 +11,12 @@ import type { AmazonPrepRecord } from "@/hooks/useAmazonPrepProgress";
 import { HLD_VERIFICATION_WORLDS } from "@/arena/hldVerificationWorlds";
 import { ALGORITHM_REPLAY_WORLDS } from "@/arena/algorithmReplayWorlds";
 import { LLD_VERIFICATION_WORLDS } from "@/arena/lldVerificationWorlds";
+import {
+  assessTransferExplanation,
+  assessUrlShortenerInterview,
+  evaluateUrlShortenerTransfer,
+} from "@/arena/urlShortenerJourneyEngine";
+import type { UrlShortenerJourneyProgress } from "@/game/urlShortenerJourneyProgress";
 
 /**
  * The competency ledger: one read-model over everything the learner has
@@ -47,6 +53,7 @@ export type EvidenceSource =
   | "hld-world"
   | "algorithm-replay"
   | "lld-world"
+  | "golden-journey"
   | "quick-check";
 
 export interface EvidenceEntry {
@@ -102,6 +109,7 @@ export const EVIDENCE_KIND_META: Record<EvidenceKind, { label: string; descripti
 // (repair) phase scored, 3 stars means the transfer phase scored too.
 const FORGE_REPAIR_STARS = 2;
 const FORGE_TRANSFER_STARS = 3;
+const GOLDEN_INTERVIEW_MASTERY_SCORE = 70;
 
 export interface LedgerInputs {
   patternGenome: PatternGenomeProgress;
@@ -128,6 +136,8 @@ export interface LedgerInputs {
   lldWorldRecords?: Record<string, { completedAt: number; bestScore: number } | undefined>;
   /** Completed exact Parking Lot gauntlet. */
   parkingLotRecord?: { completedAt: number; bestScore: number };
+  /** URL Shortener worked example, unseen transfer, and timed interview evidence. */
+  urlShortenerJourney?: UrlShortenerJourneyProgress;
 }
 
 const forgeTitle = (missionId: string): string =>
@@ -181,6 +191,55 @@ const GARAGE_CHAPTER_EVIDENCE: Record<
  */
 export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
   const entries: EvidenceEntry[] = [];
+
+  const urlJourney = inputs.urlShortenerJourney;
+  if (urlJourney?.experienceCompletedAt) {
+    entries.push({
+      id: "golden-url-shortener-observed",
+      kind: "observed-failure",
+      source: "golden-journey",
+      refId: "url-shortener",
+      label: "Triggered Link City's celebrity surge and observed the durable store overload",
+      verified: true,
+      at: urlJourney.experienceCompletedAt,
+    });
+  }
+
+  if (
+    urlJourney?.transferRecord
+    && evaluateUrlShortenerTransfer(urlJourney.transferDraft).passed
+    && assessTransferExplanation(urlJourney.transferReasoning).ready
+  ) {
+    entries.push({
+      id: "golden-url-shortener-transferred",
+      kind: "transferred",
+      source: "golden-journey",
+      refId: "url-shortener-transfer",
+      label: "Transferred fast reads and asynchronous analytics to the unseen Profile Pulse world",
+      verified: true,
+      at: urlJourney.transferRecord.completedAt,
+    });
+  }
+
+  const strongestInterview = urlJourney?.bestInterviewRecord ?? urlJourney?.interviewRecord;
+  if (strongestInterview) {
+    const assessment = assessUrlShortenerInterview(
+      strongestInterview.graph,
+      strongestInterview.reasoning,
+    );
+    const communicationProven = assessment.rubric.some((item) => item.id === "communication" && item.passed);
+    if (assessment.score >= GOLDEN_INTERVIEW_MASTERY_SCORE && communicationProven) {
+      entries.push({
+        id: "golden-url-shortener-explained",
+        kind: "explained",
+        source: "golden-journey",
+        refId: "url-shortener-interview",
+        label: `Defended the URL Shortener with ${assessment.score}% timed architecture evidence`,
+        verified: true,
+        at: strongestInterview.completedAt,
+      });
+    }
+  }
 
   for (const [worldId, record] of Object.entries(inputs.hldWorldRecords ?? {})) {
     if (!record) continue;
@@ -391,7 +450,7 @@ export function deriveLedger(inputs: LedgerInputs): EvidenceEntry[] {
     });
   }
 
-  // Runnable lesson exercises: the learner's own class compiled with javac
+  // Runnable lesson exercises: the learner's own class compiled as Java 8
   // and passed the exercise's test suite on the in-browser JVM. Verified by
   // the machine, not self-attested; a run that never passed records nothing.
   for (const [exerciseId, record] of Object.entries(inputs.exerciseRecords ?? {})) {

@@ -22,7 +22,7 @@ export interface CodingCombatRunResult {
   durationMs: number;
   results: CodingCombatTestResult[];
   fatalError?: string;
-  /** Full javac diagnostics when the solution failed to compile (Java runs only). */
+  /** Full Java compiler diagnostics when the solution failed to compile. */
   compileLog?: string;
   /** Hidden submission reused the exact JVM result prepared by the preceding visible run. */
   reusedCompilation?: boolean;

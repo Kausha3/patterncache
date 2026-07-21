@@ -13,7 +13,8 @@ import { Icon } from "./Icon";
 
 /** Code exercise for the handful of methods with real logic. Exercises that
  * carry a JavaExerciseSpec compile and run for real: the learner's class,
- * the exercise's domain classes, and a generated test main go through javac
+ * the exercise's domain classes, and a generated test main go through the
+ * same Java 8 compiler used by Coding Combat
  * and a JVM in the browser. Exercises without one keep the original
  * commit-then-compare flow. Lives in its own file and is lazy-loaded because
  * CodeMirror plus a language grammar are heavy enough that DSA/SD lessons
@@ -44,7 +45,7 @@ export default function CodeExerciseBlock({
 
 const STAGE_MESSAGES: Record<JavaRunStage, string> = {
   "loading-runtime": "Starting the Java runtime. The first run downloads about 20 MB; after that it is cached.",
-  compiling: "Compiling with javac…",
+  compiling: "Compiling as Java 8…",
   running: "Running your class on the JVM…",
 };
 
@@ -99,7 +100,7 @@ function RunnableExercise({
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <Eyebrow tone={color.teal}>Now write it for real · {spec.editClassName}.java</Eyebrow>
         <span style={{ fontSize: 10.5, color: color.textFaint, fontFamily: font.mono }}>
-          javac + JVM in your browser · nothing uploaded
+          Java 8 compiler + JVM in your browser · nothing uploaded
         </span>
       </div>
       <div style={EDITOR_FRAME}>

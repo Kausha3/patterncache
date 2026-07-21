@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CODING_COMBAT_MISSIONS } from "./codingCombatMissions";
 import { evaluateCodingCombatLocally } from "./codingCombatEngine";
 import { CODING_COMBAT_WAVE_THREE_JS_REFERENCES } from "./codingCombatWaveThreeMissions";
+import { CODING_COMBAT_BLIND_JS_REFERENCES } from "./codingCombatBlindTransferMissions";
 
 const REFERENCE_SOLUTIONS: Record<string, string> = {
   "target-pair": `function findTargetPair(nums, target) {
@@ -284,11 +285,12 @@ const REFERENCE_SOLUTIONS: Record<string, string> = {
     return order.length === numCourses ? order : [];
   }`,
   ...CODING_COMBAT_WAVE_THREE_JS_REFERENCES,
+  ...CODING_COMBAT_BLIND_JS_REFERENCES,
 };
 
 describe("Coding Combat mission pack", () => {
   it("has stable IDs, executable contracts, hidden coverage, and exactly one defensible answer", () => {
-    expect(CODING_COMBAT_MISSIONS).toHaveLength(33);
+    expect(CODING_COMBAT_MISSIONS).toHaveLength(39);
     expect(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).toEqual([
       "target-pair",
       "unique-window",
@@ -323,6 +325,12 @@ describe("Coding Combat mission pack", () => {
       "house-robber-ii",
       "coin-change",
       "maximum-subarray",
+      "blind-budget-window",
+      "blind-ring-pairs",
+      "blind-cooldown-value",
+      "blind-release-order",
+      "blind-failure-groups",
+      "blind-capacity-split",
     ]);
     expect(new Set(CODING_COMBAT_MISSIONS.map((mission) => mission.id)).size).toBe(CODING_COMBAT_MISSIONS.length);
 
@@ -332,6 +340,9 @@ describe("Coding Combat mission pack", () => {
       expect(mission.hiddenTests.length).toBeGreaterThanOrEqual(4);
       if (mission.worldRoute) {
         expect(mission.hints).toHaveLength(0);
+        expect(mission.defense).toHaveLength(0);
+      } else if (mission.blindTransfer) {
+        expect(mission.hints).toHaveLength(3);
         expect(mission.defense).toHaveLength(0);
       } else {
         expect(mission.hints).toHaveLength(3);

@@ -38,7 +38,7 @@ export function CodingCombatPage() {
             <h1>Build it. Then defend it.</h1>
             <p>Write a real solution, survive private edge cases, and answer the invariant, complexity, and counterexample follow-ups.</p>
             <p className="combat-java-note">
-              You write Solution.java, javac compiles it in your browser, and your class runs on a real JVM
+              You write Solution.java, it compiles as Java 8 in your browser, and your class runs on a real JVM
               against visible and hidden tests. Same language as your Amazon loop. The first run downloads
               the runtime, roughly 20 MB, and may take 1-3 minutes on a slower browser. The visible run also
               prepares the sealed hidden suite, so unchanged code never compiles twice.
@@ -47,7 +47,7 @@ export function CodingCombatPage() {
           <div className="combat-lobby-stats">
             <div><strong>{completed}/{CODING_COMBAT_MISSIONS.length}</strong><span>missions cleared</span></div>
             <div><strong>{TOTAL_TEST_CASES}</strong><span>total test cases</span></div>
-            <div><strong>javac</strong><span>real compile errors</span></div>
+            <div><strong>Java 8</strong><span>real compile errors</span></div>
           </div>
         </header>
 

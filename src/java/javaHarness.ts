@@ -5,7 +5,7 @@ import type { JavaExerciseTest } from "@/types";
  * Turns a mission's JSON test cases into a real Java test program.
  *
  * The learner's Solution.java and the generated PcTestMain.java are compiled
- * together by javac running inside CheerpJ. PcTestMain calls the solution
+ * together by a Java 8 compiler running inside CheerpJ. PcTestMain calls the solution
  * method with typed arguments, checks each result with type-appropriate
  * equality, and writes one JSON report file that the page reads back. Every
  * value that crosses the JS-to-Java boundary goes through the literal

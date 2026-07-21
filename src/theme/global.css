@@ -539,6 +539,10 @@ body {
   gap: 10px;
 }
 
+.setup-input-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .plan-choice,
 .setup-choice {
   display: grid;

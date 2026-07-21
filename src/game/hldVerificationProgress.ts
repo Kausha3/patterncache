@@ -113,15 +113,25 @@ export function saveHldWorldDraft(world: HldVerificationWorld, draft: HldVerific
 
 export function recordHldWorldCompletion(world: HldVerificationWorld, draft: HldVerificationState, score: number): HldVerificationRecord {
   const progress = loadHldVerificationProgress();
-  const previous = progress.records[world.id];
-  const record: HldVerificationRecord = {
+  const record = buildHldWorldRecord(world, progress.records[world.id], draft.runs, score);
+  persist({ records: { ...progress.records, [world.id]: record }, drafts: { ...progress.drafts, [world.id]: draft } });
+  return record;
+}
+
+export function recordHldWorldScore(world: HldVerificationWorld, runs: number, score: number): HldVerificationRecord {
+  const progress = loadHldVerificationProgress();
+  const record = buildHldWorldRecord(world, progress.records[world.id], runs, score);
+  persist({ ...progress, records: { ...progress.records, [world.id]: record } });
+  return record;
+}
+
+function buildHldWorldRecord(world: HldVerificationWorld, previous: HldVerificationRecord | undefined, runs: number, score: number): HldVerificationRecord {
+  return {
     worldId: world.id,
     completedAt: Date.now(),
     bestScore: Math.max(previous?.bestScore ?? 0, Math.min(100, Math.max(0, score))),
-    runs: draft.runs,
+    runs: Math.max(0, Math.floor(runs)),
   };
-  persist({ records: { ...progress.records, [world.id]: record }, drafts: { ...progress.drafts, [world.id]: draft } });
-  return record;
 }
 
 export function resetHldWorldDraft(world: HldVerificationWorld): void {

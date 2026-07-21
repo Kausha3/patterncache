@@ -18,7 +18,7 @@ export function HldWorldsPage() {
         <Eyebrow tone={color.blue}>System Design Worlds · beginner campaign</Eyebrow>
         <h1 style={{ fontSize: 34, letterSpacing: "-0.9px" }}>Learn the system one visible request at a time.</h1>
         <p style={{ color: color.textDim, lineHeight: 1.7 }}>
-          Link City is a walkthrough, not a test: it highlights each first placement and proves the effect with a rerun. Signal Station removes the destination highlight but keeps optional clues. Checkout removes placement hints and becomes the interview transfer world.
+          Link City starts from a blank canvas: build components, draw the request paths, and let incidents execute only the graph you created. Signal Station keeps optional clues. Checkout removes placement hints and becomes the interview transfer world.
         </p>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <Button accent={color.blue} iconRight="arrowRight" onClick={() => navigate(getHldVerificationWorldRoute("url-shortener"))}>Start with the Link City</Button>
@@ -31,7 +31,7 @@ export function HldWorldsPage() {
         <div className="hld-map-loop">
           {[
             ["1", "Watch one request", "The trace shows exactly where time, data, or reliability leaks."],
-            ["2", "Move a real tool", "The first world highlights the socket and explains the cause before jargon."],
+            ["2", "Build the request path", "Link City makes you place components and connect the calls yourself."],
             ["3", "Rerun the same traffic", "Metrics and request steps prove whether the system actually changed."],
             ["4", "Lose the hints", "Coached and independent worlds test transfer before the final defense."],
           ].map(([number, title, text]) => <div key={number}><b>{number}</b><span><strong>{title}</strong><small>{text}</small></span></div>)}
@@ -50,7 +50,7 @@ export function HldWorldsPage() {
                 </div>
                 <div><h2 style={{ fontSize: 20 }}>{world.title}</h2><span style={{ color: color.textFaint, font: `700 11px ${font.mono}` }}>{world.systemName}</span></div>
                 <p style={{ color: color.textDim, lineHeight: 1.55, fontSize: 13 }}>{world.tagline}</p>
-                <span style={{ color: record ? color.green : color.textFaint, font: `700 10px ${font.mono}`, textTransform: "uppercase" }}>{record ? `Verified · ${record.bestScore}/100 defense` : index === 0 ? "Tutorial · exact first moves shown" : index === 1 ? "Practice · optional clues" : "Transfer · no placement hints"}</span>
+                <span style={{ color: record ? color.green : color.textFaint, font: `700 10px ${font.mono}`, textTransform: "uppercase" }}>{record ? `Verified · ${record.bestScore}/100 defense` : index === 0 ? "Canvas build · graph-driven incidents" : index === 1 ? "Practice · optional clues" : "Transfer · no placement hints"}</span>
               </Panel>
             </button>
           );

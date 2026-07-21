@@ -59,7 +59,7 @@ export async function runJavaCombat(
 
   // Compile and execute the complete sealed suite once. A visible run only
   // reveals public assertions, but prepares the exact hidden submission so an
-  // unchanged solution never pays a second multi-minute javac startup.
+  // unchanged solution never pays for a second browser compilation.
   const tests = [
     ...mission.visibleTests.map((test) => ({ ...test, hidden: false })),
     ...mission.hiddenTests.map((test) => ({ ...test, hidden: true })),

@@ -1,5 +1,5 @@
 /**
- * Persistence for runnable lesson code exercises (real javac + JVM in the
+ * Persistence for runnable lesson code exercises (real Java compiler + JVM in the
  * browser). A pass here is verified mastery evidence: the learner's own
  * class compiled and survived the exercise's test suite. Attempts are
  * counted for every run so the ledger can distinguish a first-try pass

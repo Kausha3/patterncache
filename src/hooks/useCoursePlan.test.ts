@@ -34,4 +34,19 @@ describe("course plan persistence", () => {
       completedTaskDates: { mock: "2026-07-15" },
     });
   });
+
+  it("persists the recommended 20-day runway", () => {
+    const parsed = parseCourseState(JSON.stringify({
+      preferences: {
+        company: "amazon",
+        level: "L4",
+        length: 20,
+        dailyMinutes: 150,
+        startDate: "2026-07-21",
+        interviewDate: "2026-08-10",
+      },
+      completedTaskIds: [],
+    }));
+    expect(parsed.preferences).toMatchObject({ length: 20, dailyMinutes: 150, interviewDate: "2026-08-10" });
+  });
 });

@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { generateTestMain, parseJavaTestReport } from "./javaHarness";
 import { CODING_COMBAT_MISSIONS, getCodingCombatMission } from "@/arena/codingCombatMissions";
 import { SLIDING_WINDOW_REFERENCE_SOLUTION } from "@/arena/slidingWindowWorld";
 import { COURSE_SCHEDULE_REFERENCE_SOLUTION } from "@/arena/courseScheduleWorld";
 import { CODING_COMBAT_WAVE_THREE_JAVA_REFERENCES } from "@/arena/codingCombatWaveThreeMissions";
+import { CODING_COMBAT_BLIND_JAVA_REFERENCES } from "@/arena/codingCombatBlindTransferMissions";
 
 /**
  * Golden proof for the codegen: compile each mission's generated harness
@@ -28,6 +29,8 @@ const jdkAvailable = (() => {
     return false;
   }
 })();
+const ecjJar = resolve("public/java/ecj-3.26.0.jar");
+const ecjAvailable = jdkAvailable && spawnSync("java", ["-jar", ecjJar, "-version"], { stdio: "ignore" }).status === 0;
 
 const REFERENCE_SOLUTIONS: Record<string, string> = {
   "target-pair": `import java.util.*;
@@ -446,12 +449,14 @@ public class Solution {
   "sliding-window-max": SLIDING_WINDOW_REFERENCE_SOLUTION,
   "course-schedule-ii": COURSE_SCHEDULE_REFERENCE_SOLUTION,
   ...CODING_COMBAT_WAVE_THREE_JAVA_REFERENCES,
+  ...CODING_COMBAT_BLIND_JAVA_REFERENCES,
 };
 
 function compileAndRun(
   solutionSource: string,
   harnessSource: string,
   supportSources: { fileName: string; content: string }[] = [],
+  compiler: "javac" | "ecj" = "javac",
 ) {
   const workDir = mkdtempSync(join(tmpdir(), "pc-java-"));
   try {
@@ -463,9 +468,12 @@ function compileAndRun(
       writeFileSync(path, source.content);
       return path;
     });
-    execFileSync("javac", ["-d", workDir, join(workDir, "Solution.java"), join(workDir, "PcTestMain.java"), ...supportPaths], {
-      stdio: "pipe",
-    });
+    const sourcePaths = [join(workDir, "Solution.java"), join(workDir, "PcTestMain.java"), ...supportPaths];
+    if (compiler === "ecj") {
+      execFileSync("java", ["-jar", ecjJar, "-8", "-proc:none", "-nowarn", "-d", workDir, ...sourcePaths], { stdio: "pipe" });
+    } else {
+      execFileSync("javac", ["-d", workDir, ...sourcePaths], { stdio: "pipe" });
+    }
     execFileSync("java", ["-cp", workDir, "PcTestMain", reportPath], { stdio: "pipe" });
     return parseJavaTestReport(readFileSync(reportPath, "utf-8"));
   } finally {
@@ -738,4 +746,16 @@ public class Solution {
     expect(report[0]).toMatchObject({ id: "even", passed: false, error: null });
     expect(report[0].actual).toContain("cycle@0");
   });
+});
+
+describe.skipIf(!ecjAvailable)("generated harness through the browser's ECJ compiler", () => {
+  for (const mission of CODING_COMBAT_MISSIONS) {
+    it(`${mission.id}: ECJ compiles the reference and every assertion passes`, () => {
+      const tests = allTests(mission.id);
+      const harness = generateTestMain(mission.java, tests);
+      const report = compileAndRun(REFERENCE_SOLUTIONS[mission.id], harness, mission.java.supportSources, "ecj");
+      expect(report).toHaveLength(tests.length);
+      expect(report.filter((entry) => !entry.passed), JSON.stringify(report, null, 2)).toEqual([]);
+    });
+  }
 });

@@ -73,6 +73,12 @@ export const CODING_COMBAT_MISSION_IDS = [
   "house-robber-ii",
   "coin-change",
   "maximum-subarray",
+  "blind-budget-window",
+  "blind-ring-pairs",
+  "blind-cooldown-value",
+  "blind-release-order",
+  "blind-failure-groups",
+  "blind-capacity-split",
 ] as const;
 export type CodingCombatMissionId = (typeof CODING_COMBAT_MISSION_IDS)[number];
 export type CodingCombatScores = Partial<Record<CodingCombatMissionId, ArenaScoreRecord>>;

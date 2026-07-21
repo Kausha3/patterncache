@@ -53,12 +53,20 @@ export function getCourseTaskCompletion(task: CourseTask, snapshot: CourseEviden
     };
   }
   if (snapshot.manuallyCompletedTaskIds.includes(task.id)) {
-    return { kind: "self-attested", complete: true, label: "Reflection or mock recorded" };
+    return {
+      kind: "self-attested",
+      complete: true,
+      label: task.questionId ? "Practice and explanation recorded" : "Reflection or mock recorded",
+    };
   }
   return {
     kind: "incomplete",
     complete: false,
-    label: task.lessonId ? "Finish the lesson interaction" : "Record this reflection or mock",
+    label: task.lessonId
+      ? "Finish the lesson interaction"
+      : task.questionId
+        ? "Solve, test, explain, then record completion"
+        : "Record this reflection or mock",
   };
 }
 

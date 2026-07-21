@@ -1,0 +1,12 @@
+PatternCache browser Java compiler notices
+
+Eclipse Compiler for Java (ECJ) 3.26.0
+Copyright (c) Eclipse contributors and others.
+Licensed under the Eclipse Public License 2.0.
+Source: https://github.com/eclipse-jdt/eclipse.jdt.core
+Artifact: ecj-3.26.0.jar from https://repo.maven.apache.org/maven2/org/eclipse/jdt/ecj/3.26.0/ecj-3.26.0.jar
+SHA-1: 4837be609a3368a0f7e7cf0dc1bdbc7fe94993de
+License text: EPL-2.0.txt
+
+CheerpJ is provided by Leaning Technologies and loaded from its hosted
+Community Licence runtime. See https://cheerpj.com/ for license details.

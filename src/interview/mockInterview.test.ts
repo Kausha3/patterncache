@@ -78,6 +78,13 @@ describe("company profiles", () => {
     expect(JSON.stringify(COMPANY_PROFILES).includes("—")).toBe(false);
   });
 
+  it("covers all sixteen Amazon Leadership Principles across four interview rounds", () => {
+    const amazon = getCompanyProfile("amazon")!;
+    expect(amazon.dimensions).toHaveLength(16);
+    expect(amazon.loop).toHaveLength(4);
+    expect(amazon.loop.every((round) => round.questionCount === 3)).toBe(true);
+  });
+
   it("models Google as visible reasoning, collaboration, leadership, and technical depth", () => {
     const google = getCompanyProfile("google")!;
     expect(google.rubricName).toContain("Googleyness");
@@ -238,7 +245,7 @@ describe("answer judge", () => {
 
   it("recognizes a structurally strong answer", () => {
     const assessment = assessAnswer(STRONG_ANSWER, ownershipQuestion, amazon);
-    expect(assessment.star).toEqual({ situation: true, action: true, result: true, metric: true });
+    expect(assessment.star).toEqual({ situation: true, task: true, action: true, result: true, metric: true });
     expect(assessment.ownershipRatio).toBeGreaterThan(0.6);
     const ownership = assessment.dimensionScores.find((score) => score.dimensionId === "ownership")!;
     expect(ownership.hits).toBeGreaterThanOrEqual(2);

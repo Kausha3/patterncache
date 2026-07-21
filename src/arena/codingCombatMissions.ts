@@ -5,6 +5,7 @@ import { CODING_COMBAT_WAVE_TWO_MISSIONS } from "./codingCombatWaveTwoMissions";
 import { SLIDING_WINDOW_WORLD_MISSION } from "./slidingWindowWorld";
 import { COURSE_SCHEDULE_WORLD_MISSION } from "./courseScheduleWorld";
 import { CODING_COMBAT_WAVE_THREE_MISSIONS } from "./codingCombatWaveThreeMissions";
+import { CODING_COMBAT_BLIND_TRANSFER_MISSIONS } from "./codingCombatBlindTransferMissions";
 
 export interface CodingCombatTestCase {
   id: string;
@@ -49,6 +50,12 @@ export interface CodingCombatMission {
   defense: CodingCombatDefenseQuestion[];
   /** A code-driven world can replace the standard editor/MCQ workbench. */
   worldRoute?: string;
+  /** Original transfer prompt whose pattern stays concealed until proof passes. */
+  blindTransfer?: {
+    pattern: string;
+    recognition: string;
+    transfer: string;
+  };
 }
 
 const CODING_COMBAT_CORE_MISSIONS: CodingCombatMission[] = [
@@ -577,6 +584,7 @@ export const CODING_COMBAT_MISSIONS: CodingCombatMission[] = [
   SLIDING_WINDOW_WORLD_MISSION,
   COURSE_SCHEDULE_WORLD_MISSION,
   ...CODING_COMBAT_WAVE_THREE_MISSIONS,
+  ...CODING_COMBAT_BLIND_TRANSFER_MISSIONS,
 ];
 
 export function getCodingCombatMission(id: string): CodingCombatMission | undefined {

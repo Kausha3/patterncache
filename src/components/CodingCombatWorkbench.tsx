@@ -23,8 +23,8 @@ const EDITOR_EXTENSIONS = [
 ];
 
 const STAGE_MESSAGES: Record<JavaRunStage, string> = {
-  "loading-runtime": "Starting the Java runtime. The first run downloads about 20 MB; after that it is cached.",
-  compiling: "Compiling Solution.java with javac…",
+  "loading-runtime": "Preparing the Java runtime and compiler. The first download is cached for later missions.",
+  compiling: "Compiling Solution.java as Java 8…",
   running: "Running your class on the JVM…",
 };
 const EDITOR_SETUP = {
@@ -53,7 +53,7 @@ export function CodingCombatWorkbench({
   hasNext: boolean;
 }) {
   const [code, setCode] = useState(mission.java.starterCode);
-  const [phase, setPhase] = useState<"code" | "defense" | "complete">("code");
+  const [phase, setPhase] = useState<"recognize" | "code" | "defense" | "complete">(mission.blindTransfer ? "recognize" : "code");
   const [runResult, setRunResult] = useState<CodingCombatRunResult>();
   const [runScope, setRunScope] = useState<"visible" | "complete">("visible");
   const [isRunning, setIsRunning] = useState(false);
@@ -62,6 +62,8 @@ export function CodingCombatWorkbench({
   const [hintsUsed, setHintsUsed] = useState(0);
   const [failedSubmissions, setFailedSubmissions] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [blindRecognition, setBlindRecognition] = useState({ clues: "", approach: "" });
+  const [blindDefense, setBlindDefense] = useState({ invariant: "", complexity: "", transfer: "" });
   const [grade, setGrade] = useState<CodingCombatGrade>();
   const [baselineBest] = useState(previousBest ?? 0);
   const disposed = useRef(false);
@@ -119,6 +121,15 @@ export function CodingCombatWorkbench({
     onComplete(result.score, result.maxScore);
   };
 
+  const submitBlindDefense = () => {
+    if (grade || !mission.blindTransfer) return;
+    if (blindDefense.invariant.trim().length < 30 || blindDefense.complexity.trim().length < 10 || blindDefense.transfer.trim().length < 30) return;
+    const result = gradeCodingCombat({ mission, answers: {}, hintsUsed, failedSubmissions });
+    setGrade(result);
+    setPhase("complete");
+    onComplete(result.score, result.maxScore);
+  };
+
   if (phase === "complete" && grade) {
     return (
       <CodingCombatCompletion
@@ -132,6 +143,27 @@ export function CodingCombatWorkbench({
         onExit={onExit}
         hasNext={hasNext}
       />
+    );
+  }
+
+  if (phase === "recognize" && mission.blindTransfer) {
+    return (
+      <div className="combat-workbench">
+        <header className="combat-workbench-header">
+          <div>
+            <Eyebrow tone={color.amber}>Blind transfer · pattern concealed</Eyebrow>
+            <h1>{mission.title}</h1>
+            <p>Commit to a model before the editor opens. There is no correctness score here and wrong hypotheses are safe.</p>
+          </div>
+          <button className="combat-exit" onClick={onExit}>Exit to mission select</button>
+        </header>
+        <BlindRecognitionGate
+          mission={mission}
+          value={blindRecognition}
+          onChange={setBlindRecognition}
+          onCommit={() => setPhase("code")}
+        />
+      </div>
     );
   }
 
@@ -149,7 +181,7 @@ export function CodingCombatWorkbench({
       <div className="combat-stage-progress" role="list" aria-label="Coding Combat stages">
         <StageState label="Build" active={phase === "code"} complete={phase !== "code"} />
         <span aria-hidden />
-        <StageState label="Defend" active={phase === "defense"} complete={false} />
+        <StageState label={mission.blindTransfer ? "Explain" : "Defend"} active={phase === "defense"} complete={false} />
         <span aria-hidden />
         <StageState label="Debrief" active={false} complete={false} />
       </div>
@@ -173,7 +205,7 @@ export function CodingCombatWorkbench({
               </button>
             </header>
             <p id="coding-combat-editor-help" className="sr-only">
-              Write real Java. Your class is compiled with javac and executed in your browser. Run visible tests before submitting to hidden tests.
+              Write real Java. Your class is compiled as Java 8 and executed in your browser. Run visible tests before submitting to hidden tests.
             </p>
             <CodeMirror
               value={code}
@@ -207,7 +239,9 @@ export function CodingCombatWorkbench({
 
           <TestConsole result={runResult} runScope={runScope} isRunning={isRunning} runStage={runStage} />
 
-          {phase === "defense" ? (
+          {phase === "defense" ? mission.blindTransfer ? (
+            <BlindDefensePanel value={blindDefense} onChange={setBlindDefense} onSubmit={submitBlindDefense} />
+          ) : (
             <DefensePanel
               mission={mission}
               answers={answers}
@@ -218,6 +252,91 @@ export function CodingCombatWorkbench({
         </div>
       </div>
     </div>
+  );
+}
+
+const BLIND_TEXTAREA_STYLE = {
+  width: "100%",
+  minHeight: 105,
+  padding: "12px 13px",
+  borderRadius: 10,
+  border: `1px solid ${color.panelBorder}`,
+  background: color.bg,
+  color: color.text,
+  font: "inherit",
+  lineHeight: 1.55,
+  resize: "vertical" as const,
+};
+
+function BlindRecognitionGate({
+  mission,
+  value,
+  onChange,
+  onCommit,
+}: {
+  mission: CodingCombatMission;
+  value: { clues: string; approach: string };
+  onChange: (value: { clues: string; approach: string }) => void;
+  onCommit: () => void;
+}) {
+  const ready = value.clues.trim().length >= 30 && value.approach.trim().length >= 50;
+  return (
+    <section className="combat-defense" aria-labelledby="blind-recognition-heading">
+      <header>
+        <Eyebrow tone={color.amber}>Read the behavior, not the title</Eyebrow>
+        <h2 id="blind-recognition-heading">{mission.prompt}</h2>
+        <p>The editor and hints stay closed until you write a first hypothesis. This is retrieval practice, not a graded guess.</p>
+      </header>
+      <div className="combat-defense-questions">
+        <label>
+          <strong>What clues in the constraints matter?</strong>
+          <textarea
+            style={BLIND_TEXTAREA_STYLE}
+            value={value.clues}
+            onChange={(event) => onChange({ ...value, clues: event.target.value })}
+            placeholder="Name the behavior: contiguous or not, ordered or not, monotonic or not, exact or approximate, and the required complexity."
+          />
+        </label>
+        <label>
+          <strong>What would you try first, and what invariant might make it correct?</strong>
+          <textarea
+            style={BLIND_TEXTAREA_STYLE}
+            value={value.approach}
+            onChange={(event) => onChange({ ...value, approach: event.target.value })}
+            placeholder="Do not name a memorized problem. Describe state, operations, and why progress is safe."
+          />
+        </label>
+      </div>
+      <Button icon="code" disabled={!ready} onClick={onCommit}>Lock hypothesis and open Java</Button>
+      {!ready ? <p style={{ margin: 0, color: color.textFaint, fontSize: 12 }}>Write enough reasoning to make your first model inspectable. It can be wrong.</p> : null}
+    </section>
+  );
+}
+
+function BlindDefensePanel({
+  value,
+  onChange,
+  onSubmit,
+}: {
+  value: { invariant: string; complexity: string; transfer: string };
+  onChange: (value: { invariant: string; complexity: string; transfer: string }) => void;
+  onSubmit: () => void;
+}) {
+  const ready = value.invariant.trim().length >= 30 && value.complexity.trim().length >= 10 && value.transfer.trim().length >= 30;
+  return (
+    <section className="combat-defense" aria-labelledby="blind-defense-heading">
+      <header>
+        <Eyebrow tone={color.teal}>Hidden tests passed · explain before reveal</Eyebrow>
+        <h2 id="blind-defense-heading">Prove the solution can transfer.</h2>
+        <p>No answer choices. Explain the mechanism in your own words; the pattern name appears only after you commit.</p>
+      </header>
+      <div className="combat-defense-questions">
+        <label><strong>What invariant made each step safe?</strong><textarea style={BLIND_TEXTAREA_STYLE} value={value.invariant} onChange={(event) => onChange({ ...value, invariant: event.target.value })} /></label>
+        <label><strong>What are the tight time and space costs?</strong><textarea style={BLIND_TEXTAREA_STYLE} value={value.complexity} onChange={(event) => onChange({ ...value, complexity: event.target.value })} /></label>
+        <label><strong>Which changed constraint would break this approach?</strong><textarea style={BLIND_TEXTAREA_STYLE} value={value.transfer} onChange={(event) => onChange({ ...value, transfer: event.target.value })} /></label>
+      </div>
+      <Button icon="shield" disabled={!ready} onClick={onSubmit}>Commit explanation and reveal pattern</Button>
+    </section>
   );
 }
 
@@ -336,7 +455,7 @@ function TestConsole({
         <div className="combat-console-empty">Run visible tests for fast feedback, then submit when you can defend the invariant.</div>
       )}
       <footer className="combat-console-credit">
-        Java runs in your browser through CheerpJ by Leaning Technologies. Nothing is sent to a server.
+        Java 8 is compiled by Eclipse ECJ and runs through CheerpJ by Leaning Technologies. Nothing is sent to a server.
       </footer>
     </section>
   );
@@ -413,6 +532,31 @@ function CodingCombatCompletion({
   const runXp = 200 + Math.round((grade.score / grade.maxScore) * 200);
   const previousXp = baselineBest > 0 ? 200 + Math.round((baselineBest / grade.maxScore) * 200) : 0;
   const newXp = newBest ? Math.max(0, runXp - previousXp) : 0;
+  if (mission.blindTransfer) {
+    return (
+      <section className="combat-complete">
+        <div className="combat-complete-orbit" aria-hidden />
+        <Eyebrow tone={color.green}>Blind transfer proved · no recognition score</Eyebrow>
+        <h1>{mission.blindTransfer.pattern}</h1>
+        <p>{mission.blindTransfer.recognition}</p>
+        <div className="combat-defense-review">
+          <article className="correct">
+            <div><Icon name="insight" size={15} /><strong>Why it transfers</strong></div>
+            <p>{mission.blindTransfer.transfer}</p>
+          </article>
+          <article className="correct">
+            <div><Icon name="shield" size={15} /><strong>Proof recorded</strong></div>
+            <p>Real Java compiled and passed every visible and hidden assertion. Your written reasoning was committed before the pattern reveal.</p>
+          </article>
+        </div>
+        <div className="combat-complete-actions">
+          <Button icon="reset" onClick={onReplay}>Try this blind again</Button>
+          {hasNext ? <Button variant="ghost" iconRight="arrowRight" onClick={onNext}>Next mission</Button> : null}
+          <Button variant="subtle" onClick={onExit}>Mission select</Button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="combat-complete">
       <div className="combat-complete-orbit" aria-hidden />

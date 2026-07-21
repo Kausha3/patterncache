@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AMAZON_PREP_SIGNAL_LABELS,
   AMAZON_PREP_TIER_LABELS,
@@ -53,6 +53,7 @@ const TIER_COPY: Record<AmazonPrepTier, string> = {
 
 export function AmazonSde1PrepPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [tier, setTier] = useState<AmazonPrepTier>("must");
   const [track, setTrack] = useState<TrackFilter>("all");
   const [query, setQuery] = useState("");
@@ -60,6 +61,29 @@ export function AmazonSde1PrepPage() {
   const { codingCombatScores } = useGameProgress();
   const parkingLotCompleted = !!loadParkingLotGauntletProgress().record;
   const completedLldWorlds = useMemo(() => loadCompletedLldVerificationWorldIds(), []);
+  const focusedQuestionId = searchParams.get("question");
+
+  useEffect(() => {
+    if (!focusedQuestionId) return;
+    const question = getAmazonPrepQuestion(focusedQuestionId);
+    if (!question) return;
+    setTier(question.tier);
+    setTrack(question.track);
+    setQuery("");
+  }, [focusedQuestionId]);
+
+  useEffect(() => {
+    if (!focusedQuestionId) return;
+    const question = getAmazonPrepQuestion(focusedQuestionId);
+    if (!question || tier !== question.tier || track !== question.track) return;
+    const frame = requestAnimationFrame(() => {
+      // A course deep link is navigation, not an in-page flourish. Jumping
+      // immediately keeps browser scroll restoration from interrupting a
+      // long smooth scroll before the target reaches the viewport.
+      document.getElementById(`prep-${question.id}`)?.scrollIntoView({ behavior: "auto", block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusedQuestionId, tier, track]);
 
   const counts = useMemo(() => {
     const must = AMAZON_SDE1_QUESTIONS.filter((question) => question.tier === "must");
@@ -101,17 +125,17 @@ export function AmazonSde1PrepPage() {
       <header className="amazon-prep-hero">
         <div className="amazon-prep-hero-copy">
           <Eyebrow tone="var(--amber)">Amazon SDE I · entry level</Eyebrow>
-          <h1>Your 15-day technical mission</h1>
+          <h1>Your Amazon New Grad interview command center</h1>
           <p>
-            A coverage-first DSA and LLD board built from Amazon’s official expectations and recent candidate reports.
-            Master the must-do set, then unlock the next tier only when time remains.
+            A 20-day course for Job ID 3177934: every Must-do and Good-to-do, four one-hour round simulations,
+            ten resume-backed STAR stories, and the technical topics Amazon says it evaluates. No system-design detour.
           </p>
           <div className="amazon-prep-hero-actions">
-            <Button onClick={() => document.getElementById("amazon-must-board")?.scrollIntoView({ behavior: "smooth" })} icon="target">
-              Start must-dos
+            <Button onClick={() => navigate("/")} icon="target">
+              Open the 20-day course
             </Button>
             <Button variant="ghost" onClick={() => document.getElementById("amazon-sprint")?.scrollIntoView({ behavior: "smooth" })}>
-              See the 15-day sprint
+              Inspect the question board
             </Button>
           </div>
         </div>
@@ -157,10 +181,10 @@ export function AmazonSde1PrepPage() {
       <section id="amazon-sprint" className="amazon-sprint-section" aria-labelledby="amazon-sprint-title">
         <div className="amazon-section-heading">
           <div>
-            <Eyebrow tone="var(--blue)">Starting tomorrow</Eyebrow>
-            <h2 id="amazon-sprint-title">15-day DSA + LLD sprint</h2>
+            <Eyebrow tone="var(--blue)">Emergency fallback</Eyebrow>
+            <h2 id="amazon-sprint-title">15-day Must-do sprint</h2>
           </div>
-          <span>2 to 2¼ focused hours / day</span>
+          <span>The recommended 20-day course lives on Today</span>
         </div>
         <div className="amazon-sprint-grid">
           {AMAZON_SDE1_15_DAY_PLAN.map((day) => {
@@ -246,6 +270,7 @@ export function AmazonSde1PrepPage() {
                   const world = getLldVerificationWorldByQuestion(question.id);
                   return !!world && completedLldWorlds.has(world.id);
                 })()}
+                focused={question.id === focusedQuestionId}
               />
             ))}
           </div>
@@ -298,6 +323,7 @@ function QuestionCard({
   onReview,
   combatCompleted,
   verifiedLldCompleted,
+  focused,
 }: {
   question: AmazonPrepQuestion;
   number: number;
@@ -308,6 +334,7 @@ function QuestionCard({
   onReview: () => void;
   combatCompleted: boolean;
   verifiedLldCompleted: boolean;
+  focused: boolean;
 }) {
   const [proofOpen, setProofOpen] = useState(false);
   const status = record?.status ?? "not-started";
@@ -355,7 +382,7 @@ function QuestionCard({
   ) : originalAction;
 
   return (
-    <article id={`prep-${question.id}`} className={`amazon-question-card track-${question.track} status-${status}`}>
+    <article id={`prep-${question.id}`} className={`amazon-question-card track-${question.track} status-${status}${focused ? " is-focused" : ""}`}>
       <div className="amazon-question-topline">
         <span className="amazon-question-number">{String(number).padStart(2, "0")}</span>
         <span className="amazon-question-track">{question.track.toUpperCase()}</span>

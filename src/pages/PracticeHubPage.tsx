@@ -111,7 +111,7 @@ const CODING_WORK: PracticeCard[] = [
   {
     title: "Coding Combat",
     route: "/arena/coding-lab",
-    blurb: "Write Solution.java, and javac compiles and runs it in your browser against visible and hidden tests, then a defense round. Same language as your Amazon loop.",
+    blurb: "Write Solution.java, compile and run it in your browser against visible and hidden tests, then defend the reasoning. Same language as your Amazon loop.",
     icon: "play",
     accent: color.teal,
     tag: "Real Java · in your browser",

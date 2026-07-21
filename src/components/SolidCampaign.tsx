@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, CheckCircle, Lock, Play } from "@phosphor-icons/react";
+import { ArrowRight, CheckCircle, Play } from "@phosphor-icons/react";
 import { SolidGarageGame } from "./SolidGarageGame";
 import { SolidChapterPlayer } from "./SolidChapterPlayer";
 import { SOLID_CHAPTER_MISSIONS } from "@/arena/solidChapterMissions";
@@ -11,8 +11,9 @@ type CampaignView = "map" | "first-shift" | GarageChapterId;
 
 /**
  * The SOLID campaign: five chapters in one garage. Mission 1 (the first
- * shift, SRP) unlocks the rest; each later chapter unlocks the next. Every
- * completion is recorded and feeds the competency ledger.
+ * shift, SRP) is the recommended start, but every chapter remains open for
+ * pressure-free exploration and revisiting. Every completion is recorded
+ * and feeds the competency ledger.
  */
 export function SolidCampaign() {
   const [view, setView] = useState<CampaignView>("map");
@@ -41,7 +42,6 @@ export function SolidCampaign() {
 
 function CampaignMap({ progress, onOpen }: { progress: GarageProgress; onOpen: (view: CampaignView) => void }) {
   const chapters = useMemo(() => {
-    const srpDone = !!progress.firstShift;
     const rows: {
       view: CampaignView;
       order: number;
@@ -49,7 +49,7 @@ function CampaignMap({ progress, onOpen }: { progress: GarageProgress; onOpen: (
       title: string;
       hook: string;
       score?: number;
-      unlocked: boolean;
+      recommended?: boolean;
     }[] = [
       {
         view: "first-shift",
@@ -58,10 +58,8 @@ function CampaignMap({ progress, onOpen }: { progress: GarageProgress; onOpen: (
         title: "Your First Shift",
         hook: "Feel a manual process break, then put behavior beside the data it reads.",
         score: progress.firstShift?.bestScore,
-        unlocked: true,
       },
     ];
-    let previousDone = srpDone;
     for (const mission of SOLID_CHAPTER_MISSIONS) {
       const record = progress.chapters?.[mission.id];
       rows.push({
@@ -71,11 +69,10 @@ function CampaignMap({ progress, onOpen }: { progress: GarageProgress; onOpen: (
         title: mission.title,
         hook: mission.hook,
         score: record?.bestScore,
-        unlocked: previousDone,
       });
-      previousDone = !!record;
     }
-    return rows;
+    const recommendedIndex = rows.findIndex((chapter) => chapter.score === undefined);
+    return rows.map((chapter, index) => ({ ...chapter, recommended: index === recommendedIndex }));
   }, [progress]);
 
   const completed = chapters.filter((chapter) => chapter.score !== undefined).length;
@@ -97,8 +94,7 @@ function CampaignMap({ progress, onOpen }: { progress: GarageProgress; onOpen: (
             <button
               key={chapter.view}
               type="button"
-              className={done ? "campaign-card is-done" : chapter.unlocked ? "campaign-card" : "campaign-card is-locked"}
-              disabled={!chapter.unlocked}
+              className={done ? "campaign-card is-done" : "campaign-card"}
               onClick={() => onOpen(chapter.view)}
             >
               <header>
@@ -108,21 +104,21 @@ function CampaignMap({ progress, onOpen }: { progress: GarageProgress; onOpen: (
                   <span className="campaign-state is-done">
                     <CheckCircle size={16} weight="fill" /> {chapter.score}%
                   </span>
-                ) : chapter.unlocked ? (
+                ) : chapter.recommended ? (
                   <span className="campaign-state">
-                    <Play size={14} weight="fill" /> Play
+                    <Play size={14} weight="fill" /> Recommended next
                   </span>
                 ) : (
-                  <span className="campaign-state is-locked">
-                    <Lock size={14} weight="fill" /> Finish chapter {chapter.order - 1}
+                  <span className="campaign-state">
+                    <Play size={14} weight="fill" /> Open anytime
                   </span>
                 )}
               </header>
               <strong>{chapter.title}</strong>
               <p>{chapter.hook}</p>
-              {chapter.unlocked && !done && (
+              {!done && (
                 <span className="campaign-cta">
-                  Start <ArrowRight size={14} />
+                  {chapter.recommended ? "Start here" : "Open chapter"} <ArrowRight size={14} />
                 </span>
               )}
             </button>

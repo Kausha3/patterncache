@@ -1,0 +1,22 @@
+{
+  "headers": [
+    {
+      "source": "/java/ecj-3.26.0.jar",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/java/pc-ecj-v1.jar",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}

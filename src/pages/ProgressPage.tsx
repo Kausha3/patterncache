@@ -18,6 +18,7 @@ import { loadHldVerificationProgress } from "@/game/hldVerificationProgress";
 import { loadAlgorithmReplayProgress } from "@/game/algorithmReplayProgress";
 import { loadLldVerificationProgress } from "@/game/lldVerificationProgress";
 import { loadParkingLotGauntletProgress } from "@/game/parkingLotGauntletProgress";
+import { loadUrlShortenerJourneyProgress } from "@/game/urlShortenerJourneyProgress";
 import { LLD_VERIFICATION_WORLDS } from "@/arena/lldVerificationWorlds";
 import type { ProgressExport } from "@/game/progressVault";
 import {
@@ -60,6 +61,7 @@ export function ProgressPage() {
   const algorithmReplayProgress = loadAlgorithmReplayProgress();
   const lldWorldRecords = Object.fromEntries(LLD_VERIFICATION_WORLDS.map((world) => [world.id, loadLldVerificationProgress(world).record]));
   const parkingLotRecord = loadParkingLotGauntletProgress().record;
+  const urlShortenerJourney = loadUrlShortenerJourneyProgress();
   const ledger = useMemo(
     () =>
       deriveLedger({
@@ -77,8 +79,9 @@ export function ProgressPage() {
         algorithmReplayRecords: algorithmReplayProgress.records,
         lldWorldRecords,
         parkingLotRecord,
+        urlShortenerJourney,
       }),
-    [forgeProgress, garageProgress, exerciseProgress, mockSessions, hldProgress.records, algorithmReplayProgress.records, lldWorldRecords, parkingLotRecord, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
+    [forgeProgress, garageProgress, exerciseProgress, mockSessions, hldProgress.records, algorithmReplayProgress.records, lldWorldRecords, parkingLotRecord, urlShortenerJourney, game.codingCombatScores, game.lldStudioScores, game.arenaScores, game.challengeCheckpoints, dailyTargetTitles, amazonRecords],
   );
   const summary = useMemo(() => summarizeLedger(ledger), [ledger]);
   const recent = ledger.slice(0, 8);

@@ -20,18 +20,43 @@ declare global {
     cheerpOSAddStringFile?: (path: string, data: string | Uint8Array) => void;
     cheerpjAddStringFile?: (path: string, data: string | Uint8Array) => void;
     cjFileBlob?: (path: string) => Promise<Blob>;
+    __patternCacheJavaReady?: boolean;
   }
 }
 
 const CHEERPJ_LOADER_URL = "https://cjrtnc.leaningtech.com/4.3/loader.js";
-// Both entries must be jars: CheerpJ's /app/ filesystem is HTTP-backed and
-// cannot treat a served directory as a classpath entry.
-const COMPILER_CLASSPATH = "/app/java/pc.jar:/app/java/tools.jar";
+// Eclipse ECJ is a self-contained Java 8 compiler. It replaces the 17 MB
+// JDK tools.jar path that made a cold successful compilation exceed the
+// timeout on ordinary laptops. Both entries must be jars because CheerpJ's
+// /app/ filesystem is HTTP-backed.
+const ECJ_COMPILER_CLASSPATH = "/app/java/pc-ecj-v1.jar:/app/java/ecj-3.26.0.jar";
+const JAVAC_FALLBACK_CLASSPATH = "/app/java/pc.jar:/app/java/tools.jar";
+const COMPILER_ASSET_URLS = ["/java/pc-ecj-v1.jar", "/java/ecj-3.26.0.jar"] as const;
 
 export class JavaTimeoutError extends Error {}
 
 let bootPromise: Promise<void> | undefined;
 let runInProgress = false;
+
+function traceJavaStage(stage: string, startedAt: number, detail?: Record<string, unknown>): void {
+  console.info("[java-runtime]", {
+    stage,
+    durationMs: Math.round(performance.now() - startedAt),
+    ...detail,
+  });
+}
+
+async function prefetchCompilerAssets(): Promise<void> {
+  const startedAt = performance.now();
+  await Promise.all(COMPILER_ASSET_URLS.map(async (url) => {
+    const response = await fetch(url, { cache: "force-cache" });
+    if (!response.ok) throw new Error(`The Java compiler asset ${url} returned HTTP ${response.status}.`);
+    // Consume the response so the complete jar is in the HTTP cache before
+    // CheerpJ mounts the same URL through /app/.
+    await response.arrayBuffer();
+  }));
+  traceJavaStage("compiler-assets-ready", startedAt, { assets: COMPILER_ASSET_URLS.length });
+}
 
 function injectLoaderScript(): Promise<void> {
   if (typeof window.cheerpjInit === "function") return Promise.resolve();
@@ -65,13 +90,29 @@ function injectLoaderScript(): Promise<void> {
  * a failed boot clears the cached promise so the next call retries.
  */
 export function ensureJavaRuntime(): Promise<void> {
+  if (window.__patternCacheJavaReady) return Promise.resolve();
   if (!bootPromise) {
     bootPromise = (async () => {
+      const startedAt = performance.now();
+      const compilerAssets = prefetchCompilerAssets();
       await injectLoaderScript();
       if (typeof window.cheerpjInit !== "function") {
         throw new Error("The Java runtime script loaded but did not expose its entry point.");
       }
-      await window.cheerpjInit({ version: 8, status: "none" });
+      try {
+        await Promise.all([
+          window.cheerpjInit({ version: 8, status: "none" }),
+          compilerAssets,
+        ]);
+      } catch (error) {
+        // Vite can replace this module without replacing the page-wide JVM.
+        // Treat CheerpJ's explicit response as proof that the existing
+        // singleton is usable instead of breaking the next learner run.
+        if (!(error instanceof Error) || !error.message.includes("Already initialized")) throw error;
+        await compilerAssets;
+      }
+      window.__patternCacheJavaReady = true;
+      traceJavaStage("runtime-ready", startedAt);
     })().catch((error: unknown) => {
       bootPromise = undefined;
       throw error instanceof Error ? error : new Error("The Java runtime failed to start.");
@@ -118,8 +159,8 @@ export interface JavaCompileOutcome {
 }
 
 /**
- * Compile the given sources with javac (via the PcCompile wrapper, which
- * captures diagnostics to a file). Returns the compiler's own exit status
+ * Compile the given sources with ECJ (with javac as a compatibility fallback)
+ * and capture diagnostics to a file. Returns the compiler's own exit status
  * and full diagnostic text.
  */
 export async function compileJava(
@@ -130,14 +171,32 @@ export async function compileJava(
     throw new Error("The Java runtime is not ready. Run again once it finishes loading.");
   }
   for (const source of sources) writeStringFile(source.path, source.content);
-  await window.cheerpjRunMain(
-    "PcCompile",
-    COMPILER_CLASSPATH,
-    logPath,
-    "-d",
-    "/files/",
-    ...sources.map((source) => source.path),
-  );
+  const compilerStartedAt = performance.now();
+  let compiler = "ecj";
+  try {
+    await window.cheerpjRunMain(
+      "PcEcjCompile",
+      ECJ_COMPILER_CLASSPATH,
+      logPath,
+      "-8",
+      "-proc:none",
+      "-nowarn",
+      "-d",
+      "/files/",
+      ...sources.map((source) => source.path),
+    );
+  } catch (ecjError) {
+    compiler = "javac-fallback";
+    console.warn("[java-runtime] ECJ failed to start; falling back to javac.", ecjError);
+    await window.cheerpjRunMain(
+      "PcCompile",
+      JAVAC_FALLBACK_CLASSPATH,
+      logPath,
+      "-d",
+      "/files/",
+      ...sources.map((source) => source.path),
+    );
+  }
   const log = await readVirtualFile(logPath);
   if (log === undefined) {
     throw new Error("The compiler finished but its log could not be read. Run again; reload the page if this repeats.");
@@ -149,6 +208,7 @@ export async function compileJava(
   if (Number.isNaN(status)) {
     throw new Error("The compiler log had an unexpected shape. Run again; reload the page if this repeats.");
   }
+  traceJavaStage("compile-finished", compilerStartedAt, { compiler, ok: status === 0, sources: sources.length });
   return { ok: status === 0, log: diagnostics.trim() };
 }
 

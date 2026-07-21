@@ -20,7 +20,7 @@ import {
 export type JavaRunStage = "loading-runtime" | "compiling" | "running";
 
 const RUNTIME_TIMEOUT_MS = 180_000;
-const COMPILE_TIMEOUT_MS = 150_000;
+const COMPILE_TIMEOUT_MS = 90_000;
 const RUN_TIMEOUT_MS = 60_000;
 
 let runCounter = 0;
@@ -36,12 +36,32 @@ export async function runJavaProgram(
   options: { onStage?: (stage: JavaRunStage) => void } = {},
 ): Promise<JavaProgramOutcome> {
   let releaseLock: (() => void) | undefined;
+  const keepLockUntilSettled = <T,>(work: Promise<T>) => {
+    const release = releaseLock;
+    releaseLock = undefined;
+    void work.then(
+      () => release?.(),
+      () => release?.(),
+    );
+  };
+  const runWithGuard = async <T,>(work: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+    try {
+      return await withTimeout(work, timeoutMs, message);
+    } catch (error) {
+      // A Promise timeout cannot cancel WebAssembly already executing. Keep
+      // the shared JVM locked until that operation actually settles so a
+      // retry never overlaps the previous compiler or test process.
+      if (error instanceof JavaTimeoutError) keepLockUntilSettled(work);
+      throw error;
+    }
+  };
   try {
     releaseLock = acquireRunLock();
 
     options.onStage?.("loading-runtime");
-    await withTimeout(
-      ensureJavaRuntime(),
+    const runtimeWork = ensureJavaRuntime();
+    await runWithGuard(
+      runtimeWork,
       RUNTIME_TIMEOUT_MS,
       "The Java runtime took too long to load. Check your connection and run again.",
     );
@@ -52,13 +72,14 @@ export async function runJavaProgram(
     const reportPath = `/files/pc-report-${runId}.json`;
 
     options.onStage?.("compiling");
-    const compiled = await withTimeout(
-      compileJava(
-        sources.map((source) => ({ path: `/str/${source.fileName}`, content: source.content })),
-        logPath,
-      ),
+    const compileWork = compileJava(
+      sources.map((source) => ({ path: `/str/${source.fileName}`, content: source.content })),
+      logPath,
+    );
+    const compiled = await runWithGuard(
+      compileWork,
       COMPILE_TIMEOUT_MS,
-      "Compilation took too long. Run again; reload the page if this repeats.",
+      "Compilation took too long. The compiler is still finishing safely in the background; retry when the Run button becomes available.",
     );
     if (!compiled.ok) {
       // The learner knows files by name, not by their virtual mount path.
@@ -66,10 +87,11 @@ export async function runJavaProgram(
     }
 
     options.onStage?.("running");
-    const exitCode = await withTimeout(
-      runJavaClass(mainClassName, [reportPath]),
+    const runWork = runJavaClass(mainClassName, [reportPath]);
+    const exitCode = await runWithGuard(
+      runWork,
       RUN_TIMEOUT_MS,
-      "The tests took too long. Look for an infinite loop; reload the page if the run never settles.",
+      "The tests took too long. Look for an infinite loop; the JVM will unlock after this run actually stops.",
     );
     const rawReport = await readVirtualFile(reportPath);
     if (rawReport === undefined) {

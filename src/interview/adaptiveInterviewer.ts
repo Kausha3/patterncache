@@ -77,7 +77,7 @@ function assessmentSummary(assessment: AnswerAssessment): string {
     `${score.name}: ${score.hits}/${score.total} signal groups; anti-signals: ${score.antiSignalsTripped.join(", ") || "none"}`,
   );
   return [
-    `STAR: situation=${assessment.star.situation}, action=${assessment.star.action}, result=${assessment.star.result}, metric=${assessment.star.metric}`,
+    `STAR: situation=${assessment.star.situation}, task=${assessment.star.task}, action=${assessment.star.action}, result=${assessment.star.result}, metric=${assessment.star.metric}`,
     `Words=${assessment.wordCount}; ownership ratio=${Math.round(assessment.ownershipRatio * 100)}%; filler count=${assessment.fillerCount}`,
     ...dimensions,
   ].join("\n");

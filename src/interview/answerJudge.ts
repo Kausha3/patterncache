@@ -22,6 +22,7 @@ export interface DimensionScore {
 
 export interface StarReading {
   situation: boolean;
+  task: boolean;
   action: boolean;
   result: boolean;
   metric: boolean;
@@ -39,6 +40,7 @@ export interface AnswerAssessment {
 }
 
 const SITUATION_CUES = ["the situation", "at the time", "context", "we had", "there was", "last year", "when i was", "the problem was", "my team was"];
+const TASK_CUES = ["my task", "my responsibility", "i was responsible", "my goal", "the goal was", "i needed to", "i had to", "i was asked", "success meant", "i owned it"];
 const ACTION_CUES = ["so i", "i decided", "i built", "i wrote", "i designed", "i proposed", "first i", "then i", "my approach", "i started", "i asked", "i took"];
 const RESULT_CUES = ["as a result", "the result", "in the end", "shipped", "landed", "outcome", "which meant", "so now", "after that", "it worked", "we went from"];
 const METRIC_PATTERN = /(\d+(?:[.,]\d+)?\s*(?:%|percent|x\b|ms\b|s\b|seconds|minutes|hours|days|users|customers|requests|qps|dollars)|\$\s?\d)/i;
@@ -81,6 +83,7 @@ export function assessAnswer(
 
   const star: StarReading = {
     situation: includesAny(answer, SITUATION_CUES),
+    task: includesAny(answer, TASK_CUES),
     action: includesAny(answer, ACTION_CUES),
     result: includesAny(answer, RESULT_CUES),
     metric: METRIC_PATTERN.test(rawAnswer),
@@ -104,6 +107,7 @@ export function assessAnswer(
     if (wordCount < 60) coaching.push("Too thin to score well in a real room. A strong story runs 1.5 to 2 minutes spoken, roughly 150 to 250 words.");
     if (wordCount > 400) coaching.push("This is running long. Interviewers stop listening around the two minute mark; tighten to the one situation, your three key actions, and the result.");
     if (!star.situation) coaching.push("No situation setup detected. Give two sentences of context before your actions, or the story floats.");
+    if (!star.task) coaching.push("Your responsibility is not explicit. State the goal, what you personally owned, and what made success difficult before describing the actions.");
     if (!star.action) coaching.push("Your specific actions are hard to find. Use 'I decided', 'I built', 'so I' and walk the steps.");
     if (!star.result) coaching.push("The story does not visibly land. End with what changed: shipped, fixed, adopted, faster.");
     if (!star.metric) coaching.push("No number anywhere. One honest metric (before and after) is the single strongest upgrade to this answer.");
@@ -120,7 +124,7 @@ export function assessAnswer(
     }
   }
   if (coaching.length === 0) {
-    coaching.push("Structurally strong: context, your actions, a measured result, and the signals this company listens for. Now pressure-test it with the follow-ups.");
+    coaching.push("Structurally strong: situation, your responsibility, your actions, a measured result, and the signals this company listens for. Now pressure-test it with the follow-ups.");
   }
 
   const selfReview = [

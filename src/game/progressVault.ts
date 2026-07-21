@@ -28,6 +28,8 @@ export const KNOWN_STORES: { key: string; label: string }[] = [
   { key: "patterncache.algorithm-replays.v1", label: "Algorithm replay worlds" },
   { key: "patterncache.beginner-study.v1", label: "Beginner learning-study sessions" },
   { key: "patterncache.parking-lot-gauntlet.v1", label: "Parking Lot verification world" },
+  { key: "patterncache.url-shortener-architect.v1", label: "URL Shortener architecture workshop" },
+  { key: "patterncache.url-shortener-journey.v1", label: "URL Shortener golden journey" },
   { key: "patterncache.lld-verification.circular-buffer.v1", label: "Circular Buffer verification world" },
   { key: "patterncache.lld-verification.lru-cache.v1", label: "LRU Cache verification world" },
   { key: "patterncache.lld-verification.amazon-locker.v1", label: "Amazon Locker verification world" },

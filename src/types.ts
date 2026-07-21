@@ -204,7 +204,7 @@ export interface CodeExercise {
   reference: string;
   /** What a correct solution must handle — self-checked against the learner's own code, not scored. */
   checklist: string[];
-  /** When present, the exercise runs for real: javac + JVM in the browser. */
+  /** When present, the exercise runs for real: Java 8 compiler + JVM in the browser. */
   java?: JavaExerciseSpec;
 }
 

@@ -37,12 +37,14 @@ describe("progress vault", () => {
     localStorage.setItem("patterncache.garage.v1", JSON.stringify({ firstShift: { bestScore: 90, attempts: 1, completedAt: 5, completions: 1 } }));
     localStorage.setItem("patterncache.exercises.v1", JSON.stringify({ "parking-lot:m5": { label: "assignVehicle", attempts: 2, passedAt: 9 } }));
     localStorage.setItem("patterncache.game.v1", JSON.stringify({ xp: 1176 }));
+    localStorage.setItem("patterncache.url-shortener-architect.v1", JSON.stringify({ currentIncidentIndex: 4, edges: [{ id: "browser->edge" }] }));
+    localStorage.setItem("patterncache.url-shortener-journey.v1", JSON.stringify({ experienceCompletedAt: 12, interviewRecord: { completedAt: 99 } }));
 
     const exported = exportProgress(1234);
     expect(exported.format).toBe(VAULT_FORMAT);
     expect(exported.version).toBe(VAULT_VERSION);
     expect(exported.exportedAt).toBe(1234);
-    expect(Object.keys(exported.stores)).toHaveLength(3);
+    expect(Object.keys(exported.stores)).toHaveLength(5);
 
     localStorage.clear();
     expect(localStorage.getItem("patterncache.garage.v1")).toBeNull();
@@ -52,12 +54,22 @@ describe("progress vault", () => {
       "patterncache.exercises.v1",
       "patterncache.game.v1",
       "patterncache.garage.v1",
+      "patterncache.url-shortener-architect.v1",
+      "patterncache.url-shortener-journey.v1",
     ]);
     expect(summary.skipped).toEqual([]);
     expect(JSON.parse(localStorage.getItem("patterncache.garage.v1")!)).toEqual({
       firstShift: { bestScore: 90, attempts: 1, completedAt: 5, completions: 1 },
     });
     expect(JSON.parse(localStorage.getItem("patterncache.game.v1")!)).toEqual({ xp: 1176 });
+    expect(JSON.parse(localStorage.getItem("patterncache.url-shortener-architect.v1")!)).toEqual({
+      currentIncidentIndex: 4,
+      edges: [{ id: "browser->edge" }],
+    });
+    expect(JSON.parse(localStorage.getItem("patterncache.url-shortener-journey.v1")!)).toEqual({
+      experienceCompletedAt: 12,
+      interviewRecord: { completedAt: 99 },
+    });
   });
 
   it("skips empty and corrupt stores on export instead of failing", () => {
@@ -120,6 +132,8 @@ describe("progress vault", () => {
       "patterncache.parking-lot-gauntlet.v1",
       "patterncache.pattern-genome.v1",
       "patterncache.progress.v1",
+      "patterncache.url-shortener-architect.v1",
+      "patterncache.url-shortener-journey.v1",
     ]);
   });
 });

@@ -47,12 +47,14 @@ const KIND_META: Record<CourseTaskKind, { label: string; tone: string }> = {
 };
 
 function defaultPreferences(): CoursePreferences {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
   return {
     company: "amazon",
     level: "L4",
-    length: 15,
-    dailyMinutes: 120,
-    startDate: formatLocalDate(new Date()),
+    length: 20,
+    dailyMinutes: 150,
+    startDate: formatLocalDate(tomorrow),
   };
 }
 
@@ -122,7 +124,7 @@ export function CoursePage() {
         onSave={() => {
           savePreferences({
             ...draft,
-            startDate: preferences?.startDate ?? formatLocalDate(new Date()),
+            startDate: preferences?.startDate ?? draft.startDate,
             interviewDate: draft.interviewDate || undefined,
           });
           setEditing(false);
@@ -162,7 +164,7 @@ export function CoursePage() {
           </div>
           <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.65px" }}>Your interview campaign</h1>
           <p style={{ color: color.textDim, maxWidth: 660 }}>
-            Every technical task completes from real mission evidence. Today gives you one next action, then brings weak work back on a 1/3/7-day review loop.
+            The 20-day plan covers every Must-do and Good-to-do, ten resume-backed STAR stories, eleven technical-Q&amp;A areas, and all four Amazon interview rounds. Today keeps the next action clear and brings weak work back on a 1/3/7-day review loop.
           </p>
         </div>
         <Button variant="ghost" onClick={() => {
@@ -379,7 +381,7 @@ function CourseSetup({
           Build the plan you can actually follow.
         </h1>
         <p style={{ color: color.textDim, maxWidth: 650, lineHeight: 1.65 }}>
-          Start with Amazon, choose the level and runway, and PatternCache will schedule every must-do DSA and LLD mission once before the final mocks. Technical work completes only when its verifier passes.
+          This course follows the confirmed four-round Amazon US New Grad format. The 20-day plan schedules every Must-do and Good-to-do, ten recent STAR stories, technical Q&amp;A, coding communication, and four full mock rounds. System design is excluded from the urgent schedule because your recruiter explicitly said to disregard it.
         </p>
       </header>
 
@@ -404,7 +406,7 @@ function CourseSetup({
 
         <SetupSection label="Runway">
           <div className="plan-choice-grid">
-            {([15, 30] as CourseLength[]).map((length) => {
+            {([15, 20, 30] as CourseLength[]).map((length) => {
               const selected = draft.length === length;
               return (
                 <button
@@ -419,7 +421,11 @@ function CourseSetup({
                 >
                   <span style={{ fontFamily: font.mono, fontSize: 19, fontWeight: 700 }}>{length} days</span>
                   <span style={{ color: color.textDim, fontSize: 13, lineHeight: 1.5 }}>
-                    {length === 15 ? "Interview sprint · faster, denser days" : "Full course · more repetition and recovery"}
+                    {length === 15
+                      ? "Emergency sprint · every Must-do, four mock rounds"
+                      : length === 20
+                        ? "Recommended · all Must-do and Good-to-do, four rounds"
+                        : "Full runway · all coverage plus nine recovery days"}
                   </span>
                 </button>
               );
@@ -434,6 +440,16 @@ function CourseSetup({
 
         <div className="setup-input-grid">
           <label style={{ display: "grid", gap: 7 }}>
+            <Eyebrow>Start date</Eyebrow>
+            <input
+              type="date"
+              min={formatLocalDate(new Date())}
+              value={draft.startDate}
+              onChange={(event) => onChange({ ...draft, startDate: event.target.value })}
+              className="setup-input"
+            />
+          </label>
+          <label style={{ display: "grid", gap: 7 }}>
             <Eyebrow>Daily target</Eyebrow>
             <select
               value={draft.dailyMinutes}
@@ -444,6 +460,7 @@ function CourseSetup({
               <option value={90}>90 minutes</option>
               <option value={120}>2 hours</option>
               <option value={150}>2.5 hours</option>
+              <option value={180}>3 hours</option>
             </select>
           </label>
           <label style={{ display: "grid", gap: 7 }}>

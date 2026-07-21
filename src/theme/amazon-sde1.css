@@ -440,6 +440,10 @@
 }
 .amazon-question-card.track-lld { --track-tone: var(--violet); }
 .amazon-question-card.status-ready { border-color: rgba(130, 184, 114, 0.36); }
+.amazon-question-card.is-focused {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(214, 165, 66, 0.16), 0 18px 44px rgba(0, 0, 0, 0.24);
+}
 .amazon-question-topline { display: flex; gap: 8px; align-items: center; color: var(--text-faint); font: 700 9.5px var(--mono); }
 .amazon-question-number { color: var(--track-tone); }
 .amazon-question-track { padding: 2px 6px; border-radius: 999px; background: color-mix(in srgb, var(--track-tone) 11%, transparent); color: var(--track-tone); }

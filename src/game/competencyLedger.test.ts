@@ -10,6 +10,15 @@ import type { LedgerInputs } from "./competencyLedger";
 import { PATTERN_GENOME_MAX_SCORE } from "@/arena/patternGenomeEngine";
 import { PATTERN_GENOME_MISSION_IDS } from "@/arena/patternGenomeMissions";
 import { CODING_COMBAT_MISSION_IDS, LLD_STUDIO_MISSION_IDS } from "@/arena/types";
+import {
+  URL_ARCHITECT_PARTS,
+  addUrlArchitectPart,
+  connectUrlArchitectParts,
+  type UrlArchitectPartId,
+  type UrlArchitectState,
+} from "@/arena/urlShortenerArchitectEngine";
+import { createIndependentUrlGraph } from "@/arena/urlShortenerJourneyEngine";
+import { createUrlShortenerJourneyProgress } from "@/game/urlShortenerJourneyProgress";
 
 const FORGE_ID = PATTERN_GENOME_MISSION_IDS[0];
 const COMBAT_ID = CODING_COMBAT_MISSION_IDS[0];
@@ -24,6 +33,41 @@ function emptyInputs(): LedgerInputs {
     challengeCheckpoints: {},
   };
 }
+
+function buildUrlGraph(edges: [UrlArchitectPartId, UrlArchitectPartId][]): UrlArchitectState {
+  let graph = createIndependentUrlGraph();
+  for (const [index, part] of URL_ARCHITECT_PARTS.filter((candidate) => candidate.id !== "browser").entries()) {
+    graph = addUrlArchitectPart(graph, part.id, 40 + index * 20, 40 + index * 20);
+  }
+  for (const [from, to] of edges) graph = connectUrlArchitectParts(graph, from, to);
+  return graph;
+}
+
+const TRANSFER_GRAPH = buildUrlGraph([
+  ["browser", "edge"],
+  ["edge", "redirect"],
+  ["redirect", "cache"],
+  ["cache", "link-store"],
+  ["redirect", "queue"],
+  ["queue", "analytics"],
+]);
+
+const INTERVIEW_GRAPH = buildUrlGraph([
+  ["browser", "edge"],
+  ["edge", "redirect"],
+  ["redirect", "cache"],
+  ["cache", "link-store"],
+  ["edge", "creator"],
+  ["creator", "id-allocator"],
+  ["creator", "link-store"],
+  ["redirect", "queue"],
+  ["queue", "analytics"],
+  ["cache", "replicas"],
+  ["monitor", "replicas"],
+]);
+
+const TRANSFER_REASONING = "The hot cache keeps frequent reads close to the profile reader so latency stays low. The permanent database remains the durable source of truth because cache entries can disappear. Ranking analytics moves through an event queue and runs later in the background, so the user response never waits for slow counting work.";
+const INTERVIEW_REASONING = "The workload is read-heavy, so I use a cache for low latency and keep the database as the durable source of truth. Link creation uses a unique ID allocator before persistence. Analytics crosses a queue instead of blocking the response. During a replica outage, health monitoring removes the failed copy. The tradeoff is more infrastructure and eventual analytics consistency, which I accept because redirects stay available.";
 
 describe("competency ledger derivation", () => {
   it("returns no evidence for a fresh learner", () => {
@@ -112,6 +156,75 @@ describe("competency ledger derivation", () => {
     expect(entries.filter((entry) => entry.source === "algorithm-replay")).toHaveLength(2);
     expect(entries.filter((entry) => entry.source === "lld-world")).toHaveLength(3);
     expect(entries.every((entry) => entry.verified)).toBe(true);
+  });
+
+  it("derives verified evidence from each demonstrated Golden Journey stage", () => {
+    const inputs = emptyInputs();
+    inputs.urlShortenerJourney = {
+      ...createUrlShortenerJourneyProgress(),
+      experienceCompletedAt: 7_000,
+      transferDraft: TRANSFER_GRAPH,
+      transferReasoning: TRANSFER_REASONING,
+      transferRuns: 2,
+      transferRecord: { completedAt: 8_000, runs: 2 },
+      interviewRecord: {
+        completedAt: 9_000,
+        durationSeconds: 2_700,
+        elapsedSeconds: 2_100,
+        graph: INTERVIEW_GRAPH,
+        reasoning: INTERVIEW_REASONING,
+        assessment: { score: 0, rubric: [], strengths: [], gaps: [] },
+      },
+    };
+
+    const entries = deriveLedger(inputs).filter((entry) => entry.source === "golden-journey");
+    expect(entries.map((entry) => entry.kind).sort()).toEqual(["explained", "observed-failure", "transferred"]);
+    expect(entries.every((entry) => entry.verified)).toBe(true);
+    expect(entries.find((entry) => entry.kind === "explained")?.label).toContain("100% timed architecture evidence");
+  });
+
+  it("does not turn an incomplete transfer or weak timed attempt into mastery", () => {
+    const inputs = emptyInputs();
+    inputs.urlShortenerJourney = {
+      ...createUrlShortenerJourneyProgress(),
+      transferRecord: { completedAt: 8_000, runs: 1 },
+      interviewRecord: {
+        completedAt: 9_000,
+        durationSeconds: 1_800,
+        elapsedSeconds: 60,
+        graph: INTERVIEW_GRAPH,
+        reasoning: "Scale the read-heavy traffic with low latency, keep a durable source of truth, accept the cache cost as a tradeoff, and degrade during an outage.",
+        assessment: { score: 100, rubric: [], strengths: [], gaps: [] },
+      },
+    };
+
+    expect(deriveLedger(inputs).filter((entry) => entry.source === "golden-journey")).toHaveLength(0);
+  });
+
+  it("keeps strongest timed evidence when the latest debrief is weaker", () => {
+    const inputs = emptyInputs();
+    const strong = {
+      completedAt: 9_000,
+      durationSeconds: 2_700,
+      elapsedSeconds: 2_100,
+      graph: INTERVIEW_GRAPH,
+      reasoning: INTERVIEW_REASONING,
+      assessment: { score: 0, rubric: [], strengths: [], gaps: [] },
+    };
+    inputs.urlShortenerJourney = {
+      ...createUrlShortenerJourneyProgress(),
+      bestInterviewRecord: strong,
+      interviewRecord: {
+        ...strong,
+        completedAt: 10_000,
+        graph: createIndependentUrlGraph(),
+        reasoning: "I am still learning this one.",
+      },
+    };
+
+    const entry = deriveLedger(inputs).find((candidate) => candidate.id === "golden-url-shortener-explained");
+    expect(entry?.label).toContain("100% timed architecture evidence");
+    expect(entry?.at).toBe(9_000);
   });
 
   it("records defend checkpoints as self-attested explanation evidence", () => {

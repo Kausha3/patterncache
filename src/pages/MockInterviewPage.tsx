@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Divider, Eyebrow, Panel } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { InterviewSpeechControls } from "@/components/InterviewSpeechControls";
@@ -14,6 +14,13 @@ import type { AnswerAssessment } from "@/interview/answerJudge";
 import { saveMockSession } from "@/interview/mockSessionStore";
 import { createAdaptiveFollowUp, requestAdaptiveInterviewTurn } from "@/interview/adaptiveInterviewer";
 import type { AdaptiveInterviewConfig, AdaptiveInterviewTurn } from "@/interview/adaptiveInterviewer";
+import {
+  AMAZON_PROFILE_DIMENSION_BY_PRINCIPLE,
+  AMAZON_STAR_BLUEPRINT,
+  getAmazonBehavioralMission,
+  getAmazonLeadershipPrinciple,
+  type AmazonBehavioralMission,
+} from "@/content/amazonInterviewReadiness";
 import { color, font, radius } from "@/theme/tokens";
 
 /**
@@ -32,8 +39,13 @@ interface AnsweredQuestion {
 
 export function MockInterviewPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMission = getAmazonBehavioralMission(searchParams.get("mission"));
+  const requestedCompany = getCompanyProfile(searchParams.get("company") ?? "") ? searchParams.get("company")! : "general";
   const [step, setStep] = useState<Step>("setup");
-  const [companyId, setCompanyId] = useState("general");
+  const [companyId, setCompanyId] = useState(requestedMission ? "amazon" : requestedCompany);
+  const [showFullSetup, setShowFullSetup] = useState(!requestedMission);
+  const [storyAnchor, setStoryAnchor] = useState("");
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
   const [facts, setFacts] = useState<ResumeFacts>();
@@ -83,6 +95,37 @@ export function MockInterviewPage() {
     const generated = generateInterviewPlan(profile, facts, fit);
     setPlan(generated);
     setFlatQuestions(generated.rounds.flatMap((round) => round.questions));
+    setQuestionIndex(0);
+    setAnswered([]);
+    setAnswerDraft("");
+    setCurrentAssessment(undefined);
+    setAdaptiveRequestsUsed(0);
+    clearAdaptiveResponse();
+    setStep("interview");
+  };
+
+  const startStoryMission = (mission: AmazonBehavioralMission) => {
+    const round = {
+      id: `story-${mission.id}`,
+      kind: "behavioral" as const,
+      title: "Amazon STAR story lab",
+      purpose: "One recent resume-backed event, followed by evidence-seeking probes.",
+      dimensionIds: mission.principleIds.map((id) => AMAZON_PROFILE_DIMENSION_BY_PRINCIPLE[id]),
+      questionCount: 1,
+    };
+    const question: PlannedQuestion = {
+      id: `amazon-story-${mission.id}`,
+      roundId: round.id,
+      kind: round.kind,
+      text: `Resume anchor: "${storyAnchor.trim()}". ${mission.prompt}`,
+      dimensionIds: round.dimensionIds,
+      source: "archetype",
+      followUps: mission.followUps,
+    };
+    const generated: InterviewPlan = { companyId: "amazon", rounds: [{ round, questions: [question] }] };
+    setCompanyId("amazon");
+    setPlan(generated);
+    setFlatQuestions([question]);
     setQuestionIndex(0);
     setAnswered([]);
     setAnswerDraft("");
@@ -193,7 +236,17 @@ export function MockInterviewPage() {
         </p>
       </header>
 
-      {step === "setup" && (
+      {step === "setup" && requestedMission && !showFullSetup && (
+        <AmazonStoryMissionSetup
+          mission={requestedMission}
+          storyAnchor={storyAnchor}
+          onStoryAnchor={setStoryAnchor}
+          onStart={() => startStoryMission(requestedMission)}
+          onFullInterview={() => setShowFullSetup(true)}
+        />
+      )}
+
+      {step === "setup" && (!requestedMission || showFullSetup) && (
         <SetupStep
           companyId={companyId}
           onCompany={setCompanyId}
@@ -260,6 +313,73 @@ export function MockInterviewPage() {
           onPractice={() => navigate("/practice")}
         />
       )}
+    </div>
+  );
+}
+
+function AmazonStoryMissionSetup({
+  mission,
+  storyAnchor,
+  onStoryAnchor,
+  onStart,
+  onFullInterview,
+}: {
+  mission: AmazonBehavioralMission;
+  storyAnchor: string;
+  onStoryAnchor: (value: string) => void;
+  onStart: () => void;
+  onFullInterview: () => void;
+}) {
+  const principles = mission.principleIds.map(getAmazonLeadershipPrinciple);
+  const ready = storyAnchor.trim().length >= 20;
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <Panel style={{ display: "grid", gap: 13 }} raised>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {principles.map((principle) => (
+            <span key={principle.id} style={{ border: `1px solid ${color.amber}55`, borderRadius: radius.pill, padding: "4px 9px", color: color.amber, fontFamily: font.mono, fontSize: 10.5 }}>
+              {principle.name}
+            </span>
+          ))}
+        </div>
+        <div style={{ display: "grid", gap: 6 }}>
+          <Eyebrow tone={color.amber}>Today&apos;s resume-backed story</Eyebrow>
+          <h2 style={{ fontSize: 22 }}>{mission.title}</h2>
+          <p style={{ margin: 0, color: color.text, fontSize: 15, lineHeight: 1.6 }}>{mission.prompt}</p>
+          <p style={{ margin: 0, color: color.textDim, fontSize: 12.5, lineHeight: 1.55 }}>{mission.resumeMiningCue}</p>
+        </div>
+        <label style={{ display: "grid", gap: 7 }}>
+          <Eyebrow>Your one real resume event</Eyebrow>
+          <textarea
+            style={{ ...AREA_STYLE, minHeight: 95 }}
+            value={storyAnchor}
+            onChange={(event) => onStoryAnchor(event.target.value)}
+            placeholder="Name the project, role, incident, or resume bullet you will use. One event only, from the last five years."
+          />
+        </label>
+      </Panel>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
+        {AMAZON_STAR_BLUEPRINT.map((part) => (
+          <Panel key={part.id} style={{ display: "grid", gap: 6, padding: 14 }}>
+            <Eyebrow tone={part.id === "action" ? color.teal : color.textDim}>{part.label} · {part.target}</Eyebrow>
+            <span style={{ color: color.textDim, fontSize: 12, lineHeight: 1.5 }}>{part.coach}</span>
+          </Panel>
+        ))}
+      </div>
+
+      <Panel style={{ display: "grid", gap: 9 }}>
+        <Eyebrow tone={color.teal}>Evidence this answer must contain</Eyebrow>
+        {mission.proof.map((item) => <span key={item} style={{ color: color.textDim, fontSize: 12.5 }}>· {item}</span>)}
+        <Divider />
+        <span style={{ color: color.textFaint, fontSize: 12 }}>Expect these probes: {mission.followUps.join(" Then: ")}</span>
+      </Panel>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <Button icon="play" disabled={!ready} onClick={onStart}>Practice this story aloud</Button>
+        <Button variant="subtle" onClick={onFullInterview}>Use my full resume and JD instead</Button>
+        {!ready ? <span style={{ color: color.textFaint, fontSize: 11.5 }}>Choose the real event first.</span> : null}
+      </div>
     </div>
   );
 }
@@ -571,6 +691,7 @@ function InterviewStep({
         <Panel style={{ display: "grid", gap: 12 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <StarChip label="Situation" on={assessment.star.situation} />
+            <StarChip label="Task" on={assessment.star.task} />
             <StarChip label="Your actions" on={assessment.star.action} />
             <StarChip label="Result" on={assessment.star.result} />
             <StarChip label="A number" on={assessment.star.metric} />

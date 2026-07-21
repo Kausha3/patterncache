@@ -22,7 +22,7 @@ function sanitizePreferences(value: unknown): CoursePreferences | undefined {
   if (!value || typeof value !== "object") return undefined;
   const candidate = value as Partial<CoursePreferences>;
   const dailyMinutes = candidate.dailyMinutes;
-  if (candidate.length !== 15 && candidate.length !== 30) return undefined;
+  if (candidate.length !== 15 && candidate.length !== 20 && candidate.length !== 30) return undefined;
   if (typeof dailyMinutes !== "number" || !Number.isFinite(dailyMinutes) || dailyMinutes <= 0) return undefined;
   if (typeof candidate.startDate !== "string" || !DATE_PATTERN.test(candidate.startDate)) return undefined;
   return {

@@ -25,6 +25,7 @@ const LldVerificationWorldPage = lazy(() => import("@/pages/LldVerificationWorld
 const LldStudioPage = lazy(() => import("@/pages/LldStudioPage").then((module) => ({ default: module.LldStudioPage })));
 const HldWorldsPage = lazy(() => import("@/pages/HldWorldsPage").then((module) => ({ default: module.HldWorldsPage })));
 const HldVerificationWorldPage = lazy(() => import("@/pages/HldVerificationWorldPage").then((module) => ({ default: module.HldVerificationWorldPage })));
+const UrlShortenerGoldenJourneyPage = lazy(() => import("@/pages/UrlShortenerGoldenJourneyPage").then((module) => ({ default: module.UrlShortenerGoldenJourneyPage })));
 const PatternGenomePage = lazy(() => import("@/pages/PatternGenomePage").then((module) => ({ default: module.PatternGenomePage })));
 const AmazonSde1PrepPage = lazy(() => import("@/pages/AmazonSde1PrepPage").then((module) => ({ default: module.AmazonSde1PrepPage })));
 const MockInterviewPage = lazy(() => import("@/pages/MockInterviewPage").then((module) => ({ default: module.MockInterviewPage })));
@@ -111,6 +112,14 @@ export function App() {
             element={
               <Suspense fallback={<PageFallback label="Opening System Design Worlds…" />}>
                 <HldWorldsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/arena/hld-world/url-shortener"
+            element={
+              <Suspense fallback={<PageFallback label="Opening the Link City journey…" />}>
+                <UrlShortenerGoldenJourneyPage />
               </Suspense>
             }
           />
