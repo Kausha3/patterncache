@@ -1,3 +1,5 @@
+import { JAVA_RUNTIME_PRELOAD_RESOURCES } from "./javaRuntimePreload";
+
 /**
  * CheerpJ lifecycle and virtual-file plumbing.
  *
@@ -101,7 +103,11 @@ export function ensureJavaRuntime(): Promise<void> {
       }
       try {
         await Promise.all([
-          window.cheerpjInit({ version: 8, status: "none" }),
+          window.cheerpjInit({
+            version: 8,
+            status: "none",
+            preloadResources: JAVA_RUNTIME_PRELOAD_RESOURCES,
+          }),
           compilerAssets,
         ]);
       } catch (error) {
